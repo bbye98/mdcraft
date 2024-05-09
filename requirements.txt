@@ -1,0 +1,33 @@
+# PRECOMPILED CORE DEPENDENCIES
+matplotlib
+mdanalysis >= 2.2.0
+netcdf4
+numba
+numpy
+pandas
+pint
+scipy
+sympy
+
+# SELF-COMPILED DEPENDENCIES
+# constvplugin or openmm-ic-plugin
+
+# OPTIONAL DEPENDENCIES
+dask
+joblib
+openmm
+
+# DOCUMENTATION DEPENDENCIES
+furo
+numpydoc
+sphinx
+sphinx-copybutton
+
+# TEST DEPENDENCIES
+ase
+coverage
+dynasor
+mdanalysistests
+pytest
+ruff
+tidynamics

@@ -1,0 +1,47 @@
+package:
+  name: mdcraft
+  version: "1.0.0"
+
+source:
+  path: ..
+
+build:
+  noarch: python
+  number: 0
+  script: python -m pip install . -vv
+
+requirements:
+  host:
+    - python >=3.9
+    - pip
+  run:
+    - python >=3.9
+    - matplotlib
+    - mdanalysis >=2.2
+    - netCDF4
+    - numba
+    - numpy
+    - pandas
+    - pint
+    - scipy
+    - sympy
+
+test:
+  imports:
+    - mdcraft
+  commands:
+    - pip check
+  requires:
+    - pip
+
+about:
+  home: https://github.com/bbye98/mdcraft
+  license: GPL-3.0
+  license_file: LICENSE
+  summary: Analysis classes and helper functions for molecular dynamics simulations
+  doc_url: https://bbye98.github.io/mdcraft/
+  dev_url: https://github.com/bbye98/mdcraft
+
+extra:
+  recipe-maintainers:
+    - bbye98

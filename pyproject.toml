@@ -1,0 +1,38 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools"]
+
+[project]
+name = "mdcraft"
+version = "1.0.0"
+authors = [
+  { name = "Benjamin B. Ye", email = "bye@caltech.edu" },
+  { name = "Pierre J. Walker", email = "pjwalker@caltech.edu" },
+  { name = "Alec G. Glisman", email = "aglisman@caltech.edu" }
+]
+classifiers = [
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3"
+]
+dependencies = [
+  "matplotlib",
+  "mdanalysis",
+  "netCDF4",
+  "numba",
+  "numpy",
+  "pandas",
+  "pint",
+  "scipy",
+  "sympy"
+]
+description = ""
+license = { file = "LICENSE" }
+readme = "README.md"
+requires-python = ">=3.9"
+
+[project.urls]
+"Homepage" = "https://github.com/bbye98/mdcraft"
+"Bug Tracker" = "https://github.com/bbye98/mdcraft/issues"

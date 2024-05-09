@@ -1,0 +1,1541 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
+
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/><!-- Generated with Sphinx 7.3.7 and Furo 2024.05.06 -->
+        <title>mdcraft.analysis.profile - MDCraft documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=387cc868" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=36a5483c" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" /
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../index.html"><div class="brand">MDCraft  documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../_static/logo.png" alt="Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">Home</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../api/mdcraft.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/mdcraft.algorithm.html">algorithm</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of algorithm</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.algorithm.accelerated.html">accelerated</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of accelerated</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.accelerated.cosine_sum_1d.html">cosine_sum_1d</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.accelerated.cosine_sum_2d.html">cosine_sum_2d</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.accelerated.cosine_sum_inplace_2d.html">cosine_sum_inplace_2d</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.accelerated.cosine_sum_inplace_parallel_2d.html">cosine_sum_inplace_parallel_2d</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.accelerated.cosine_sum_parallel_2d.html">cosine_sum_parallel_2d</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.accelerated.delta_fourier_transform_1d_1d.html">delta_fourier_transform_1d_1d</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.accelerated.delta_fourier_transform_sum_2d_2d.html">delta_fourier_transform_sum_2d_2d</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.accelerated.delta_fourier_transform_sum_parallel_2d_2d.html">delta_fourier_transform_sum_parallel_2d_2d</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.accelerated.dot_1d_1d.html">dot_1d_1d</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.accelerated.inner_2d_2d.html">inner_2d_2d</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.accelerated.inner_parallel_2d_2d.html">inner_parallel_2d_2d</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.accelerated.pythagorean_trigonometric_identity_1d.html">pythagorean_trigonometric_identity_1d</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.accelerated.pythagorean_trigonometric_identity_1d_1d.html">pythagorean_trigonometric_identity_1d_1d</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.accelerated.sine_sum_1d.html">sine_sum_1d</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.accelerated.sine_sum_2d.html">sine_sum_2d</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.accelerated.sine_sum_inplace_2d.html">sine_sum_inplace_2d</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.accelerated.sine_sum_inplace_parallel_2d.html">sine_sum_inplace_parallel_2d</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.accelerated.sine_sum_parallel_2d.html">sine_sum_parallel_2d</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.algorithm.correlation.html">correlation</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of correlation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.correlation.correlation_fft.html">correlation_fft</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.correlation.correlation_shift.html">correlation_shift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.correlation.msd_fft.html">msd_fft</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.correlation.msd_shift.html">msd_shift</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.algorithm.molecule.html">molecule</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of molecule</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.molecule.center_of_mass.html">center_of_mass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.molecule.radius_of_gyration.html">radius_of_gyration</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.algorithm.topology.html">topology</a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle navigation of topology</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.topology.create_atoms.html">create_atoms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.topology.unwrap.html">unwrap</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.topology.unwrap_edge.html">unwrap_edge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.topology.wrap.html">wrap</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.algorithm.unit.html">unit</a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle navigation of unit</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.unit.get_lj_scaling_factors.html">get_lj_scaling_factors</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.unit.get_scaling_factors.html">get_scaling_factors</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.unit.strip_unit.html">strip_unit</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.algorithm.utility.html">utility</a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle navigation of utility</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.utility.depth_first_search.html">depth_first_search</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.utility.find_connected_nodes.html">find_connected_nodes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.utility.get_closest_factors.html">get_closest_factors</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.utility.rebin.html">rebin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.algorithm.utility.replicate.html">replicate</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/mdcraft.analysis.html">analysis</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of analysis</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.analysis.base.html">base</a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle navigation of base</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.base.DynamicAnalysisBase.html">DynamicAnalysisBase</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.base.Hash.html">Hash</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.base.NumbaAnalysisBase.html">NumbaAnalysisBase</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.base.ParallelAnalysisBase.html">ParallelAnalysisBase</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.base.SerialAnalysisBase.html">SerialAnalysisBase</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.analysis.electrostatics.html">electrostatics</a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle navigation of electrostatics</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.electrostatics.calculate_relative_permittivity.html">calculate_relative_permittivity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.electrostatics.DipoleMoment.html">DipoleMoment</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.analysis.polymer.html">polymer</a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle navigation of polymer</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.polymer.calculate_relaxation_time.html">calculate_relaxation_time</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.polymer.correlation_fft.html">correlation_fft</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.polymer.correlation_shift.html">correlation_shift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.polymer.EndToEndVector.html">EndToEndVector</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.polymer.Gyradius.html">Gyradius</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.polymer.SingleChainStructureFactor.html">SingleChainStructureFactor</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.analysis.profile.html">profile</a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><div class="visually-hidden">Toggle navigation of profile</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.profile.calculate_potential_profile.html">calculate_potential_profile</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.profile.DensityProfile.html">DensityProfile</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.analysis.structure.html">structure</a><input class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><div class="visually-hidden">Toggle navigation of structure</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.structure.calculate_coordination_numbers.html">calculate_coordination_numbers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.structure.calculate_structure_factor.html">calculate_structure_factor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.structure.radial_fourier_transform.html">radial_fourier_transform</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.structure.radial_histogram.html">radial_histogram</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.structure.zeroth_order_hankel_transform.html">zeroth_order_hankel_transform</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.structure.IntermediateScatteringFunction.html">IntermediateScatteringFunction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.structure.RadialDistributionFunction.html">RadialDistributionFunction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.structure.StructureFactor.html">StructureFactor</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.analysis.thermodynamics.html">thermodynamics</a><input class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><div class="visually-hidden">Toggle navigation of thermodynamics</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.thermodynamics.ConstantVolumeHeatCapacity.html">ConstantVolumeHeatCapacity</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.analysis.transport.html">transport</a><input class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><div class="visually-hidden">Toggle navigation of transport</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.transport.calculate_conductivity.html">calculate_conductivity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.transport.calculate_electrophoretic_mobility.html">calculate_electrophoretic_mobility</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.transport.calculate_transference_number.html">calculate_transference_number</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.transport.calculate_transport_coefficients.html">calculate_transport_coefficients</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.transport.msd_fft.html">msd_fft</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.transport.msd_shift.html">msd_shift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.analysis.transport.Onsager.html">Onsager</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/mdcraft.fit.html">fit</a><input class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><div class="visually-hidden">Toggle navigation of fit</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.fit.distribution.html">distribution</a><input class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><div class="visually-hidden">Toggle navigation of distribution</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.distribution.weibull.html">weibull</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.fit.exponential.html">exponential</a><input class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><div class="visually-hidden">Toggle navigation of exponential</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.exponential.biexp.html">biexp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.exponential.exp.html">exp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.exponential.exp1.html">exp1</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.exponential.exp2.html">exp2</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.exponential.stretched_exp.html">stretched_exp</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.fit.fourier.html">fourier</a><input class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><div class="visually-hidden">Toggle navigation of fourier</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.fourier.fourier.html">fourier</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.fourier.fourier1.html">fourier1</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.fourier.fourier2.html">fourier2</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.fourier.fourier3.html">fourier3</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.fourier.fourier4.html">fourier4</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.fourier.fourier5.html">fourier5</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.fourier.fourier6.html">fourier6</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.fourier.fourier7.html">fourier7</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.fourier.fourier8.html">fourier8</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.fit.gaussian.html">gaussian</a><input class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><div class="visually-hidden">Toggle navigation of gaussian</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.gaussian.gauss.html">gauss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.gaussian.gauss1.html">gauss1</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.gaussian.gauss2.html">gauss2</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.gaussian.gauss3.html">gauss3</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.gaussian.gauss4.html">gauss4</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.gaussian.gauss5.html">gauss5</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.gaussian.gauss6.html">gauss6</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.gaussian.gauss7.html">gauss7</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.gaussian.gauss8.html">gauss8</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.fit.polynomial.html">polynomial</a><input class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><div class="visually-hidden">Toggle navigation of polynomial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.polynomial.poly.html">poly</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.polynomial.poly1.html">poly1</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.polynomial.poly2.html">poly2</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.polynomial.poly3.html">poly3</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.polynomial.poly4.html">poly4</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.polynomial.poly5.html">poly5</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.polynomial.poly6.html">poly6</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.polynomial.poly7.html">poly7</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.polynomial.poly8.html">poly8</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.polynomial.poly9.html">poly9</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.fit.power.html">power</a><input class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><div class="visually-hidden">Toggle navigation of power</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.power.power.html">power</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.power.power1.html">power1</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.fit.power.power2.html">power2</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/mdcraft.lammps.html">lammps</a><input class="toctree-checkbox" id="toctree-checkbox-24" name="toctree-checkbox-24" role="switch" type="checkbox"/><label for="toctree-checkbox-24"><div class="visually-hidden">Toggle navigation of lammps</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.lammps.topology.html">topology</a><input class="toctree-checkbox" id="toctree-checkbox-25" name="toctree-checkbox-25" role="switch" type="checkbox"/><label for="toctree-checkbox-25"><div class="visually-hidden">Toggle navigation of topology</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.lammps.topology.create_atoms.html">create_atoms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.lammps.topology.write_data.html">write_data</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/mdcraft.openmm.html">openmm</a><input class="toctree-checkbox" id="toctree-checkbox-26" name="toctree-checkbox-26" role="switch" type="checkbox"/><label for="toctree-checkbox-26"><div class="visually-hidden">Toggle navigation of openmm</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.openmm.bond.html">bond</a><input class="toctree-checkbox" id="toctree-checkbox-27" name="toctree-checkbox-27" role="switch" type="checkbox"/><label for="toctree-checkbox-27"><div class="visually-hidden">Toggle navigation of bond</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.openmm.bond.fene.html">fene</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.openmm.file.html">file</a><input class="toctree-checkbox" id="toctree-checkbox-28" name="toctree-checkbox-28" role="switch" type="checkbox"/><label for="toctree-checkbox-28"><div class="visually-hidden">Toggle navigation of file</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.openmm.file.NetCDFFile.html">NetCDFFile</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.openmm.pair.html">pair</a><input class="toctree-checkbox" id="toctree-checkbox-29" name="toctree-checkbox-29" role="switch" type="checkbox"/><label for="toctree-checkbox-29"><div class="visually-hidden">Toggle navigation of pair</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.openmm.pair.coul_gauss.html">coul_gauss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.openmm.pair.dpd.html">dpd</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.openmm.pair.gauss.html">gauss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.openmm.pair.lj_coul.html">lj_coul</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.openmm.pair.ljts.html">ljts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.openmm.pair.solvation.html">solvation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.openmm.pair.wca.html">wca</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.openmm.pair.yukawa.html">yukawa</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.openmm.reporter.html">reporter</a><input class="toctree-checkbox" id="toctree-checkbox-30" name="toctree-checkbox-30" role="switch" type="checkbox"/><label for="toctree-checkbox-30"><div class="visually-hidden">Toggle navigation of reporter</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.openmm.reporter.NetCDFReporter.html">NetCDFReporter</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.openmm.system.html">system</a><input class="toctree-checkbox" id="toctree-checkbox-31" name="toctree-checkbox-31" role="switch" type="checkbox"/><label for="toctree-checkbox-31"><div class="visually-hidden">Toggle navigation of system</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.openmm.system.add_electric_field.html">add_electric_field</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.openmm.system.add_image_charges.html">add_image_charges</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.openmm.system.add_slab_correction.html">add_slab_correction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.openmm.system.estimate_pressure_tensor.html">estimate_pressure_tensor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.openmm.system.register_particles.html">register_particles</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.openmm.topology.html">topology</a><input class="toctree-checkbox" id="toctree-checkbox-32" name="toctree-checkbox-32" role="switch" type="checkbox"/><label for="toctree-checkbox-32"><div class="visually-hidden">Toggle navigation of topology</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.openmm.topology.create_atoms.html">create_atoms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.openmm.topology.get_subset.html">get_subset</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.openmm.unit.html">unit</a><input class="toctree-checkbox" id="toctree-checkbox-33" name="toctree-checkbox-33" role="switch" type="checkbox"/><label for="toctree-checkbox-33"><div class="visually-hidden">Toggle navigation of unit</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.openmm.unit.get_lj_scaling_factors.html">get_lj_scaling_factors</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.openmm.unit.get_scaling_factors.html">get_scaling_factors</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.openmm.utility.html">utility</a><input class="toctree-checkbox" id="toctree-checkbox-34" name="toctree-checkbox-34" role="switch" type="checkbox"/><label for="toctree-checkbox-34"><div class="visually-hidden">Toggle navigation of utility</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.openmm.utility.optimize_pme.html">optimize_pme</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/mdcraft.plot.html">plot</a><input class="toctree-checkbox" id="toctree-checkbox-35" name="toctree-checkbox-35" role="switch" type="checkbox"/><label for="toctree-checkbox-35"><div class="visually-hidden">Toggle navigation of plot</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.plot.axis.html">axis</a><input class="toctree-checkbox" id="toctree-checkbox-36" name="toctree-checkbox-36" role="switch" type="checkbox"/><label for="toctree-checkbox-36"><div class="visually-hidden">Toggle navigation of axis</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.plot.axis.set_up_tabular_legend.html">set_up_tabular_legend</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.plot.color.html">color</a><input class="toctree-checkbox" id="toctree-checkbox-37" name="toctree-checkbox-37" role="switch" type="checkbox"/><label for="toctree-checkbox-37"><div class="visually-hidden">Toggle navigation of color</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.plot.color.adjust_lightness.html">adjust_lightness</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/mdcraft.plot.rcparam.html">rcparam</a><input class="toctree-checkbox" id="toctree-checkbox-38" name="toctree-checkbox-38" role="switch" type="checkbox"/><label for="toctree-checkbox-38"><div class="visually-hidden">Toggle navigation of rcparam</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/mdcraft.plot.rcparam.update.html">update</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <h1>Source code for mdcraft.analysis.profile</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Linear profiles</span>
+<span class="sd">===============</span>
+<span class="sd">.. moduleauthor:: Benjamin Ye &lt;GitHub: @bbye98&gt;</span>
+
+<span class="sd">This module contains classes to quantify properties along axes, such as</span>
+<span class="sd">density profiles.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">numbers</span> <span class="kn">import</span> <span class="n">Real</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">MDAnalysis</span> <span class="k">as</span> <span class="nn">mda</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">integrate</span><span class="p">,</span> <span class="n">sparse</span>
+
+<span class="kn">from</span> <span class="nn">.base</span> <span class="kn">import</span> <span class="n">DynamicAnalysisBase</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">FOUND_OPENMM</span><span class="p">,</span> <span class="n">Q_</span><span class="p">,</span> <span class="n">ureg</span>
+<span class="kn">from</span> <span class="nn">..algorithm.molecule</span> <span class="kn">import</span> <span class="n">center_of_mass</span>
+<span class="kn">from</span> <span class="nn">..algorithm.topology</span> <span class="kn">import</span> <span class="n">unwrap</span><span class="p">,</span> <span class="n">wrap</span>
+<span class="kn">from</span> <span class="nn">..algorithm.unit</span> <span class="kn">import</span> <span class="n">strip_unit</span>
+
+<span class="k">if</span> <span class="n">FOUND_OPENMM</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">openmm</span> <span class="kn">import</span> <span class="n">unit</span>
+
+<div class="viewcode-block" id="calculate_potential_profile">
+<a class="viewcode-back" href="../../../api/mdcraft.analysis.profile.calculate_potential_profile.html#mdcraft.analysis.profile.calculate_potential_profile">[docs]</a>
+<span class="k">def</span> <span class="nf">calculate_potential_profile</span><span class="p">(</span>
+        <span class="n">bins</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">charge_density</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+        <span class="n">L</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">dielectric</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">sigma_q</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dV</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span> <span class="n">V0</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;integral&quot;</span><span class="p">,</span> <span class="n">pbc</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">reduced</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the potential profile :math:`\Psi(z)` using the charge</span>
+<span class="sd">    density profile by numerically solving Poisson&#39;s equation for</span>
+<span class="sd">    electrostatics.</span>
+
+<span class="sd">    Poisson&#39;s equation is given by</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">       \varepsilon_0\varepsilon_\mathrm{r}\nabla^2\Psi(z)=-\rho_q(z)</span>
+
+<span class="sd">    where :math:`\varepsilon_0` is the vacuum permittivity,</span>
+<span class="sd">    :math:`\varepsilon_\mathrm{r}` is the relative permittivity,</span>
+<span class="sd">    :math:`\rho_q` is the charge density, and :math:`\Psi` is the</span>
+<span class="sd">    potential.</span>
+
+<span class="sd">    The boundary conditions (BCs) are</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">       \left.\frac{\partial\Psi}{\partial z}\right\rvert_{z=0}&amp;</span>
+<span class="sd">       =-\frac{\sigma_q}{\varepsilon_0\varepsilon_\mathrm{r}}\\</span>
+<span class="sd">       \left.\Psi\right\rvert_{z=0}&amp;=\Psi_0</span>
+
+<span class="sd">    The first BC is used to ensure that the electric field in the bulk</span>
+<span class="sd">    of the solution is zero, while the second BC is used to set the</span>
+<span class="sd">    potential on the left electrode.</span>
+
+<span class="sd">    Poisson&#39;s equation can be evaluated by using the trapezoidal rule</span>
+<span class="sd">    to numerically integrate the charge density profile twice:</span>
+
+<span class="sd">    1. Integrate the charge density profile.</span>
+<span class="sd">    2. Apply the first BC by adding :math:`\sigma_q` to all points.</span>
+<span class="sd">    3. Integrate the profile from Step 2.</span>
+<span class="sd">    4. Divide by :math:`-\varepsilon_0\varepsilon_\mathrm{r}`.</span>
+<span class="sd">    5. Apply the second BC by adding :math:`\Psi_0` to all points.</span>
+
+<span class="sd">    This method is fast but requires many histogram bins to accurately</span>
+<span class="sd">    resolve the potential profile.</span>
+
+<span class="sd">    Alternatively, Poisson&#39;s equation can be written as a system of</span>
+<span class="sd">    linear equations</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">       A\mathbf{\Psi}=\mathbf{b}</span>
+
+<span class="sd">    using second-order finite differences. :math:`A` is a tridiagonal</span>
+<span class="sd">    matrix and :math:`b` is a vector containing the charge density</span>
+<span class="sd">    profile, with boundary conditions applied in the first and last</span>
+<span class="sd">    rows.</span>
+
+<span class="sd">    The inner equations are given by</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">       \Psi_i^{&#39;&#39;}=\frac{\Psi_{i-1}-2\Psi_i+\Psi_{i+1}}{h^2}</span>
+<span class="sd">       =-\frac{1}{\varepsilon_0\varepsilon_\mathrm{r}}\rho_{q,\,i}</span>
+
+<span class="sd">    where :math:`i` is the bin index and :math:`h` is the bin width.</span>
+
+<span class="sd">    In the case of periodic boundary conditions, the first and last</span>
+<span class="sd">    equations are given by</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">       \Psi_0^{&#39;&#39;}&amp;=\frac{\Psi_{N-1}-2\Psi_0+\Psi_1}{h^2}</span>
+<span class="sd">       =-\frac{1}{\varepsilon_0\varepsilon_\mathrm{r}}\rho_{q,\,0}\\</span>
+<span class="sd">       \Psi_{N-1}^{&#39;&#39;}&amp;=\frac{\Psi_{N-2}-2\Psi_{N-1}+\Psi_0}{h^2}</span>
+<span class="sd">       =-\frac{1}{\varepsilon_0\varepsilon_\mathrm{r}}\rho_{q,\,N-1}</span>
+
+<span class="sd">    When the system has slab geometry, the boundary conditions are</span>
+<span class="sd">    implemented via</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">       \Psi_0&amp;=\Psi_0\\</span>
+<span class="sd">       \Psi_0^\prime&amp;=\frac{-3\Psi_0+4\Psi_1-\Psi_2}{2h}</span>
+<span class="sd">       =-\frac{\sigma_q}{\varepsilon_0\varepsilon_\mathrm{r}}</span>
+
+<span class="sd">    This method is slower but can be more accurate even with fewer</span>
+<span class="sd">    histogram bins for bulk systems with periodic boundary conditions.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    bins : array-like</span>
+<span class="sd">        Histogram bin centers corresponding to the charge density</span>
+<span class="sd">        profile in `charge_density`.</span>
+
+<span class="sd">        **Shape**: :math:`(N_\mathrm{bins},)`.</span>
+
+<span class="sd">        **Reference unit**: :math:`\mathrm{Å}`.</span>
+
+<span class="sd">    charge_density : array-like</span>
+<span class="sd">        Array containing the charge density profile.</span>
+
+<span class="sd">        **Shape**: :math:`(N_\mathrm{bins},)`.</span>
+
+<span class="sd">        **Reference unit**: :math:`\mathrm{e/Å}^{-3}`.</span>
+
+<span class="sd">    L : `float`</span>
+<span class="sd">        System size in the dimension that `bins` and `charge_density`</span>
+<span class="sd">        were calculated in.</span>
+
+<span class="sd">        **Reference unit**: :math:`\mathrm{Å}`.</span>
+
+<span class="sd">    dielectric : `float`, default: :code:`1`</span>
+<span class="sd">        Relative permittivity or static dielectric constant</span>
+<span class="sd">        :math:`\varepsilon_\mathrm{r}`.</span>
+
+<span class="sd">    sigma_q : `float`, keyword-only, optional</span>
+<span class="sd">        Total surface charge density :math:`\sigma_q`. Used to</span>
+<span class="sd">        ensure that the electric field in the bulk of the solution</span>
+<span class="sd">        is zero. If not provided, it is determined using `dV` and</span>
+<span class="sd">        the charge density profile, or the average value in the</span>
+<span class="sd">        center of the integrated charge density profile if</span>
+<span class="sd">        :code:`method=&quot;integral&quot;`.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">           This value should be negative if the potential difference</span>
+<span class="sd">           is positive and vice versa.</span>
+
+<span class="sd">        **Reference unit**: :math:`\mathrm{e/Å^2}`.</span>
+
+<span class="sd">    dV : `float`, keyword-only, optional</span>
+<span class="sd">        Potential difference :math:`\Delta\Psi` across the system</span>
+<span class="sd">        dimension specified in `axis`. Has no effect if `sigma_q` is</span>
+<span class="sd">        provided since this value is used solely to calculate</span>
+<span class="sd">        `sigma_q`.</span>
+
+<span class="sd">        **Reference unit**: :math:`\mathrm{V}`.</span>
+
+<span class="sd">    threshold : `float`, keyword-only, default: :code:`1e-5`</span>
+<span class="sd">        Threshold for determining the plateau region of the first</span>
+<span class="sd">        integral of the charge density profile to calculate</span>
+<span class="sd">        `sigma_q`. Has no effect if `sigma_q` is provided or if</span>
+<span class="sd">        `sigma_q` can be calculated using `dV` and `dielectric`.</span>
+
+<span class="sd">    V0 : `float`, keyword-only, default: :code:`0`</span>
+<span class="sd">        Potential :math:`\Psi_0` at the left boundary.</span>
+
+<span class="sd">        **Reference unit**: :math:`\mathrm{V}`.</span>
+
+<span class="sd">    method : `str`, keyword-only, default: :code:`&quot;integral&quot;`</span>
+<span class="sd">        Method to use to calculate the potential profile.</span>
+
+<span class="sd">        **Valid values**: :code:`&quot;integral&quot;`, :code:`&quot;matrix&quot;`.</span>
+
+<span class="sd">    pbc : `bool`, keyword-only, default: :code:`False`</span>
+<span class="sd">        Specifies whether the axis has periodic boundary conditions.</span>
+<span class="sd">        Only used when :code:`method=&quot;matrix&quot;`.</span>
+
+<span class="sd">    reduced : `bool`, keyword-only, default: :code:`False`</span>
+<span class="sd">        Specifies whether the data is in reduced units.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    potential : `numpy.ndarray`</span>
+<span class="sd">        Potential profile :math:`\Psi(z)`.</span>
+
+<span class="sd">        **Shape**: :math:`(N_\mathrm{bins},)`.</span>
+
+<span class="sd">        **Reference unit**: :math:`\mathrm{V}`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bins</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">charge_density</span><span class="p">):</span>
+        <span class="n">emsg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;&#39;bins&#39; and &#39;charge_density&#39; arrays must have the same &quot;</span>
+                <span class="s2">&quot;length.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">emsg</span><span class="p">)</span>
+
+    <span class="n">CONVERSION_FACTOR</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="k">if</span> <span class="n">reduced</span> <span class="k">else</span> <span class="p">(</span>
+        <span class="mi">1</span> <span class="o">*</span> <span class="n">ureg</span><span class="o">.</span><span class="n">elementary_charge</span> <span class="o">/</span> <span class="p">(</span><span class="n">ureg</span><span class="o">.</span><span class="n">vacuum_permittivity</span> <span class="o">*</span> <span class="n">ureg</span><span class="o">.</span><span class="n">angstrom</span><span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">m_as</span><span class="p">(</span><span class="n">ureg</span><span class="o">.</span><span class="n">volt</span><span class="p">)</span>
+
+    <span class="c1"># Calculate surface charge density for system with perfectly</span>
+    <span class="c1"># conducting boundaries</span>
+    <span class="k">if</span> <span class="n">sigma_q</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">dV</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">sigma_q</span> <span class="o">=</span> <span class="p">(</span><span class="n">integrate</span><span class="o">.</span><span class="n">trapezoid</span><span class="p">(</span><span class="n">bins</span> <span class="o">*</span> <span class="n">charge_density</span><span class="p">,</span> <span class="n">bins</span><span class="p">)</span>
+                   <span class="o">-</span> <span class="n">dielectric</span> <span class="o">*</span> <span class="n">dV</span> <span class="o">/</span> <span class="n">CONVERSION_FACTOR</span><span class="p">)</span> <span class="o">/</span> <span class="n">L</span>
+
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;integral&quot;</span><span class="p">:</span>
+        <span class="n">potential</span> <span class="o">=</span> <span class="n">integrate</span><span class="o">.</span><span class="n">cumulative_trapezoid</span><span class="p">(</span><span class="n">charge_density</span><span class="p">,</span> <span class="n">bins</span><span class="p">,</span>
+                                                   <span class="n">initial</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">sigma_q</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">wmsg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;No surface charge density information. The value &quot;</span>
+                    <span class="s2">&quot;will be extracted from the integrated charge &quot;</span>
+                    <span class="s2">&quot;density profile, which may be inaccurate due to &quot;</span>
+                    <span class="s2">&quot;numerical errors.&quot;</span><span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">wmsg</span><span class="p">)</span>
+
+            <span class="c1"># Get surface charge density from the integrated charge</span>
+            <span class="c1"># density profile</span>
+            <span class="n">cut_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">potential</span><span class="p">))</span> <span class="o">&lt;</span> <span class="n">threshold</span><span class="p">)</span>
+            <span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cut_indices</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;No bulk plateau region found in the charge &quot;</span>
+                    <span class="s2">&quot;density profile. The average value over the &quot;</span>
+                    <span class="s2">&quot;entire profile will be used.&quot;</span>
+                <span class="p">)</span>
+                <span class="n">sigma_q</span> <span class="o">=</span> <span class="n">potential</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">target_index</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">potential</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+                <span class="n">sigma_q</span> <span class="o">=</span> <span class="n">potential</span><span class="p">[</span>
+                    <span class="n">cut_indices</span><span class="p">[</span><span class="n">cut_indices</span> <span class="o">&lt;=</span> <span class="n">target_index</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+                    <span class="n">cut_indices</span><span class="p">[</span><span class="n">cut_indices</span> <span class="o">&gt;=</span> <span class="n">target_index</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                <span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="o">-</span><span class="n">CONVERSION_FACTOR</span>
+            <span class="o">*</span> <span class="n">integrate</span><span class="o">.</span><span class="n">cumulative_trapezoid</span><span class="p">(</span><span class="n">potential</span> <span class="o">+</span> <span class="n">sigma_q</span><span class="p">,</span> <span class="n">bins</span><span class="p">,</span>
+                                             <span class="n">initial</span><span class="o">=</span><span class="n">V0</span><span class="p">)</span> <span class="o">/</span> <span class="n">dielectric</span>
+        <span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;matrix&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">sigma_q</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">emsg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;No surface charge density information. Either &quot;</span>
+                    <span class="s2">&quot;&#39;sigma_q&#39; or &#39;dV&#39; must be provided when &quot;</span>
+                    <span class="s2">&quot;method=&#39;matrix&#39;.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">emsg</span><span class="p">)</span>
+
+        <span class="n">h</span> <span class="o">=</span> <span class="n">bins</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">bins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">bins</span><span class="p">),</span> <span class="n">h</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;&#39;bins&#39; must be uniformly spaced.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Set up matrix and load vector for second-order finite</span>
+        <span class="c1"># difference method</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">bins</span><span class="p">)</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="n">sparse</span><span class="o">.</span><span class="n">diags</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;csc&quot;</span><span class="p">)</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">charge_density</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span>
+                                  <span class="n">category</span><span class="o">=</span><span class="n">sparse</span><span class="o">.</span><span class="n">SparseEfficiencyWarning</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">pbc</span><span class="p">:</span>
+                <span class="n">A</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">A</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">b</span> <span class="o">*=</span> <span class="o">-</span><span class="n">CONVERSION_FACTOR</span> <span class="o">*</span> <span class="n">h</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">dielectric</span>
+                <span class="n">psi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+                <span class="n">psi</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">sparse</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">spsolve</span><span class="p">(</span><span class="n">A</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="mi">1</span><span class="p">:],</span> <span class="n">b</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+                <span class="n">psi</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">psi</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="k">return</span> <span class="n">psi</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">A</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.5</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span>
+                <span class="n">A</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">A</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">b</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">CONVERSION_FACTOR</span> <span class="o">*</span> <span class="n">h</span> <span class="o">*</span> <span class="n">sigma_q</span> <span class="o">/</span> <span class="n">dielectric</span>
+                <span class="n">b</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*=</span> <span class="o">-</span><span class="n">CONVERSION_FACTOR</span> <span class="o">*</span> <span class="n">h</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">dielectric</span>
+                <span class="n">b</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">return</span> <span class="n">sparse</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">spsolve</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DensityProfile">
+<a class="viewcode-back" href="../../../api/mdcraft.analysis.profile.DensityProfile.html#mdcraft.analysis.profile.DensityProfile">[docs]</a>
+<span class="k">class</span> <span class="nc">DensityProfile</span><span class="p">(</span><span class="n">DynamicAnalysisBase</span><span class="p">):</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Serial and parallel implementations to calculate the number and</span>
+<span class="sd">    charge density profiles :math:`\\rho_i(z)` and :math:`\\rho_q(z)` of</span>
+<span class="sd">    a system along the specified axes.</span>
+
+<span class="sd">    The microscopic number density profile of species :math:`i` in a</span>
+<span class="sd">    constant-volume system is calculated by binning particle positions</span>
+<span class="sd">    along an axis :math:`z` using</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">       \\rho_i(z)=\\frac{V}{N_\\mathrm{bin}}\\left\\langle</span>
+<span class="sd">       \\sum_\\alpha\\delta(z-z_\\alpha)\\right\\rangle</span>
+
+<span class="sd">    where :math:`V` is the system volume and :math:`N_\\mathrm{bins}` is</span>
+<span class="sd">    the number of bins. The angular brackets denote an ensemble average.</span>
+
+<span class="sd">    If the species carry charges, the charge density profile can be</span>
+<span class="sd">    obtained using</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">       \\rho_q(z)=\\sum_i z_ie\\rho_i(z)</span>
+
+<span class="sd">    where :math:`z_i` is the charge number of species :math:`i` and</span>
+<span class="sd">    :math:`e` is the elementary charge.</span>
+
+<span class="sd">    With the charge density profile, the potential profile can be</span>
+<span class="sd">    computed by numerically solving Poisson&#39;s equation for</span>
+<span class="sd">    electrostatics:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">       \\varepsilon_0\\varepsilon_\\mathrm{r}\\nabla^2\\Psi(z)=-\\rho_q(z)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    groups : `MDAnalysis.AtomGroup` or array-like</span>
+<span class="sd">        Groups of atoms for which density profiles are calculated.</span>
+
+<span class="sd">    groupings : `str` or array-like, default: :code:`&quot;atoms&quot;`</span>
+<span class="sd">        Determines whether the centers of mass are used in lieu of</span>
+<span class="sd">        individual atom positions. If `groupings` is a `str`, the same</span>
+<span class="sd">        value is used for all `groups`.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">           If the desired grouping is not :code:`&quot;atoms&quot;`,</span>
+
+<span class="sd">           * the trajectory file should have segments (or chains)</span>
+<span class="sd">             containing residues (or molecules) and residues containing</span>
+<span class="sd">             atoms, and</span>
+
+<span class="sd">           * residues and segments should be locally unwrapped at the</span>
+<span class="sd">             simulation box edges, if not already, using</span>
+<span class="sd">             :class:`MDAnalysis.transformations.wrap.unwrap`,</span>
+<span class="sd">             :meth:`MDAnalysis.core.groups.AtomGroup.unwrap`, or</span>
+<span class="sd">             :func:`MDAnalysis.lib.mdamath.make_whole`.</span>
+
+<span class="sd">        .. container::</span>
+
+<span class="sd">           **Valid values**:</span>
+
+<span class="sd">           * :code:`&quot;atoms&quot;`: Atom positions (generally or for</span>
+<span class="sd">             coarse-grained simulations).</span>
+<span class="sd">           * :code:`&quot;residues&quot;`: Residues&#39; centers of mass (for</span>
+<span class="sd">             atomistic simulations).</span>
+<span class="sd">           * :code:`&quot;segments&quot;`: Segments&#39; centers of mass (for</span>
+<span class="sd">             atomistic polymer simulations).</span>
+
+<span class="sd">    axes : `int`, `str`, or array-like, default: :code:`&quot;xyz&quot;`</span>
+<span class="sd">        Axes along which to compute the density profiles.</span>
+
+<span class="sd">        .. container::</span>
+
+<span class="sd">           **Examples**:</span>
+
+<span class="sd">           * :code:`2` for the :math:`z`-direction.</span>
+<span class="sd">           * :code:`&quot;xy&quot;` for the :math:`x`- and :math:`y`-directions.</span>
+<span class="sd">           * :code:`(0, 1)` for the :math:`x`- and :math:`y`-directions.</span>
+
+<span class="sd">    n_bins : `int` or array-like</span>
+<span class="sd">        Number of bins for each axis. If an `int` is provided, the same</span>
+<span class="sd">        value is used for all axes. If :code:`parallel=True`, the number</span>
+<span class="sd">        of bins in all axes must be the same.</span>
+
+<span class="sd">    charges : array-like, keyword-only, optional</span>
+<span class="sd">        Charge numbers :math:`z_i` for the specified `groupings` in the</span>
+<span class="sd">        :math:`N_\\mathrm{g}` `groups`. If not provided, it will be</span>
+<span class="sd">        retrieved from the main</span>
+<span class="sd">        :class:`MDAnalysis.core.universe.Universe` object if available.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">           Depending on the grouping for a specific group, all atoms,</span>
+<span class="sd">           residues, or segments should have the same charge since the</span>
+<span class="sd">           charge density profile for the group would not make sense</span>
+<span class="sd">           otherwise. If this condition does not hold, change how the</span>
+<span class="sd">           particles are grouped in `grouping` such that all entities</span>
+<span class="sd">           share the same charge.</span>
+
+<span class="sd">        **Shape**: :math:`(N_\\mathrm{g})`.</span>
+
+<span class="sd">        **Reference unit**: :math:`\\mathrm{e}`.</span>
+
+<span class="sd">    dimensions : array-like, keyword-only, optional</span>
+<span class="sd">        System dimensions. If the</span>
+<span class="sd">        :class:`MDAnalysis.core.universe.Universe` object that the</span>
+<span class="sd">        groups in `groups` belong to does not contain dimensionality</span>
+<span class="sd">        information, provide it here. Affected by `scales`.</span>
+
+<span class="sd">        **Shape**: :math:`(3,)`.</span>
+
+<span class="sd">        **Reference unit**: :math:`\\mathrm{Å}`.</span>
+
+<span class="sd">    dt : `float`, `openmm.unit.Quantity`, or `pint.Quantity`, \</span>
+<span class="sd">    keyword-only, optional</span>
+<span class="sd">        Time between frames :math:`\\Delta t`. While this is normally</span>
+<span class="sd">        determined from the trajectory, the trajectory may not have the</span>
+<span class="sd">        correct information if the data is in reduced units. For</span>
+<span class="sd">        example, if your reduced timestep is :math:`0.01` and you output</span>
+<span class="sd">        trajectory data every :math:`10,000` timesteps, then</span>
+<span class="sd">        :math:`\\Delta t = 100`.</span>
+
+<span class="sd">        **Reference unit**: :math:`\\mathrm{ps}`.</span>
+
+<span class="sd">    scales : array-like, keyword-only, optional</span>
+<span class="sd">        Scaling factors for each system dimension. If an `int` is</span>
+<span class="sd">        provided, the same value is used for all axes.</span>
+
+<span class="sd">        **Shape**: :math:`(3,)`.</span>
+
+<span class="sd">    average : `bool`, keyword-only, default: :code:`True`</span>
+<span class="sd">        Determines whether the density profiles are averaged over the</span>
+<span class="sd">        specified frames.</span>
+
+<span class="sd">    recenter : `int`, `list`, `MDAnalysis.AtomGroup`, or `tuple`, \</span>
+<span class="sd">    keyword-only, optional</span>
+<span class="sd">        Constrains the center of mass of an atom group by adjusting the</span>
+<span class="sd">        particle coordinates every analysis frame. Either specify an</span>
+<span class="sd">        :class:`MDAnalysis.core.groups.AtomGroup`, its index within</span>
+<span class="sd">        `groups`, or a tuple containing the aforementioned information</span>
+<span class="sd">        and the fixed center of mass coordinates, in that order. To</span>
+<span class="sd">        avoid recentering in a specific dimension, set the coordinate to</span>
+<span class="sd">        :code:`numpy.nan`. If the center of mass is not specified, the</span>
+<span class="sd">        center of the simulation box is used.</span>
+
+<span class="sd">        **Shape**: :math:`(3,)` for the fixed center of mass.</span>
+
+<span class="sd">    reduced : `bool`, keyword-only, default: :code:`False`</span>
+<span class="sd">        Specifies whether the data is in reduced units. Affects</span>
+<span class="sd">        `results.number_densities`, `results.charge_densities`, etc.</span>
+
+<span class="sd">    parallel : `bool`, keyword-only, default: :code:`False`</span>
+<span class="sd">        Determines whether the analysis is performed in parallel.</span>
+
+<span class="sd">    verbose : `bool`, keyword-only, default: :code:`True`</span>
+<span class="sd">        Determines whether detailed progress is shown.</span>
+
+<span class="sd">    **kwargs</span>
+<span class="sd">        Additional keyword arguments to pass to</span>
+<span class="sd">        :class:`MDAnalysis.analysis.base.AnalysisBase`.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    universe : `MDAnalysis.Universe`</span>
+<span class="sd">        :class:`MDAnalysis.core.universe.Universe` object containing all</span>
+<span class="sd">        information describing the simulation system.</span>
+
+<span class="sd">    results.units : `dict`</span>
+<span class="sd">        Reference units for the results. For example, to get the</span>
+<span class="sd">        reference units for :code:`results.bins`, call</span>
+<span class="sd">        :code:`results.units[&quot;results.bins&quot;]`.</span>
+
+<span class="sd">    results.times : `numpy.ndarray`</span>
+<span class="sd">        Times at which the density profiles are calculated.</span>
+
+<span class="sd">        **Shape**: :math:`(N_\\mathrm{frames},)`.</span>
+
+<span class="sd">        **Reference unit**: :math:`\\mathrm{ps}`.</span>
+
+<span class="sd">    results.bins : `list`</span>
+<span class="sd">        Bin centers corresponding to the density profiles in each</span>
+<span class="sd">        dimension.</span>
+
+<span class="sd">        **Shape**: :math:`(N_\\mathrm{axes},)` list of</span>
+<span class="sd">        :math:`(N_\\mathrm{bins},)` arrays.</span>
+
+<span class="sd">        **Reference unit**: :math:`\\mathrm{Å}`.</span>
+
+<span class="sd">    results.number_densities : `list`</span>
+<span class="sd">        Number density profiles.</span>
+
+<span class="sd">        **Shape**: :math:`(N_\\mathrm{axes},)` list of</span>
+<span class="sd">        :math:`(N_\\mathrm{bins},)` arrays.</span>
+
+<span class="sd">        **Reference unit**: :math:`\\mathrm{Å}^{-3}`.</span>
+
+<span class="sd">    results.charge_densities : `list`</span>
+<span class="sd">        Charge density profiles, if charge information is available.</span>
+
+<span class="sd">        **Shape**: :math:`(N_\\mathrm{axes},)` list of</span>
+<span class="sd">        :math:`(N_\\mathrm{bins},)` arrays.</span>
+
+<span class="sd">        **Reference unit**: :math:`\\mathrm{e/Å}^{-3}`.</span>
+
+<span class="sd">    results.potentials : `dict`</span>
+<span class="sd">        Potential profiles, if charge information is available, with</span>
+<span class="sd">        the key being the axis index (e.g., :code:`1` for the :math:`z`-</span>
+<span class="sd">        direction if :code:`axes=&quot;yz&quot;`). Only available after running</span>
+<span class="sd">        :meth:`calculate_potential_profile`.</span>
+
+<span class="sd">        **Shape**: :math:`(N_\\mathrm{bins},)` for the potential</span>
+<span class="sd">        profiles.</span>
+
+<span class="sd">        **Reference unit**: :math:`\\mathrm{V}`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">groups</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">mda</span><span class="o">.</span><span class="n">AtomGroup</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">mda</span><span class="o">.</span><span class="n">AtomGroup</span><span class="p">]],</span>
+            <span class="n">groupings</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="s2">&quot;atoms&quot;</span><span class="p">,</span>
+            <span class="n">axes</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="s2">&quot;xyz&quot;</span><span class="p">,</span>
+            <span class="n">n_bins</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">201</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+            <span class="n">charges</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="s2">&quot;unit.Quantity&quot;</span><span class="p">,</span> <span class="n">Q_</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">dimensions</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="s2">&quot;unit.Quantity&quot;</span><span class="p">,</span> <span class="n">Q_</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">dt</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="s2">&quot;unit.Quantity&quot;</span><span class="p">,</span> <span class="n">Q_</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">scales</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">average</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="n">recenter</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">mda</span><span class="o">.</span><span class="n">AtomGroup</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span>
+                            <span class="nb">tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">mda</span><span class="o">.</span><span class="n">AtomGroup</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+                                  <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">reduced</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">parallel</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_groups</span> <span class="o">=</span> <span class="p">[</span><span class="n">groups</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="n">mda</span><span class="o">.</span><span class="n">AtomGroup</span><span class="p">)</span> <span class="k">else</span> <span class="n">groups</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">universe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">universe</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">trajectory</span><span class="p">,</span> <span class="n">parallel</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_groups</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_groups</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">groupings</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">groupings</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">GROUPINGS</span> <span class="o">:=</span> <span class="p">{</span><span class="s2">&quot;atoms&quot;</span><span class="p">,</span> <span class="s2">&quot;residues&quot;</span><span class="p">,</span>
+                                               <span class="s2">&quot;segments&quot;</span><span class="p">}):</span>
+                <span class="n">emsg</span> <span class="o">=</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid grouping &#39;</span><span class="si">{</span><span class="n">groupings</span><span class="si">}</span><span class="s2">&#39;. Valid values: &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">GROUPINGS</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">emsg</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_groupings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_groups</span> <span class="o">*</span> <span class="p">[</span><span class="n">groupings</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_groups</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">groupings</span><span class="p">):</span>
+                <span class="n">emsg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;The number of grouping values is not equal to &quot;</span>
+                        <span class="s2">&quot;the number of groups.&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">emsg</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">groupings</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">g</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">GROUPINGS</span> <span class="o">:=</span> <span class="p">{</span><span class="s2">&quot;atoms&quot;</span><span class="p">,</span> <span class="s2">&quot;residues&quot;</span><span class="p">,</span> <span class="s2">&quot;segments&quot;</span><span class="p">}):</span>
+                    <span class="n">emsg</span> <span class="o">=</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid grouping &#39;</span><span class="si">{</span><span class="n">g</span><span class="si">}</span><span class="s2">&#39;. Valid values: &quot;</span>
+                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">GROUPINGS</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">emsg</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_groupings</span> <span class="o">=</span> <span class="n">groupings</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_axes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">((</span><span class="n">axes</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_axes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromiter</span><span class="p">(</span>
+                <span class="p">(</span><span class="nb">ord</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span> <span class="o">-</span> <span class="mi">120</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="n">a</span>
+                 <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">),</span>
+                <span class="n">count</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">),</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">n_bins</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_n_bins</span> <span class="o">=</span> <span class="n">n_bins</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_axes</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">n_bins</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">n_bins</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_axes</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">parallel</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">n_bins</span> <span class="o">!=</span> <span class="n">n_bins</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                    <span class="n">emsg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;All axes must use the same number of bins &quot;</span>
+                            <span class="s2">&quot;when parallel=True.&quot;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">emsg</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_n_bins</span> <span class="o">=</span> <span class="n">n_bins</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">emsg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;The dimension of the array of bin counts is &quot;</span>
+                        <span class="s2">&quot;incompatible with the number of axes to &quot;</span>
+                        <span class="s2">&quot;calculate density profiles along.&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">emsg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">emsg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;The specified bin counts must be an integer or an &quot;</span>
+                    <span class="s2">&quot;iterable object.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">emsg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">charges</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">charges</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_groups</span><span class="p">:</span>
+                <span class="n">emsg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;The number of group charges is not equal to &quot;</span>
+                        <span class="s2">&quot;the number of groups.&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">emsg</span><span class="p">)</span>
+            <span class="n">charges</span><span class="p">,</span> <span class="n">unit_</span> <span class="o">=</span> <span class="n">strip_unit</span><span class="p">(</span><span class="n">charges</span><span class="p">,</span> <span class="s2">&quot;elementary_charge&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">reduced</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">unit_</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">emsg</span> <span class="o">=</span> <span class="s2">&quot;&#39;charges&#39; cannot have units when reduced=True.&quot;</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">emsg</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_charges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">charges</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">atoms</span><span class="p">,</span> <span class="s2">&quot;charges&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_charges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_groups</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">gr</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_groups</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groupings</span><span class="p">)):</span>
+                <span class="n">qs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">gr</span><span class="p">)</span><span class="o">.</span><span class="n">charges</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">((</span><span class="n">q</span> <span class="o">:=</span> <span class="n">qs</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">qs</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_charges</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">wmsg</span> <span class="o">=</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Not all </span><span class="si">{</span><span class="n">gr</span><span class="si">}</span><span class="s2"> in group </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> share the same &quot;</span>
+                            <span class="s2">&quot;charge. The charge density profile will &quot;</span>
+                            <span class="s2">&quot;be calculated.&quot;</span><span class="p">)</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">wmsg</span><span class="p">)</span>
+                    <span class="k">break</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_charges</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">q</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_charges</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">dimensions</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dimensions</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;&#39;dimensions&#39; must have length 3.&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dimensions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+                <span class="n">strip_unit</span><span class="p">(</span><span class="n">dimensions</span><span class="p">,</span> <span class="s2">&quot;angstrom&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">dimensions</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dimensions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">dimensions</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No system dimensions found or provided.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scales</span><span class="p">,</span> <span class="n">Real</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">scales</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
+                                        <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scales</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">Real</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dimensions</span> <span class="o">*=</span> <span class="n">scales</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">emsg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;The scaling factor(s) must be provided as a &quot;</span>
+                    <span class="s2">&quot;floating-point number or in an array with shape &quot;</span>
+                    <span class="s2">&quot;(3,).&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">emsg</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dt</span><span class="p">,</span> <span class="n">unit_</span> <span class="o">=</span> <span class="n">strip_unit</span><span class="p">(</span><span class="n">dt</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trajectory</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="s2">&quot;picosecond&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">reduced</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">unit_</span><span class="p">,</span>  <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;&#39;dt&#39; cannot have units when reduced=True.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">recenter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_recenter</span> <span class="o">=</span> <span class="n">recenter</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">recenter</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">mda</span><span class="o">.</span><span class="n">AtomGroup</span><span class="p">)):</span>
+                <span class="n">recenter_group</span> <span class="o">=</span> <span class="n">recenter</span>
+                <span class="n">recenter_position</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dimensions</span> <span class="o">/</span> <span class="mi">2</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">recenter</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">recenter</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">recenter_group</span><span class="p">,</span> <span class="n">recenter_position</span> <span class="o">=</span> <span class="n">recenter</span>
+                <span class="n">recenter_position</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">recenter_position</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">emsg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Invalid value passed to &#39;recenter&#39;. The argument &quot;</span>
+                        <span class="s2">&quot;must either be a MDAnalysis.AtomGroup, its index &quot;</span>
+                        <span class="s2">&quot;in &#39;groups&#39;, multiple groups/indices, or a tuple &quot;</span>
+                        <span class="s2">&quot;containing the aforementioned information and a &quot;</span>
+                        <span class="s2">&quot;specified center of mass, in that order.&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">emsg</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">recenter_group</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> \
+                    <span class="ow">and</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">recenter_group</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_groups</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid group index passed to &#39;recenter&#39;.&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">recenter_group</span><span class="p">,</span> <span class="n">mda</span><span class="o">.</span><span class="n">AtomGroup</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">recenter_group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groups</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">recenter_group</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="n">emsg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;The specified AtomGroup in &#39;recenter&#39; is not &quot;</span>
+                            <span class="s2">&quot;in &#39;groups&#39;.&quot;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">emsg</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_recenter</span> <span class="o">=</span> <span class="p">(</span><span class="n">recenter_group</span><span class="p">,</span> <span class="n">recenter_position</span><span class="p">)</span>
+
+        <span class="c1"># Determine the number of particles in each group and their</span>
+        <span class="c1"># corresponding indices</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Ns</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromiter</span><span class="p">(</span>
+            <span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;n_</span><span class="si">{</span><span class="n">g</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+             <span class="k">for</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_groups</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groupings</span><span class="p">)),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">count</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_groups</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_N</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Ns</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_slices</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">N</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Ns</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_slices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">index</span> <span class="o">+</span> <span class="n">N</span><span class="p">))</span>
+            <span class="n">index</span> <span class="o">+=</span> <span class="n">N</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_average</span> <span class="o">=</span> <span class="n">average</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reduced</span> <span class="o">=</span> <span class="n">reduced</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+
+    <span class="k">def</span> <span class="nf">_prepare</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">bins</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_dimensions</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_bins</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_dimensions</span><span class="p">[</span><span class="n">a</span><span class="p">]</span>
+                <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dimensions</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_bins</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_n_bins</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_axes</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recenter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+
+            <span class="c1"># Navigate to first frame in analysis</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">trajectory</span><span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_sliced_trajectory</span><span class="o">.</span><span class="n">frames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sliced_trajectory</span><span class="p">,</span> <span class="s2">&quot;frames&quot;</span><span class="p">)</span>
+                <span class="k">else</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="p">]</span>
+
+            <span class="c1"># Preallocate arrays to store number of boundary crossings</span>
+            <span class="c1"># for each particle</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_positions_old</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_N</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">g</span><span class="p">,</span> <span class="n">gr</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_groups</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groupings</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slices</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_positions_old</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">positions</span> <span class="k">if</span> <span class="n">gr</span> <span class="o">==</span> <span class="s2">&quot;atoms&quot;</span>
+                                          <span class="k">else</span> <span class="n">center_of_mass</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">gr</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_images</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_N</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_thresholds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dimensions</span> <span class="o">/</span> <span class="mi">2</span>
+
+            <span class="c1"># [Parallel] Store unwrapped particle positions in a shared</span>
+            <span class="c1"># memory array for parallel analysis</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parallel</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_frames</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_N</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+
+                <span class="c1"># Store atom or center-of-mass positions in the current</span>
+                <span class="c1"># frame</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sliced_trajectory</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">g</span><span class="p">,</span> <span class="n">gr</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_groups</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groupings</span><span class="p">,</span>
+                                        <span class="bp">self</span><span class="o">.</span><span class="n">_slices</span><span class="p">):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_positions</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">positions</span> <span class="k">if</span> <span class="n">gr</span> <span class="o">==</span> <span class="s2">&quot;atoms&quot;</span>
+                                                 <span class="k">else</span> <span class="n">center_of_mass</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">gr</span><span class="p">))</span>
+
+                    <span class="c1"># Globally unwrap positions for correct center of</span>
+                    <span class="c1"># mass calculation</span>
+                    <span class="n">unwrap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_positions</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_positions_old</span><span class="p">,</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">_dimensions</span><span class="p">,</span> <span class="n">thresholds</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_thresholds</span><span class="p">,</span>
+                           <span class="n">images</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_images</span><span class="p">)</span>
+
+                    <span class="c1"># Calculate difference in center of mass and</span>
+                    <span class="c1"># shift particle positions by the difference</span>
+                    <span class="n">scom</span> <span class="o">=</span> <span class="n">center_of_mass</span><span class="p">(</span>
+                        <span class="n">positions</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_positions</span>
+                                  <span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slices</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_recenter</span><span class="p">[</span><span class="mi">0</span><span class="p">]]],</span>
+                        <span class="n">masses</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_groups</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_recenter</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_groupings</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_recenter</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+                        <span class="p">)</span><span class="o">.</span><span class="n">masses</span>
+                    <span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_positions</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromiter</span><span class="p">(</span>
+                        <span class="p">(</span><span class="mi">0</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">cx</span><span class="p">)</span> <span class="k">else</span> <span class="n">sx</span> <span class="o">-</span> <span class="n">cx</span>
+                         <span class="k">for</span> <span class="n">sx</span><span class="p">,</span> <span class="n">cx</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">scom</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recenter</span><span class="p">[</span><span class="mi">1</span><span class="p">])),</span>
+                        <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+                        <span class="n">count</span><span class="o">=</span><span class="mi">3</span>
+                    <span class="p">)</span>
+
+                <span class="c1"># Wrap positions back into the simulation box so that they</span>
+                <span class="c1"># belong to a histogram bin</span>
+                <span class="n">wrap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_positions</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dimensions</span><span class="p">)</span>
+
+        <span class="c1"># [Serial] Preallocate arrays to hold atom positions for a</span>
+        <span class="c1"># given frame so that it doesn&#39;t have to be recreated each</span>
+        <span class="c1"># frame, and number density profiles</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parallel</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_N</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_groups</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_average</span><span class="p">:</span>
+                <span class="n">shape</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_frames</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">number_densities</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="o">*</span><span class="n">shape</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+                                             <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_bins</span><span class="p">]</span>
+
+        <span class="c1"># Store time information</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_average</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sliced_trajectory</span><span class="p">,</span> <span class="s2">&quot;frames&quot;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">times</span> \
+                    <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sliced_trajectory</span><span class="o">.</span><span class="n">frames</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dt</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">times</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dt</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_sliced_trajectory</span><span class="o">.</span><span class="n">start</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_sliced_trajectory</span><span class="o">.</span><span class="n">stop</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_sliced_trajectory</span><span class="o">.</span><span class="n">step</span>
+                <span class="p">)</span>
+
+        <span class="c1"># Store reference units</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;results.bins&quot;</span><span class="p">:</span> <span class="n">ureg</span><span class="o">.</span><span class="n">angstrom</span><span class="p">,</span>
+            <span class="s2">&quot;results.number_densities&quot;</span><span class="p">:</span> <span class="n">ureg</span><span class="o">.</span><span class="n">angstrom</span> <span class="o">**</span> <span class="o">-</span><span class="mi">3</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_charges</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">charge_densities</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_axes</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">units</span><span class="p">[</span><span class="s2">&quot;results.charge_densities&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">ureg</span><span class="o">.</span><span class="n">elementary_charge</span> <span class="o">/</span> <span class="n">ureg</span><span class="o">.</span><span class="n">angstrom</span> <span class="o">**</span> <span class="mi">3</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_single_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="c1"># Store atom or center-of-mass positions in the current frame</span>
+        <span class="k">for</span> <span class="n">g</span><span class="p">,</span> <span class="n">gr</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_groups</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groupings</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slices</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_positions</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">positions</span> <span class="k">if</span> <span class="n">gr</span> <span class="o">==</span> <span class="s2">&quot;atoms&quot;</span>
+                                  <span class="k">else</span> <span class="n">center_of_mass</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">gr</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recenter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+
+            <span class="c1"># Globally unwrap positions for correct center of mass</span>
+            <span class="c1"># calculation</span>
+            <span class="n">unwrap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_positions</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_positions_old</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dimensions</span><span class="p">,</span>
+                   <span class="n">thresholds</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_thresholds</span><span class="p">,</span> <span class="n">images</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_images</span><span class="p">)</span>
+
+            <span class="c1"># Calculate difference in centers of mass and shift particle</span>
+            <span class="c1"># positions by the difference</span>
+            <span class="n">scom</span> <span class="o">=</span> <span class="n">center_of_mass</span><span class="p">(</span>
+                <span class="n">positions</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_positions</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_slices</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_recenter</span><span class="p">[</span><span class="mi">0</span><span class="p">]]],</span>
+                <span class="n">masses</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_groups</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_recenter</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
+                               <span class="bp">self</span><span class="o">.</span><span class="n">_groupings</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_recenter</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span><span class="o">.</span><span class="n">masses</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_positions</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromiter</span><span class="p">(</span>
+                <span class="p">(</span><span class="mi">0</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">cx</span><span class="p">)</span> <span class="k">else</span> <span class="n">sx</span> <span class="o">-</span> <span class="n">cx</span>
+                 <span class="k">for</span> <span class="n">sx</span><span class="p">,</span> <span class="n">cx</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">scom</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recenter</span><span class="p">[</span><span class="mi">1</span><span class="p">])),</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+                <span class="n">count</span><span class="o">=</span><span class="mi">3</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Wrap positions back into the simulation box so that they</span>
+        <span class="c1"># belong to a histogram bin</span>
+        <span class="n">wrap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_positions</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dimensions</span><span class="p">)</span>
+
+        <span class="c1"># Compute and tally the bin counts for the current positions</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">gr</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_groupings</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slices</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">n_bins</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_axes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_bins</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_average</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">number_densities</span><span class="p">[</span><span class="n">a</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_positions</span><span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="n">axis</span><span class="p">],</span> <span class="n">n_bins</span><span class="p">,</span>
+                        <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dimensions</span><span class="p">[</span><span class="n">axis</span><span class="p">])</span>
+                    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">number_densities</span><span class="p">[</span><span class="n">a</span><span class="p">][</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frame_index</span><span class="p">]</span> \
+                        <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_positions</span><span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="n">axis</span><span class="p">],</span> <span class="n">n_bins</span><span class="p">,</span>
+                                       <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dimensions</span><span class="p">[</span><span class="n">axis</span><span class="p">]))[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_single_frame_parallel</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">frame</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
+
+        <span class="c1"># Set current trajectory frame</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trajectory</span><span class="p">[</span><span class="n">frame</span><span class="p">]</span>
+
+        <span class="c1"># Preallocate array to hold bin counts for the current frame</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_axes</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_groups</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_bins</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recenter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_N</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">g</span><span class="p">,</span> <span class="n">gr</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_groups</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groupings</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slices</span><span class="p">):</span>
+                <span class="n">positions</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">positions</span> <span class="k">if</span> <span class="n">gr</span> <span class="o">==</span> <span class="s2">&quot;atoms&quot;</span>
+                                <span class="k">else</span> <span class="n">center_of_mass</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">gr</span><span class="p">))</span>
+            <span class="n">wrap</span><span class="p">(</span><span class="n">positions</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dimensions</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">positions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_positions</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+
+        <span class="c1"># Compute and tally the bin counts for the current positions</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">gr</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_groupings</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slices</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_axes</span><span class="p">):</span>
+                <span class="n">results</span><span class="p">[</span><span class="n">a</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span>
+                    <span class="n">positions</span><span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="n">axis</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_bins</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dimensions</span><span class="p">[</span><span class="n">axis</span><span class="p">])</span>
+                <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">index</span><span class="p">,</span> <span class="n">results</span>
+
+    <span class="k">def</span> <span class="nf">_conclude</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="c1"># Consolidate parallel results and clean up memory by deleting</span>
+        <span class="c1"># arrays that will not be reused</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parallel</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recenter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_positions</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">number_densities</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_results</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_average</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">number_densities</span> \
+                    <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">number_densities</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_positions</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recenter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_positions_old</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_images</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thresholds</span>
+
+        <span class="n">V</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dimensions</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_axes</span><span class="p">)):</span>
+            <span class="n">denom</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_bins</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">/</span> <span class="n">V</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_average</span><span class="p">:</span>
+                <span class="n">denom</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_frames</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">number_densities</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">*=</span> <span class="n">denom</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_charges</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">charge_densities</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+                    <span class="s2">&quot;g,...gb-&gt;...b&quot;</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_charges</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">number_densities</span><span class="p">[</span><span class="n">a</span><span class="p">]</span>
+                <span class="p">)</span>
+
+<div class="viewcode-block" id="DensityProfile.calculate_potential_profile">
+<a class="viewcode-back" href="../../../api/mdcraft.analysis.profile.DensityProfile.html#mdcraft.analysis.profile.DensityProfile.calculate_potential_profile">[docs]</a>
+    <span class="k">def</span> <span class="nf">calculate_potential_profile</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">dielectric</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span>
+            <span class="n">sigma_q</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="s2">&quot;unit.Quantity&quot;</span><span class="p">,</span> <span class="n">Q_</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">dV</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="s2">&quot;unit.Quantity&quot;</span><span class="p">,</span> <span class="n">Q_</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span> <span class="n">V0</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="s2">&quot;unit.Quantity&quot;</span><span class="p">,</span> <span class="n">Q_</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;integral&quot;</span><span class="p">,</span> <span class="n">pbc</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates the average potential profile in the given dimension</span>
+<span class="sd">        using the charge density profile by numerically solving Poisson&#39;s</span>
+<span class="sd">        equation for electrostatics.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dielectric : `float`</span>
+<span class="sd">            Relative permittivity or dielectric constant</span>
+<span class="sd">            :math:`\\varepsilon_\\mathrm{r}`.</span>
+
+<span class="sd">        axis : `int` or `str`</span>
+<span class="sd">            Axis along which to compute the potential profiles.</span>
+
+<span class="sd">            .. container::</span>
+
+<span class="sd">               **Examples**:</span>
+
+<span class="sd">               * :code:`2` for the :math:`z`-direction.</span>
+<span class="sd">               * :code:`&quot;x&quot;` for the :math:`x`-direction.</span>
+
+<span class="sd">        sigma_q : `float`, `openmm.unit.Quantity`, or `pint.Quantity`, \</span>
+<span class="sd">        keyword-only, optional</span>
+<span class="sd">            Total surface charge density :math:`\\sigma_q`. Used to</span>
+<span class="sd">            ensure that the electric field in the bulk of the solution</span>
+<span class="sd">            is zero. If not provided, it is determined using `dV` and</span>
+<span class="sd">            the charge density profile, or the average value in the</span>
+<span class="sd">            center of the integrated charge density profile.</span>
+
+<span class="sd">            **Reference unit**: :math:`\\mathrm{e/Å^2}`.</span>
+
+<span class="sd">        dV : `float`, `openmm.unit.Quantity`, or `pint.Quantity`, \</span>
+<span class="sd">        keyword-only, optional</span>
+<span class="sd">            Potential difference :math:`\\Delta\\Psi` across the system</span>
+<span class="sd">            dimension specified in `axis`. Has no effect if `sigma_q` is</span>
+<span class="sd">            provided since this value is used solely to calculate</span>
+<span class="sd">            `sigma_q`.</span>
+
+<span class="sd">            **Reference unit**: :math:`\\mathrm{V}`.</span>
+
+<span class="sd">        threshold : `float`, keyword-only, default: :code:`1e-5`</span>
+<span class="sd">            Threshold for determining the plateau region of the first</span>
+<span class="sd">            integral of the charge density profile to calculate</span>
+<span class="sd">            `sigma_q`. Has no effect if `sigma_q` is provided, or if</span>
+<span class="sd">            `sigma_q` can be calculated using `dV` and `dielectric`.</span>
+
+<span class="sd">        V0 : `float`, `openmm.unit.Quantity`, or `pint.Quantity`, \</span>
+<span class="sd">        keyword-only, default: :code:`0`</span>
+<span class="sd">            Potential :math:`\\Psi_0` at the left boundary.</span>
+
+<span class="sd">            **Reference unit**: :math:`\\mathrm{V}`.</span>
+
+<span class="sd">        method : `str`, keyword-only, default: :code:`&quot;integral&quot;`</span>
+<span class="sd">            Method to use to calculate the potential profile.</span>
+
+<span class="sd">            **Valid values**: :code:`&quot;integral&quot;`, :code:`&quot;matrix&quot;`.</span>
+
+<span class="sd">        pbc : `bool`, keyword-only, default: :code:`False`</span>
+<span class="sd">            Specifies whether the system has periodic boundary conditions.</span>
+<span class="sd">            Only used when :code:`method=&quot;matrix&quot;`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">,</span> <span class="s2">&quot;charge_densities&quot;</span><span class="p">):</span>
+            <span class="n">emsg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Either call run() before calculate_potential_profile() &quot;</span>
+                    <span class="s2">&quot;or provide charge information when initializing &quot;</span>
+                    <span class="s2">&quot;the DensityProfile object.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">emsg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">,</span> <span class="s2">&quot;potentials&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">potentials</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">units</span><span class="p">[</span><span class="s2">&quot;results.potentials&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ureg</span><span class="o">.</span><span class="n">volt</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">axis</span> <span class="o">=</span> <span class="nb">ord</span><span class="p">(</span><span class="n">axis</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span> <span class="o">-</span> <span class="mi">120</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_axes</span> <span class="o">==</span> <span class="n">axis</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">sigma_q</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sigma_q</span><span class="p">,</span> <span class="n">unit_</span> <span class="o">=</span> <span class="n">strip_unit</span><span class="p">(</span><span class="n">sigma_q</span><span class="p">,</span>
+                                        <span class="s2">&quot;elementary_charge/angstrom**2&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reduced</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">unit_</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">emsg</span> <span class="o">=</span> <span class="s2">&quot;&#39;sigma_q&#39; cannot have units when reduced=True.&quot;</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">emsg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">dV</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dV</span><span class="p">,</span> <span class="n">unit_</span> <span class="o">=</span> <span class="n">strip_unit</span><span class="p">(</span><span class="n">dV</span><span class="p">,</span> <span class="s2">&quot;volt&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reduced</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">unit_</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">emsg</span> <span class="o">=</span> <span class="s2">&quot;&#39;dV&#39; cannot have units when reduced=True.&quot;</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">emsg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">V0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">V0</span><span class="p">,</span> <span class="n">unit_</span> <span class="o">=</span> <span class="n">strip_unit</span><span class="p">(</span><span class="n">V0</span><span class="p">,</span> <span class="s2">&quot;volt&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reduced</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">unit_</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">emsg</span> <span class="o">=</span> <span class="s2">&quot;&#39;V0&#39; cannot have units when reduced=True.&quot;</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">emsg</span><span class="p">)</span>
+
+        <span class="n">charge_density</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">charge_densities</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">charge_density</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">charge_density</span> <span class="o">=</span> <span class="n">charge_density</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">potentials</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">calculate_potential_profile</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">bins</span><span class="p">[</span><span class="n">index</span><span class="p">],</span>
+            <span class="n">charge_density</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dimensions</span><span class="p">[</span><span class="n">axis</span><span class="p">],</span>
+            <span class="n">dielectric</span><span class="p">,</span>
+            <span class="n">sigma_q</span><span class="o">=</span><span class="n">sigma_q</span><span class="p">,</span>
+            <span class="n">dV</span><span class="o">=</span><span class="n">dV</span><span class="p">,</span>
+            <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+            <span class="n">V0</span><span class="o">=</span><span class="n">V0</span><span class="p">,</span>
+            <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span>
+            <span class="n">pbc</span><span class="o">=</span><span class="n">pbc</span><span class="p">,</span>
+            <span class="n">reduced</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_reduced</span>
+        <span class="p">)</span></div>
+</div>
+
+</pre></div>
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2023–2024 Benjamin Ye, Pierre Walker, Alec Glisman
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/scripts/furo.js?v=4e2eecee"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    </body>
+</html>

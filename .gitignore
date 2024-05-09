@@ -1,0 +1,8 @@
+**/build/
+**/__pycache__/
+**/.pytest_cache/
+.ruff_cache/
+dist/
+src/mdcraft.egg-info
+tests/data/
+.coverage
