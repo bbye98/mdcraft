@@ -1,0 +1,4 @@
+#include "CudaICKernelSources.h"
+
+using namespace OpenMM;
+using namespace std;

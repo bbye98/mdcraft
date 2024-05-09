@@ -1,0 +1,15 @@
+#ifndef OPENMM_CUDAICKERNELSOURCES_H_
+#define OPENMM_CUDAICKERNELSOURCES_H_
+
+#include <string>
+
+namespace OpenMM {
+
+class CudaICKernelSources {
+   public:
+    @CUDA_FILE_DECLARATIONS@
+};
+
+}  // namespace OpenMM
+
+#endif /*OPENMM_CUDAICKERNELSOURCES_H_*/

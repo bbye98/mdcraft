@@ -18,6 +18,7 @@ now = datetime.now()
 project = "MDCraft"
 copyright = f"2023–{now.year} Benjamin Ye, Pierre Walker, Alec Glisman"
 author = "Benjamin Ye, Pierre Walker, Alec Glisman"
+version = release = VERSION
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
