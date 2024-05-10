@@ -1,8 +1,11 @@
-<img src="https://raw.githubusercontent.com/bbye98/mdcraft/main/assets/logo.png" align="right" width="256"/>
+<img src="https://raw.githubusercontent.com/bbye98/mdcraft/main/assets/logo.png"
+ align="right" width="256"/>
 
 # MDCraft
 
-[![continuous-integration](https://github.com/bbye98/mdcraft/actions/workflows/ci.yml/badge.svg)](https://github.com/bbye98/mdcraft/actions/workflows/ci.yml)
+[![continuous-integration](
+https://github.com/bbye98/mdcraft/actions/workflows/ci.yml/badge.svg)](
+https://github.com/bbye98/mdcraft/actions/workflows/ci.yml)
 
 MDCraft is a toolkit of analysis modules and helper functions for
 molecular dynamics (MD) simulations.
@@ -11,7 +14,8 @@ molecular dynamics (MD) simulations.
 * **Conda**: https://anaconda.org/bbye98/mdcraft
 * **Python Package Index (PyPI)**: https://pypi.org/project/mdcraft/
 
-Note that MDCraft is currently an *experimental* library that has
+> [!NOTE]
+> MDCraft is currently an *experimental* library that has
 only been tested on Linux and may contain bugs and issues. If you come
 across one or would like to request new features, please
 [submit a new issue](https://github.com/bbye98/mdcraft/issues/new).
@@ -34,21 +38,7 @@ bond/pair potentials, support for NetCDF trajectories, and much more.
 * [`plot`](https://github.com/bbye98/mdcraft/tree/main/src/mdcraft/plot):
 Settings and additional functionality for Matplotlib figures.
 
-## Installation
-
-MDCraft requires Python 3.9 or later.
-
-For the most up-to-date version of MDCraft, clone the repository and
-install the package using pip:
-
-    git clone https://github.com/bbye98/mdcraft.git
-    cd mdcraft
-    python -m pip install -e .
-
-MDCraft is also available on Conda and PyPI:
-
-    conda install -c bbye98 mdcraft
-    python -m pip install mdcraft
+## Getting started
 
 ### Prerequisites
 
@@ -64,6 +54,25 @@ channel to install dependencies. To make conda-forge the default
 channel, use
 
     conda config --add channels conda-forge
+
+### Installation
+
+MDCraft requires Python 3.9 or later.
+
+For the most up-to-date version of MDCraft, clone the repository and
+install the package using pip:
+
+    git clone https://github.com/bbye98/mdcraft.git
+    cd mdcraft
+    python3 -m pip install -e .
+
+Alternatively, MDCraft is available on Conda:
+
+    conda install -c bbye98 mdcraft
+
+and PyPI:
+
+    python3 -m pip install mdcraft
 
 ### Postrequisites
 
