@@ -71,7 +71,7 @@ def delta_fourier_transform_1d_1d(
     Returns
     -------
     F : `complex`
-        Fourier transform of the Dirac delta function
+        Fourier transform of the Dirac delta function,
         :math:`\mathcal{F}[\delta(\mathbf{q}-\mathbf{r})]`.
     """
 
@@ -177,7 +177,8 @@ def inner_2d_2d(
 
     .. math::
 
-       \mathbf{q}\cdot\mathbf{r}=q_1r_1+q_2r_2+q_3r_3
+       \mathbf{q}_i\cdot\mathbf{r}_j
+       =q_{i1}r_{j1}+q_{i2}r_{j2}+q_{i3}r_{j3}
 
     Parameters
     ----------
@@ -194,7 +195,8 @@ def inner_2d_2d(
     Returns
     -------
     s : `np.ndarray`
-        Inner products of the vectors :math:`\mathbf{q}\cdot\mathbf{r}`.
+        Inner products of the vectors,
+        :math:`\mathbf{q}_i\cdot\mathbf{r}_j`.
 
         **Shape**: :math:`(N_q,\,N_r)`.
     """
@@ -217,7 +219,8 @@ def inner_parallel_2d_2d(
 
     .. math::
 
-       \mathbf{q}\cdot\mathbf{r}=q_1r_1+q_2r_2+q_3r_3
+       \mathbf{q}_i\cdot\mathbf{r}_j
+       =q_{i1}r_{j1}+q_{i2}r_{j2}+q_{i3}r_{j3}
 
     Parameters
     ----------
@@ -234,7 +237,8 @@ def inner_parallel_2d_2d(
     Returns
     -------
     s : `np.ndarray`
-        Inner products of the vectors :math:`\mathbf{q}\cdot\mathbf{r}`.
+        Inner products of the vectors,
+        :math:`\mathbf{q}_i\cdot\mathbf{r}_j`.
 
         **Shape**: :math:`(N_q,\,N_r)`.
     """
@@ -323,7 +327,7 @@ def pythagorean_trigonometric_identity_1d_1d(
 def cosine_sum_1d(x: np.ndarray[float]) -> float:
 
     r"""
-    Serial Numba-accelerated sum of the cosines of the elements of a
+    Serial Numba-accelerated sum of the cosines of the elements in a
     one-dimensional NumPy array :math:`\mathbf{x}`.
 
     .. math::
@@ -340,7 +344,7 @@ def cosine_sum_1d(x: np.ndarray[float]) -> float:
     Returns
     -------
     s : `float`
-        Sum of the cosines of the elements of the vector
+        Sum of the cosines of the elements in the vector
         :math:`\mathbf{x}`.
     """
 
@@ -353,8 +357,8 @@ def cosine_sum_1d(x: np.ndarray[float]) -> float:
 def cosine_sum_2d(xs: np.ndarray[float]) -> np.ndarray[float]:
 
     r"""
-    Serial Numba-accelerated row-wise sum of the cosines of the elements
-    of a two-dimensional NumPy array :math:`\mathbf{x}`.
+    Serial Numba-accelerated column-wise sum of the cosines of the
+    elements in a two-dimensional NumPy array :math:`\mathbf{x}`.
 
     .. math::
 
@@ -365,15 +369,15 @@ def cosine_sum_2d(xs: np.ndarray[float]) -> np.ndarray[float]:
     x : `np.ndarray`
         Matrix :math:`\mathbf{x}`.
 
-        **Shape**: :math:`(N,\,M)`.
+        **Shape**: :math:`(M,\,N)`.
 
     Returns
     -------
     s : `np.ndarray`
-        Row-wise sum of the cosines of the elements of the matrix
+        Column-wise sums of the cosines of the elements in the matrix
         :math:`\mathbf{x}`.
 
-        **Shape**: :math:`(N,)`.
+        **Shape**: :math:`(M,)`.
     """
 
     s = np.empty(xs.shape[0])
@@ -385,8 +389,8 @@ def cosine_sum_2d(xs: np.ndarray[float]) -> np.ndarray[float]:
 def cosine_sum_parallel_2d(xs: np.ndarray[float]) -> np.ndarray[float]:
 
     r"""
-    Parallel Numba-accelerated row-wise sum of the cosines of the
-    elements of a two-dimensional NumPy array :math:`\mathbf{x}`.
+    Parallel Numba-accelerated column-wise sum of the cosines of the
+    elements in a two-dimensional NumPy array :math:`\mathbf{x}`.
 
     .. math::
 
@@ -397,15 +401,15 @@ def cosine_sum_parallel_2d(xs: np.ndarray[float]) -> np.ndarray[float]:
     xs : `np.ndarray`
         Matrix :math:`\mathbf{x}`.
 
-        **Shape**: :math:`(N,\,M)`.
+        **Shape**: :math:`(M,\,N)`.
 
     Returns
     -------
     s : `np.ndarray`
-        Row-wise sum of the cosines of the elements of the matrix
+        Column-wise sums of the cosines of the elements in the matrix
         :math:`\mathbf{x}`.
 
-        **Shape**: :math:`(N,)`.
+        **Shape**: :math:`(M,)`.
     """
 
     s = np.empty(xs.shape[0])
@@ -417,8 +421,8 @@ def cosine_sum_parallel_2d(xs: np.ndarray[float]) -> np.ndarray[float]:
 def cosine_sum_inplace_2d(xs: np.ndarray[float], s: np.ndarray[float]) -> None:
 
     r"""
-    Serial in-place Numba-accelerated row-wise sum of the cosines of the
-    elements of a two-dimensional NumPy array :math:`\mathbf{x}`.
+    Serial in-place Numba-accelerated column-wise sum of the cosines of
+    the elements in a two-dimensional NumPy array :math:`\mathbf{x}`.
 
     .. math::
 
@@ -429,13 +433,13 @@ def cosine_sum_inplace_2d(xs: np.ndarray[float], s: np.ndarray[float]) -> None:
     xs : `np.ndarray`
         Matrix :math:`\mathbf{x}`.
 
-        **Shape**: :math:`(N,\,M)`.
+        **Shape**: :math:`(M,\,N)`.
 
     s : `np.ndarray`
-        Array to hold row-wise sum of the cosines of the elements of the
-        matrix :math:`\mathbf{x}`.
+        Array to hold the column-wise sums of the cosines of the
+        elements in the matrix :math:`\mathbf{x}`.
 
-        **Shape**: :math:`(N,)`.
+        **Shape**: :math:`(M,)`.
     """
 
     assert s.shape[0] == xs.shape[0]
@@ -447,8 +451,8 @@ def cosine_sum_inplace_parallel_2d(
         xs: np.ndarray[float], s: np.ndarray[float]) -> None:
 
     r"""
-    Parallel in-place Numba-accelerated row-wise sum of the cosines of
-    the elements of a two-dimensional NumPy array :math:`\mathbf{x}`.
+    Parallel in-place Numba-accelerated column-wise sum of the cosines
+    of the elements in a two-dimensional NumPy array :math:`\mathbf{x}`.
 
     .. math::
 
@@ -459,11 +463,11 @@ def cosine_sum_inplace_parallel_2d(
     xs : `np.ndarray`
         Matrix :math:`\mathbf{x}`.
 
-        **Shape**: :math:`(N,\,M)`.
+        **Shape**: :math:`(M,\,N)`.
 
     s : `np.ndarray`
-        Array to hold row-wise sum of the cosines of the elements of the
-        matrix :math:`\mathbf{x}`.
+        Array to hold the column-wise sums of the cosines of the
+        elements in the matrix :math:`\mathbf{x}`.
 
         **Shape**: :math:`(N,)`.
     """
@@ -476,7 +480,7 @@ def cosine_sum_inplace_parallel_2d(
 def sine_sum_1d(x: np.ndarray[float]) -> float:
 
     r"""
-    Serial Numba-accelerated sum of the sines of the elements of a
+    Serial Numba-accelerated sum of the sines of the elements in a
     one-dimensional NumPy array :math:`\mathbf{x}`.
 
     .. math::
@@ -493,7 +497,7 @@ def sine_sum_1d(x: np.ndarray[float]) -> float:
     Returns
     -------
     s : `float`
-        Sum of the sines of the elements of the vector
+        Sum of the sines of the elements in the vector
         :math:`\mathbf{x}`.
     """
 
@@ -506,8 +510,8 @@ def sine_sum_1d(x: np.ndarray[float]) -> float:
 def sine_sum_2d(xs: np.ndarray[float]) -> None:
 
     r"""
-    Serial Numba-accelerated row-wise sum of the sines of the elements
-    of a two-dimensional NumPy array :math:`\mathbf{x}`.
+    Serial Numba-accelerated column-wise sum of the sines of the
+    elements in a two-dimensional NumPy array :math:`\mathbf{x}`.
 
     .. math::
 
@@ -518,15 +522,15 @@ def sine_sum_2d(xs: np.ndarray[float]) -> None:
     xs : `np.ndarray`
         Matrix :math:`\mathbf{x}`.
 
-        **Shape**: :math:`(N,\,M)`.
+        **Shape**: :math:`(M,\,N)`.
 
     Returns
     -------
     s : `np.ndarray`
-        Row-wise sum of the sines of the elements of the matrix
+        Column-wise sums of the sines of the elements in the matrix
         :math:`\mathbf{x}`.
 
-        **Shape**: :math:`(N,)`.
+        **Shape**: :math:`(M,)`.
     """
 
     s = np.empty(xs.shape[0])
@@ -538,8 +542,8 @@ def sine_sum_2d(xs: np.ndarray[float]) -> None:
 def sine_sum_parallel_2d(xs: np.ndarray[float]) -> None:
 
     r"""
-    Parallel Numba-accelerated row-wise sum of the sines of the
-    elements of a two-dimensional NumPy array :math:`\mathbf{x}`.
+    Parallel Numba-accelerated column-wise sum of the sines of the
+    elements in a two-dimensional NumPy array :math:`\mathbf{x}`.
 
     .. math::
 
@@ -550,15 +554,15 @@ def sine_sum_parallel_2d(xs: np.ndarray[float]) -> None:
     xs : `np.ndarray`
         Matrix :math:`\mathbf{x}`.
 
-        **Shape**: :math:`(N,\,M)`.
+        **Shape**: :math:`(M,\,N)`.
 
     Returns
     -------
     s : `np.ndarray`
-        Row-wise sum of the sines of the elements of the matrix
+        Column-wise sums of the sines of the elements in the matrix
         :math:`\mathbf{x}`.
 
-        **Shape**: :math:`(N,)`.
+        **Shape**: :math:`(M,)`.
     """
 
     s = np.empty(xs.shape[0])
@@ -570,8 +574,8 @@ def sine_sum_parallel_2d(xs: np.ndarray[float]) -> None:
 def sine_sum_inplace_2d(xs: np.ndarray[float], s: np.ndarray[float]) -> None:
 
     r"""
-    Serial in-place Numba-accelerated row-wise sum of the sines of the
-    elements of a two-dimensional NumPy array :math:`\mathbf{x}`.
+    Serial in-place Numba-accelerated column-wise sum of the sines of
+    the elements in a two-dimensional NumPy array :math:`\mathbf{x}`.
 
     .. math::
 
@@ -582,13 +586,13 @@ def sine_sum_inplace_2d(xs: np.ndarray[float], s: np.ndarray[float]) -> None:
     xs : `np.ndarray`
         Matrix :math:`\mathbf{x}`.
 
-        **Shape**: :math:`(N,\,M)`.
+        **Shape**: :math:`(M,\,N)`.
 
     s : `np.ndarray`
-        Array to hold row-wise sum of the sines of the elements of the
-        matrix :math:`\mathbf{x}`.
+        Array to hold the column-wise sums of the sines of the elements
+        in the matrix :math:`\mathbf{x}`.
 
-        **Shape**: :math:`(N,)`.
+        **Shape**: :math:`(M,)`.
     """
 
     assert s.shape[0] == xs.shape[0]
@@ -600,8 +604,8 @@ def sine_sum_inplace_parallel_2d(
         xs: np.ndarray[float], s: np.ndarray[float]) -> None:
 
     r"""
-    Parallel in-place Numba-accelerated row-wise sum of the sines of
-    the elements of a two-dimensional NumPy array :math:`\mathbf{x}`.
+    Parallel in-place Numba-accelerated column-wise sum of the sines of
+    the elements in a two-dimensional NumPy array :math:`\mathbf{x}`.
 
     .. math::
 
@@ -612,13 +616,13 @@ def sine_sum_inplace_parallel_2d(
     xs : `np.ndarray`
         Matrix :math:`\mathbf{x}`.
 
-        **Shape**: :math:`(N,\,M)`.
+        **Shape**: :math:`(M,\,N)`.
 
     s : `np.ndarray`
-        Array to hold row-wise sum of the sines of the elements of the
-        matrix :math:`\mathbf{x}`.
+        Array to hold the column-wise sums of the sines of the elements
+        in the matrix :math:`\mathbf{x}`.
 
-        **Shape**: :math:`(N,)`.
+        **Shape**: :math:`(M,)`.
     """
 
     assert s.shape[0] == xs.shape[0]

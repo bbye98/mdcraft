@@ -513,9 +513,9 @@ the Wiener–Khinchin theorem and has a time complexity of
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{gather*}
-  \hat{\mathbf{X}}(\omega)=\mathcal{F}\{\mathbf{X}(t)\}\\
+  \hat{\mathbf{X}}(\omega)=\mathcal{F}[\mathbf{X}(t)]\\
   \mathrm{R}_{\mathbf{XX}}(\tau)=\mathcal{F}^{-1}
-  \{\hat{\mathbf{X}}(\omega)\hat{\mathbf{X}}^*(\omega)\}
+  [\hat{\mathbf{X}}(\omega)\hat{\mathbf{X}}^*(\omega)]
 \end{gather*}\end{split}\]</div>
 </div>
 <p>where <span class="math notranslate nohighlight">\(\tau\)</span> is the time lag and the asterisk (<span class="math notranslate nohighlight">\(^*\)</span>)
@@ -524,8 +524,8 @@ denotes the complex conjugate.</p>
 <span class="math notranslate nohighlight">\(\mathbf{Y}(t)\)</span> can be computed using</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
-\[\mathrm{R}_{\mathbf{XY}}(\tau)=\mathcal{F}^{-1}(\mathcal{F}
-(\mathbf{X}(t))\cdot\mathcal{F}(\mathbf{Y}(t)))\]</div>
+\[\mathrm{R}_{\mathbf{XY}}(\tau)=\mathcal{F}^{-1}[\mathcal{F}
+[\mathbf{X}(t)]\cdot\mathcal{F}[\mathbf{Y}(t)]]\]</div>
 </div>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>

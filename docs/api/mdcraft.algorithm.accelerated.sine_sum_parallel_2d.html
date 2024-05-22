@@ -501,8 +501,8 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="mdcraft.algorithm.accelerated.sine_sum_parallel_2d">
 <span class="sig-prename descclassname"><span class="pre">mdcraft.algorithm.accelerated.</span></span><span class="sig-name descname"><span class="pre">sine_sum_parallel_2d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/mdcraft/algorithm/accelerated.html#sine_sum_parallel_2d"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mdcraft.algorithm.accelerated.sine_sum_parallel_2d" title="Link to this definition">¶</a></dt>
-<dd><p>Parallel Numba-accelerated row-wise sum of the sines of the
-elements of a two-dimensional NumPy array <span class="math notranslate nohighlight">\(\mathbf{x}\)</span>.</p>
+<dd><p>Parallel Numba-accelerated column-wise sum of the sines of the
+elements in a two-dimensional NumPy array <span class="math notranslate nohighlight">\(\mathbf{x}\)</span>.</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\sum_{i=1}^N\sin(x_{ij})\]</div>
@@ -511,15 +511,15 @@ elements of a two-dimensional NumPy array <span class="math notranslate nohighli
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
 <dt><strong>xs</strong><span class="classifier"><cite>np.ndarray</cite></span></dt><dd><p>Matrix <span class="math notranslate nohighlight">\(\mathbf{x}\)</span>.</p>
-<p><strong>Shape</strong>: <span class="math notranslate nohighlight">\((N,\,M)\)</span>.</p>
+<p><strong>Shape</strong>: <span class="math notranslate nohighlight">\((M,\,N)\)</span>.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl>
-<dt><strong>s</strong><span class="classifier"><cite>np.ndarray</cite></span></dt><dd><p>Row-wise sum of the sines of the elements of the matrix
+<dt><strong>s</strong><span class="classifier"><cite>np.ndarray</cite></span></dt><dd><p>Column-wise sums of the sines of the elements in the matrix
 <span class="math notranslate nohighlight">\(\mathbf{x}\)</span>.</p>
-<p><strong>Shape</strong>: <span class="math notranslate nohighlight">\((N,)\)</span>.</p>
+<p><strong>Shape</strong>: <span class="math notranslate nohighlight">\((M,)\)</span>.</p>
 </dd>
 </dl>
 </dd>

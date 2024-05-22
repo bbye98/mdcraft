@@ -14,8 +14,7 @@ import MDAnalysis as mda
 from MDAnalysis.lib.distances import minimize_vectors
 from MDAnalysis.lib.mdamath import make_whole
 import numpy as np
-
-from .. import FOUND_OPENMM
+from .. import FOUND_OPENMM, Q_, ureg
 from .molecule import center_of_mass
 from .utility import get_closest_factors, replicate, find_connected_nodes
 from .unit import strip_unit
@@ -24,23 +23,26 @@ if FOUND_OPENMM:
     from openmm import app, unit
 
 def create_atoms(
-        dims: Union[np.ndarray[float], "unit.Quantity", "app.Topology"],
+        dimensions: Union[np.ndarray[float], "unit.Quantity", Q_,
+                          "app.Topology"],
         N: int = None, N_p: int = 1, *, lattice: str = None,
         length: Union[float, "unit.Quantity"] = 0.34,
         flexible: bool = False, bonds: bool = False, angles: bool = False,
         dihedrals: bool = False, randomize: bool = False,
-        length_unit: "unit.Unit" = None, wrap: bool = False) -> Any:
+        length_unit: Union["unit.Unit", ureg.Unit] = None, wrap: bool = False
+    ) -> Any:
 
-    r"""
+    """
     Generates initial particle positions for coarse-grained simulations.
 
     Parameters
     ----------
-    dims : `numpy.ndarray`, `openmm.unit.Quantity`, or `openmm.app.Topology`
+    dimensions : `numpy.ndarray`, `openmm.unit.Quantity`, \
+    `pint.Quantity`, or `openmm.app.Topology`
         System dimensions, provided as an array or obtained from an
         OpenMM topology.
 
-        **Reference unit**: :math:`\mathrm{nm}`.
+        **Reference unit**: :math:`\\mathrm{nm}`.
 
     N : `int`, optional
         Total number of particles (monomers). Must be provided for
@@ -50,8 +52,8 @@ def create_atoms(
         Number of particles (monomers) :math:`N_p` in each
         segment (polymer chain).
 
-        **Valid values**: :math:`1\leq N_\mathrm{p}\leq N`, with
-        :math:`N` divisible by :math:`N_\mathrm{p}`.
+        **Valid values**: :math:`1\\leq N_\\mathrm{p}\\leq N`, with
+        :math:`N` divisible by :math:`N_\\mathrm{p}`.
 
     lattice : `str`, keyword-only, optional
         Lattice type, with the relevant length scale specified in
@@ -61,10 +63,10 @@ def create_atoms(
         .. tip::
 
            To build walls with the correct periodicity, set the
-           :math:`z`-dimension to :code:`0` in `dims` and
+           :math:`z`-dimension to :code:`0` in `dimensions` and
            :code:`flexible=True`. This function will then return
            the wall particle positions and the :math:`x`- and
-           :math:`y`-dimensions closest to those specified in `dims`
+           :math:`y`-dimensions closest to those specified in `dimensions`
            that also satisfy the lattice periodicity.
 
            Keep in mind that walls should only be built in the
@@ -89,16 +91,16 @@ def create_atoms(
         particle size or the bond length, depending on the lattice type.
         Has no effect if :code:`N_p=1` or :code:`lattice=None`.
 
-        **Reference unit**: :math:`\mathrm{nm}`.
+        **Reference unit**: :math:`\\mathrm{nm}`.
 
     flexible : `bool`, default: :code:`False`
-        Specifies whether the dimensions provided in `dims` can be
-        changed to satisfy the lattice periodicity, if applicable.
-        For example, if the provided :math:`z`-dimension can hold a
-        non-integer 19.7 replicas of a lattice, then it is updated
-        to reflect the width of 20 replicas. To ignore a direction (and
-        make that dimension constant), such as when creating walls, set
-        that dimension to :code:`0` in `dims`.
+        Specifies whether `dimensions` can be modified to satisfy the
+        lattice periodicity, if applicable. For example, if the provided
+        :math:`z`-dimension can hold a non-integer 19.7 replicas of a
+        lattice, then it is updated to reflect the width of 20 replicas.
+        To ignore a direction (and make that dimension constant), such
+        as when creating walls, set that dimension to :code:`0` in
+        `dimensions`.
 
     bonds : `bool`, default: :code:`False`
         Determines whether bond information is returned for polymeric
@@ -116,9 +118,9 @@ def create_atoms(
         Determines whether the order of the replicated polymer positions
         are randomized. Has no effect if :code:`N_p=1`.
 
-    length_unit : `openmm.unit.Unit`, optional
+    length_unit : `openmm.unit.Unit` or `pint.Unit`, optional
         Length unit. If not specified, it is determined automatically
-        from `dims` or `length`.
+        from `dimensions` or `length`.
 
     wrap : `bool`, default: :code:`False`
         Determines whether particles outside the simulation box are
@@ -129,27 +131,27 @@ def create_atoms(
     positions : `numpy.ndarray` or `openmm.unit.Quantity`
         Generated particle positions.
 
-        **Shape**: :math:`(N,\,3)`.
+        **Shape**: :math:`(N,\\,3)`.
 
-        **Reference unit**: :math:`\mathrm{nm}`.
+        **Reference unit**: :math:`\\mathrm{nm}`.
 
     bonds : `numpy.ndarray`
         Pairs of all bonded particle indices. Only returned if
         :code:`bonds=True`.
 
-        **Shape**: :math:`(N_\mathrm{bonds},\,2)`.
+        **Shape**: :math:`(N_\\mathrm{bonds},\\,2)`.
 
     angles : `numpy.ndarray`
         Triples of all particle indices that form an angle. Only
         returned if :code:`angles=True`.
 
-        **Shape**: :math:`(N_\mathrm{angles},\,3)`.
+        **Shape**: :math:`(N_\\mathrm{angles},\\,3)`.
 
     dihedrals : `numpy.ndarray`
         Quadruples of all particle indices that form a dihedral. Only
         returned if :code:`dihedrals=True`.
 
-        **Shape**: :math:`(N_\mathrm{dihedrals},\,4)`.
+        **Shape**: :math:`(N_\\mathrm{dihedrals},\\,4)`.
 
     dimensions : `numpy.ndarray` or `openmm.unit.Quantity`
         Dimensions for lattice systems. Only returned if `lattice` is
@@ -157,13 +159,13 @@ def create_atoms(
 
         **Shape**: :math:`(3,)`.
 
-        **Reference unit**: :math:`\mathrm{nm}`.
+        **Reference unit**: :math:`\\mathrm{nm}`.
     """
 
     # Get raw numerical dimensions and length
-    if isinstance(dims, app.Topology):
-        dims = dims.getUnitCellDimensions()
-    dims, length_unit = strip_unit(dims, length_unit)
+    if isinstance(dimensions, app.Topology):
+        dimensions = dimensions.getUnitCellDimensions()
+    dimensions, length_unit = strip_unit(dimensions, length_unit)
     length, length_unit = strip_unit(length, length_unit)
     length_unit = length_unit or 1
 
@@ -185,14 +187,14 @@ def create_atoms(
 
         # Generate particle positions for a random melt
         if N_p == 1:
-            return np.random.rand(N, 3) * dims * length_unit
+            return np.random.rand(N, 3) * dimensions * length_unit
         else:
             topo = []
 
             # Determine unit cell information for each segment
             segments = N // N_p
             n_cells = get_closest_factors(segments, 3)
-            cell_dims = dims / n_cells
+            cell_dims = dimensions / n_cells
 
             # Randomly generate a segment within the unit cell
             cell_pos = np.zeros((N_p, 3))
@@ -211,8 +213,8 @@ def create_atoms(
             # Wrap particles past the system boundaries
             if wrap:
                 for i in range(3):
-                    pos[pos[:, i] < 0, i] += dims[i]
-                    pos[pos[:, i] > dims[i], i] -= dims[i]
+                    pos[pos[:, i] < 0, i] += dimensions[i]
+                    pos[pos[:, i] > dimensions[i], i] -= dimensions[i]
 
             topo.append(pos * length_unit)
 
@@ -240,8 +242,8 @@ def create_atoms(
 
         # Set unit cell information
         if lattice == "cubic":
-            _dims = np.array(dims)
-            _dims[dims == 0] = 1
+            _dims = np.array(dimensions)
+            _dims[dimensions == 0] = 1
             n_cells = around(_dims / length).astype(int)
             cell_dims = length * np.array((1, 1, 1))
             x, y, z = (length * np.arange(n) for n in n_cells)
@@ -275,7 +277,7 @@ def create_atoms(
                 ))
 
             # Determine unit cell multiples
-            n_cells = around(dims / cell_dims).astype(int)
+            n_cells = around(dimensions / cell_dims).astype(int)
             n_cells[n_cells == 0] = 1
             cell_dims[np.isinf(cell_dims)] = 0
 
@@ -284,10 +286,10 @@ def create_atoms(
 
         # Remove particles outside of system boundaries
         if flexible:
-            n_cells[dims == 0] = 0
-            pos = pos[~np.any(pos[:, dims == 0] > 0, axis=1)]
+            n_cells[dimensions == 0] = 0
+            pos = pos[~np.any(pos[:, dimensions == 0] > 0, axis=1)]
         else:
-            pos = pos[~np.any(pos > dims, axis=1)]
+            pos = pos[~np.any(pos > dimensions, axis=1)]
 
         return pos * length_unit, n_cells * cell_dims * length_unit
 
@@ -383,7 +385,7 @@ def unwrap(
         return positions, positions_old, images
 
 def unwrap_edge(
-        *, group: mda.AtomGroup = None, positions: np.ndarray[float] = None,
+        group: mda.AtomGroup = None, *, positions: np.ndarray[float] = None,
         bonds: np.ndarray[int] = None, dimensions: np.ndarray[float] = None,
         thresholds: np.ndarray[float] = None, masses: np.ndarray[float] = None,
     ) -> np.ndarray[float]:
@@ -396,22 +398,22 @@ def unwrap_edge(
     ----------
     group : `MDAnalysis.AtomGroup`, optional
         Atom group. If not provided, the atom positions, bonds, and
-        dimensions must be provided in `positions`, `bonds`, and
+        system dimensions must be provided in `positions`, `bonds`, and
         `dimensions`, respectively.
 
-    positions : `numpy.ndarray`, optional
+    positions : `numpy.ndarray`, keyword-only, optional
         Atom positions.
 
         **Shape**: :math:`(N,\,3)`.
 
         **Reference unit**: :math:`\mathrm{nm}`.
 
-    bonds : `numpy.ndarray`, optional
-        Pairs of all bonded atom indices with respect to `positions`.
+    bonds : `numpy.ndarray`, keyword-only, optional
+        Pairs of all bonded atom indices in reference to `positions`.
 
         **Shape**: :math:`(N_\mathrm{bonds},\,2)`.
 
-    dimensions : `numpy.ndarray`, optional
+    dimensions : `numpy.ndarray`, keyword-only, optional
         System dimensions and, optionally, angles.
 
         **Shape**: :math:`(3,)` or :math:`(6,)`.
@@ -419,7 +421,7 @@ def unwrap_edge(
         **Reference unit**: :math:`\mathrm{nm}` (lengths) and
         :math:`^\circ` (angles).
 
-    thresholds : `numpy.ndarray`, optional
+    thresholds : `numpy.ndarray`, keyword-only, optional
         Maximum distances in each direction an atom can move before it
         is considered to have crossed a boundary.
 
@@ -427,13 +429,13 @@ def unwrap_edge(
 
         **Reference unit**: :math:`\mathrm{nm}`.
 
-    masses : `numpy.ndarray`, optional
+    masses : `numpy.ndarray`, keyword-only, optional
         Atom masses. If not specified, all atoms are assumed to have the
         same mass.
 
         **Shape**: :math:`(N,)`.
 
-        **Reference unit**: :math:`\mathrm{amu}`.
+        **Reference unit**: :math:`\mathrm{g/mol}`.
 
     Returns
     -------

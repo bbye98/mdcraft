@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
 
     <link rel="shortcut icon" href="../../../_static/favicon.ico"/><!-- Generated with Sphinx 7.3.7 and Furo 2024.05.06 -->
-        <title>mdcraft.algorithm.topology - MDCraft documentation</title>
+        <title>mdcraft.algorithm.topology - MDCraft 1.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=387cc868" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -179,7 +179,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">MDCraft  documentation</div></a>
+      <a href="../../../index.html"><div class="brand">MDCraft 1.0.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -510,8 +510,7 @@
 <span class="kn">from</span> <span class="nn">MDAnalysis.lib.distances</span> <span class="kn">import</span> <span class="n">minimize_vectors</span>
 <span class="kn">from</span> <span class="nn">MDAnalysis.lib.mdamath</span> <span class="kn">import</span> <span class="n">make_whole</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-
-<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">FOUND_OPENMM</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">FOUND_OPENMM</span><span class="p">,</span> <span class="n">Q_</span><span class="p">,</span> <span class="n">ureg</span>
 <span class="kn">from</span> <span class="nn">.molecule</span> <span class="kn">import</span> <span class="n">center_of_mass</span>
 <span class="kn">from</span> <span class="nn">.utility</span> <span class="kn">import</span> <span class="n">get_closest_factors</span><span class="p">,</span> <span class="n">replicate</span><span class="p">,</span> <span class="n">find_connected_nodes</span>
 <span class="kn">from</span> <span class="nn">.unit</span> <span class="kn">import</span> <span class="n">strip_unit</span>
@@ -522,23 +521,26 @@
 <div class="viewcode-block" id="create_atoms">
 <a class="viewcode-back" href="../../../api/mdcraft.algorithm.topology.create_atoms.html#mdcraft.algorithm.topology.create_atoms">[docs]</a>
 <span class="k">def</span> <span class="nf">create_atoms</span><span class="p">(</span>
-        <span class="n">dims</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="s2">&quot;unit.Quantity&quot;</span><span class="p">,</span> <span class="s2">&quot;app.Topology&quot;</span><span class="p">],</span>
+        <span class="n">dimensions</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="s2">&quot;unit.Quantity&quot;</span><span class="p">,</span> <span class="n">Q_</span><span class="p">,</span>
+                          <span class="s2">&quot;app.Topology&quot;</span><span class="p">],</span>
         <span class="n">N</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">N_p</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">lattice</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">length</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="s2">&quot;unit.Quantity&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.34</span><span class="p">,</span>
         <span class="n">flexible</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">bonds</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">angles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">dihedrals</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">randomize</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="n">length_unit</span><span class="p">:</span> <span class="s2">&quot;unit.Unit&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">wrap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="n">length_unit</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="s2">&quot;unit.Unit&quot;</span><span class="p">,</span> <span class="n">ureg</span><span class="o">.</span><span class="n">Unit</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">wrap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Generates initial particle positions for coarse-grained simulations.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    dims : `numpy.ndarray`, `openmm.unit.Quantity`, or `openmm.app.Topology`</span>
+<span class="sd">    dimensions : `numpy.ndarray`, `openmm.unit.Quantity`, \</span>
+<span class="sd">    `pint.Quantity`, or `openmm.app.Topology`</span>
 <span class="sd">        System dimensions, provided as an array or obtained from an</span>
 <span class="sd">        OpenMM topology.</span>
 
-<span class="sd">        **Reference unit**: :math:`\mathrm{nm}`.</span>
+<span class="sd">        **Reference unit**: :math:`\\mathrm{nm}`.</span>
 
 <span class="sd">    N : `int`, optional</span>
 <span class="sd">        Total number of particles (monomers). Must be provided for</span>
@@ -548,8 +550,8 @@
 <span class="sd">        Number of particles (monomers) :math:`N_p` in each</span>
 <span class="sd">        segment (polymer chain).</span>
 
-<span class="sd">        **Valid values**: :math:`1\leq N_\mathrm{p}\leq N`, with</span>
-<span class="sd">        :math:`N` divisible by :math:`N_\mathrm{p}`.</span>
+<span class="sd">        **Valid values**: :math:`1\\leq N_\\mathrm{p}\\leq N`, with</span>
+<span class="sd">        :math:`N` divisible by :math:`N_\\mathrm{p}`.</span>
 
 <span class="sd">    lattice : `str`, keyword-only, optional</span>
 <span class="sd">        Lattice type, with the relevant length scale specified in</span>
@@ -559,10 +561,10 @@
 <span class="sd">        .. tip::</span>
 
 <span class="sd">           To build walls with the correct periodicity, set the</span>
-<span class="sd">           :math:`z`-dimension to :code:`0` in `dims` and</span>
+<span class="sd">           :math:`z`-dimension to :code:`0` in `dimensions` and</span>
 <span class="sd">           :code:`flexible=True`. This function will then return</span>
 <span class="sd">           the wall particle positions and the :math:`x`- and</span>
-<span class="sd">           :math:`y`-dimensions closest to those specified in `dims`</span>
+<span class="sd">           :math:`y`-dimensions closest to those specified in `dimensions`</span>
 <span class="sd">           that also satisfy the lattice periodicity.</span>
 
 <span class="sd">           Keep in mind that walls should only be built in the</span>
@@ -587,16 +589,16 @@
 <span class="sd">        particle size or the bond length, depending on the lattice type.</span>
 <span class="sd">        Has no effect if :code:`N_p=1` or :code:`lattice=None`.</span>
 
-<span class="sd">        **Reference unit**: :math:`\mathrm{nm}`.</span>
+<span class="sd">        **Reference unit**: :math:`\\mathrm{nm}`.</span>
 
 <span class="sd">    flexible : `bool`, default: :code:`False`</span>
-<span class="sd">        Specifies whether the dimensions provided in `dims` can be</span>
-<span class="sd">        changed to satisfy the lattice periodicity, if applicable.</span>
-<span class="sd">        For example, if the provided :math:`z`-dimension can hold a</span>
-<span class="sd">        non-integer 19.7 replicas of a lattice, then it is updated</span>
-<span class="sd">        to reflect the width of 20 replicas. To ignore a direction (and</span>
-<span class="sd">        make that dimension constant), such as when creating walls, set</span>
-<span class="sd">        that dimension to :code:`0` in `dims`.</span>
+<span class="sd">        Specifies whether `dimensions` can be modified to satisfy the</span>
+<span class="sd">        lattice periodicity, if applicable. For example, if the provided</span>
+<span class="sd">        :math:`z`-dimension can hold a non-integer 19.7 replicas of a</span>
+<span class="sd">        lattice, then it is updated to reflect the width of 20 replicas.</span>
+<span class="sd">        To ignore a direction (and make that dimension constant), such</span>
+<span class="sd">        as when creating walls, set that dimension to :code:`0` in</span>
+<span class="sd">        `dimensions`.</span>
 
 <span class="sd">    bonds : `bool`, default: :code:`False`</span>
 <span class="sd">        Determines whether bond information is returned for polymeric</span>
@@ -614,9 +616,9 @@
 <span class="sd">        Determines whether the order of the replicated polymer positions</span>
 <span class="sd">        are randomized. Has no effect if :code:`N_p=1`.</span>
 
-<span class="sd">    length_unit : `openmm.unit.Unit`, optional</span>
+<span class="sd">    length_unit : `openmm.unit.Unit` or `pint.Unit`, optional</span>
 <span class="sd">        Length unit. If not specified, it is determined automatically</span>
-<span class="sd">        from `dims` or `length`.</span>
+<span class="sd">        from `dimensions` or `length`.</span>
 
 <span class="sd">    wrap : `bool`, default: :code:`False`</span>
 <span class="sd">        Determines whether particles outside the simulation box are</span>
@@ -627,27 +629,27 @@
 <span class="sd">    positions : `numpy.ndarray` or `openmm.unit.Quantity`</span>
 <span class="sd">        Generated particle positions.</span>
 
-<span class="sd">        **Shape**: :math:`(N,\,3)`.</span>
+<span class="sd">        **Shape**: :math:`(N,\\,3)`.</span>
 
-<span class="sd">        **Reference unit**: :math:`\mathrm{nm}`.</span>
+<span class="sd">        **Reference unit**: :math:`\\mathrm{nm}`.</span>
 
 <span class="sd">    bonds : `numpy.ndarray`</span>
 <span class="sd">        Pairs of all bonded particle indices. Only returned if</span>
 <span class="sd">        :code:`bonds=True`.</span>
 
-<span class="sd">        **Shape**: :math:`(N_\mathrm{bonds},\,2)`.</span>
+<span class="sd">        **Shape**: :math:`(N_\\mathrm{bonds},\\,2)`.</span>
 
 <span class="sd">    angles : `numpy.ndarray`</span>
 <span class="sd">        Triples of all particle indices that form an angle. Only</span>
 <span class="sd">        returned if :code:`angles=True`.</span>
 
-<span class="sd">        **Shape**: :math:`(N_\mathrm{angles},\,3)`.</span>
+<span class="sd">        **Shape**: :math:`(N_\\mathrm{angles},\\,3)`.</span>
 
 <span class="sd">    dihedrals : `numpy.ndarray`</span>
 <span class="sd">        Quadruples of all particle indices that form a dihedral. Only</span>
 <span class="sd">        returned if :code:`dihedrals=True`.</span>
 
-<span class="sd">        **Shape**: :math:`(N_\mathrm{dihedrals},\,4)`.</span>
+<span class="sd">        **Shape**: :math:`(N_\\mathrm{dihedrals},\\,4)`.</span>
 
 <span class="sd">    dimensions : `numpy.ndarray` or `openmm.unit.Quantity`</span>
 <span class="sd">        Dimensions for lattice systems. Only returned if `lattice` is</span>
@@ -655,13 +657,13 @@
 
 <span class="sd">        **Shape**: :math:`(3,)`.</span>
 
-<span class="sd">        **Reference unit**: :math:`\mathrm{nm}`.</span>
+<span class="sd">        **Reference unit**: :math:`\\mathrm{nm}`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1"># Get raw numerical dimensions and length</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">app</span><span class="o">.</span><span class="n">Topology</span><span class="p">):</span>
-        <span class="n">dims</span> <span class="o">=</span> <span class="n">dims</span><span class="o">.</span><span class="n">getUnitCellDimensions</span><span class="p">()</span>
-    <span class="n">dims</span><span class="p">,</span> <span class="n">length_unit</span> <span class="o">=</span> <span class="n">strip_unit</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">length_unit</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dimensions</span><span class="p">,</span> <span class="n">app</span><span class="o">.</span><span class="n">Topology</span><span class="p">):</span>
+        <span class="n">dimensions</span> <span class="o">=</span> <span class="n">dimensions</span><span class="o">.</span><span class="n">getUnitCellDimensions</span><span class="p">()</span>
+    <span class="n">dimensions</span><span class="p">,</span> <span class="n">length_unit</span> <span class="o">=</span> <span class="n">strip_unit</span><span class="p">(</span><span class="n">dimensions</span><span class="p">,</span> <span class="n">length_unit</span><span class="p">)</span>
     <span class="n">length</span><span class="p">,</span> <span class="n">length_unit</span> <span class="o">=</span> <span class="n">strip_unit</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">length_unit</span><span class="p">)</span>
     <span class="n">length_unit</span> <span class="o">=</span> <span class="n">length_unit</span> <span class="ow">or</span> <span class="mi">1</span>
 
@@ -683,14 +685,14 @@
 
         <span class="c1"># Generate particle positions for a random melt</span>
         <span class="k">if</span> <span class="n">N_p</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="n">dims</span> <span class="o">*</span> <span class="n">length_unit</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="n">dimensions</span> <span class="o">*</span> <span class="n">length_unit</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">topo</span> <span class="o">=</span> <span class="p">[]</span>
 
             <span class="c1"># Determine unit cell information for each segment</span>
             <span class="n">segments</span> <span class="o">=</span> <span class="n">N</span> <span class="o">//</span> <span class="n">N_p</span>
             <span class="n">n_cells</span> <span class="o">=</span> <span class="n">get_closest_factors</span><span class="p">(</span><span class="n">segments</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
-            <span class="n">cell_dims</span> <span class="o">=</span> <span class="n">dims</span> <span class="o">/</span> <span class="n">n_cells</span>
+            <span class="n">cell_dims</span> <span class="o">=</span> <span class="n">dimensions</span> <span class="o">/</span> <span class="n">n_cells</span>
 
             <span class="c1"># Randomly generate a segment within the unit cell</span>
             <span class="n">cell_pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">N_p</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
@@ -709,8 +711,8 @@
             <span class="c1"># Wrap particles past the system boundaries</span>
             <span class="k">if</span> <span class="n">wrap</span><span class="p">:</span>
                 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
-                    <span class="n">pos</span><span class="p">[</span><span class="n">pos</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">dims</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                    <span class="n">pos</span><span class="p">[</span><span class="n">pos</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">dims</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="n">dims</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">pos</span><span class="p">[</span><span class="n">pos</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">dimensions</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">pos</span><span class="p">[</span><span class="n">pos</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">dimensions</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="n">dimensions</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
 
             <span class="n">topo</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pos</span> <span class="o">*</span> <span class="n">length_unit</span><span class="p">)</span>
 
@@ -738,8 +740,8 @@
 
         <span class="c1"># Set unit cell information</span>
         <span class="k">if</span> <span class="n">lattice</span> <span class="o">==</span> <span class="s2">&quot;cubic&quot;</span><span class="p">:</span>
-            <span class="n">_dims</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span>
-            <span class="n">_dims</span><span class="p">[</span><span class="n">dims</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">_dims</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dimensions</span><span class="p">)</span>
+            <span class="n">_dims</span><span class="p">[</span><span class="n">dimensions</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
             <span class="n">n_cells</span> <span class="o">=</span> <span class="n">around</span><span class="p">(</span><span class="n">_dims</span> <span class="o">/</span> <span class="n">length</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
             <span class="n">cell_dims</span> <span class="o">=</span> <span class="n">length</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
             <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="p">(</span><span class="n">length</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">n_cells</span><span class="p">)</span>
@@ -773,7 +775,7 @@
                 <span class="p">))</span>
 
             <span class="c1"># Determine unit cell multiples</span>
-            <span class="n">n_cells</span> <span class="o">=</span> <span class="n">around</span><span class="p">(</span><span class="n">dims</span> <span class="o">/</span> <span class="n">cell_dims</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+            <span class="n">n_cells</span> <span class="o">=</span> <span class="n">around</span><span class="p">(</span><span class="n">dimensions</span> <span class="o">/</span> <span class="n">cell_dims</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
             <span class="n">n_cells</span><span class="p">[</span><span class="n">n_cells</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
             <span class="n">cell_dims</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">cell_dims</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
 
@@ -782,10 +784,10 @@
 
         <span class="c1"># Remove particles outside of system boundaries</span>
         <span class="k">if</span> <span class="n">flexible</span><span class="p">:</span>
-            <span class="n">n_cells</span><span class="p">[</span><span class="n">dims</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="n">pos</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">pos</span><span class="p">[:,</span> <span class="n">dims</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span>
+            <span class="n">n_cells</span><span class="p">[</span><span class="n">dimensions</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">pos</span><span class="p">[:,</span> <span class="n">dimensions</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">pos</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">pos</span> <span class="o">&gt;</span> <span class="n">dims</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">pos</span> <span class="o">&gt;</span> <span class="n">dimensions</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span>
 
         <span class="k">return</span> <span class="n">pos</span> <span class="o">*</span> <span class="n">length_unit</span><span class="p">,</span> <span class="n">n_cells</span> <span class="o">*</span> <span class="n">cell_dims</span> <span class="o">*</span> <span class="n">length_unit</span></div>
 
@@ -887,7 +889,7 @@
 <div class="viewcode-block" id="unwrap_edge">
 <a class="viewcode-back" href="../../../api/mdcraft.algorithm.topology.unwrap_edge.html#mdcraft.algorithm.topology.unwrap_edge">[docs]</a>
 <span class="k">def</span> <span class="nf">unwrap_edge</span><span class="p">(</span>
-        <span class="o">*</span><span class="p">,</span> <span class="n">group</span><span class="p">:</span> <span class="n">mda</span><span class="o">.</span><span class="n">AtomGroup</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">positions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">group</span><span class="p">:</span> <span class="n">mda</span><span class="o">.</span><span class="n">AtomGroup</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">positions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">bonds</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dimensions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">thresholds</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">masses</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
@@ -900,22 +902,22 @@
 <span class="sd">    ----------</span>
 <span class="sd">    group : `MDAnalysis.AtomGroup`, optional</span>
 <span class="sd">        Atom group. If not provided, the atom positions, bonds, and</span>
-<span class="sd">        dimensions must be provided in `positions`, `bonds`, and</span>
+<span class="sd">        system dimensions must be provided in `positions`, `bonds`, and</span>
 <span class="sd">        `dimensions`, respectively.</span>
 
-<span class="sd">    positions : `numpy.ndarray`, optional</span>
+<span class="sd">    positions : `numpy.ndarray`, keyword-only, optional</span>
 <span class="sd">        Atom positions.</span>
 
 <span class="sd">        **Shape**: :math:`(N,\,3)`.</span>
 
 <span class="sd">        **Reference unit**: :math:`\mathrm{nm}`.</span>
 
-<span class="sd">    bonds : `numpy.ndarray`, optional</span>
-<span class="sd">        Pairs of all bonded atom indices with respect to `positions`.</span>
+<span class="sd">    bonds : `numpy.ndarray`, keyword-only, optional</span>
+<span class="sd">        Pairs of all bonded atom indices in reference to `positions`.</span>
 
 <span class="sd">        **Shape**: :math:`(N_\mathrm{bonds},\,2)`.</span>
 
-<span class="sd">    dimensions : `numpy.ndarray`, optional</span>
+<span class="sd">    dimensions : `numpy.ndarray`, keyword-only, optional</span>
 <span class="sd">        System dimensions and, optionally, angles.</span>
 
 <span class="sd">        **Shape**: :math:`(3,)` or :math:`(6,)`.</span>
@@ -923,7 +925,7 @@
 <span class="sd">        **Reference unit**: :math:`\mathrm{nm}` (lengths) and</span>
 <span class="sd">        :math:`^\circ` (angles).</span>
 
-<span class="sd">    thresholds : `numpy.ndarray`, optional</span>
+<span class="sd">    thresholds : `numpy.ndarray`, keyword-only, optional</span>
 <span class="sd">        Maximum distances in each direction an atom can move before it</span>
 <span class="sd">        is considered to have crossed a boundary.</span>
 
@@ -931,13 +933,13 @@
 
 <span class="sd">        **Reference unit**: :math:`\mathrm{nm}`.</span>
 
-<span class="sd">    masses : `numpy.ndarray`, optional</span>
+<span class="sd">    masses : `numpy.ndarray`, keyword-only, optional</span>
 <span class="sd">        Atom masses. If not specified, all atoms are assumed to have the</span>
 <span class="sd">        same mass.</span>
 
 <span class="sd">        **Shape**: :math:`(N,)`.</span>
 
-<span class="sd">        **Reference unit**: :math:`\mathrm{amu}`.</span>
+<span class="sd">        **Reference unit**: :math:`\mathrm{g/mol}`.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -1116,7 +1118,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+</div><script src="../../../_static/documentation_options.js?v=8d563738"></script>
     <script src="../../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/scripts/furo.js?v=4e2eecee"></script>

@@ -19,7 +19,7 @@ if FOUND_OPENMM:
 
 def get_scaling_factors(
         bases: dict[str, Union["unit.Quantity", Q_]],
-        other: dict[str, list] = {}) -> dict[str, Union["unit.Quantity", Q_]]:
+        other: dict[str, list] = None) -> dict[str, Union["unit.Quantity", Q_]]:
 
     r"""
     Evaluates scaling factors for reduced units.
@@ -60,17 +60,18 @@ def get_scaling_factors(
         Scaling factors.
     """
 
-    for name, params in other.items():
-        factor = 1
-        for base, power in params:
-            factor *= bases[base] ** power
-        bases[name] = factor
+    if other is not None:
+        for name, params in other.items():
+            factor = 1
+            for base, power in params:
+                factor *= bases[base] ** power
+            bases[name] = factor
 
     return bases
 
 def get_lj_scaling_factors(
         bases: dict[str, Union["unit.Quantity", Q_]],
-        other: dict[str, list] = {}) -> dict[str, Union["unit.Quantity", Q_]]:
+        other: dict[str, list] = None) -> dict[str, Union["unit.Quantity", Q_]]:
 
     r"""
     Evaluates scaling factors for Lennard-Jones reduced units.

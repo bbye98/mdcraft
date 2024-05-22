@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
 
     <link rel="shortcut icon" href="../../../_static/favicon.ico"/><!-- Generated with Sphinx 7.3.7 and Furo 2024.05.06 -->
-        <title>mdcraft.algorithm.accelerated - MDCraft documentation</title>
+        <title>mdcraft.algorithm.accelerated - MDCraft 1.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=387cc868" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -179,7 +179,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">MDCraft  documentation</div></a>
+      <a href="../../../index.html"><div class="brand">MDCraft 1.0.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -572,7 +572,7 @@
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    F : `complex`</span>
-<span class="sd">        Fourier transform of the Dirac delta function</span>
+<span class="sd">        Fourier transform of the Dirac delta function,</span>
 <span class="sd">        :math:`\mathcal{F}[\delta(\mathbf{q}-\mathbf{r})]`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -687,7 +687,8 @@
 
 <span class="sd">    .. math::</span>
 
-<span class="sd">       \mathbf{q}\cdot\mathbf{r}=q_1r_1+q_2r_2+q_3r_3</span>
+<span class="sd">       \mathbf{q}_i\cdot\mathbf{r}_j</span>
+<span class="sd">       =q_{i1}r_{j1}+q_{i2}r_{j2}+q_{i3}r_{j3}</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -704,7 +705,8 @@
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    s : `np.ndarray`</span>
-<span class="sd">        Inner products of the vectors :math:`\mathbf{q}\cdot\mathbf{r}`.</span>
+<span class="sd">        Inner products of the vectors,</span>
+<span class="sd">        :math:`\mathbf{q}_i\cdot\mathbf{r}_j`.</span>
 
 <span class="sd">        **Shape**: :math:`(N_q,\,N_r)`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -730,7 +732,8 @@
 
 <span class="sd">    .. math::</span>
 
-<span class="sd">       \mathbf{q}\cdot\mathbf{r}=q_1r_1+q_2r_2+q_3r_3</span>
+<span class="sd">       \mathbf{q}_i\cdot\mathbf{r}_j</span>
+<span class="sd">       =q_{i1}r_{j1}+q_{i2}r_{j2}+q_{i3}r_{j3}</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -747,7 +750,8 @@
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    s : `np.ndarray`</span>
-<span class="sd">        Inner products of the vectors :math:`\mathbf{q}\cdot\mathbf{r}`.</span>
+<span class="sd">        Inner products of the vectors,</span>
+<span class="sd">        :math:`\mathbf{q}_i\cdot\mathbf{r}_j`.</span>
 
 <span class="sd">        **Shape**: :math:`(N_q,\,N_r)`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -845,7 +849,7 @@
 <span class="k">def</span> <span class="nf">cosine_sum_1d</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Serial Numba-accelerated sum of the cosines of the elements of a</span>
+<span class="sd">    Serial Numba-accelerated sum of the cosines of the elements in a</span>
 <span class="sd">    one-dimensional NumPy array :math:`\mathbf{x}`.</span>
 
 <span class="sd">    .. math::</span>
@@ -862,7 +866,7 @@
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    s : `float`</span>
-<span class="sd">        Sum of the cosines of the elements of the vector</span>
+<span class="sd">        Sum of the cosines of the elements in the vector</span>
 <span class="sd">        :math:`\mathbf{x}`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -878,8 +882,8 @@
 <span class="k">def</span> <span class="nf">cosine_sum_2d</span><span class="p">(</span><span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
 
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Serial Numba-accelerated row-wise sum of the cosines of the elements</span>
-<span class="sd">    of a two-dimensional NumPy array :math:`\mathbf{x}`.</span>
+<span class="sd">    Serial Numba-accelerated column-wise sum of the cosines of the</span>
+<span class="sd">    elements in a two-dimensional NumPy array :math:`\mathbf{x}`.</span>
 
 <span class="sd">    .. math::</span>
 
@@ -890,15 +894,15 @@
 <span class="sd">    x : `np.ndarray`</span>
 <span class="sd">        Matrix :math:`\mathbf{x}`.</span>
 
-<span class="sd">        **Shape**: :math:`(N,\,M)`.</span>
+<span class="sd">        **Shape**: :math:`(M,\,N)`.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    s : `np.ndarray`</span>
-<span class="sd">        Row-wise sum of the cosines of the elements of the matrix</span>
+<span class="sd">        Column-wise sums of the cosines of the elements in the matrix</span>
 <span class="sd">        :math:`\mathbf{x}`.</span>
 
-<span class="sd">        **Shape**: :math:`(N,)`.</span>
+<span class="sd">        **Shape**: :math:`(M,)`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -913,8 +917,8 @@
 <span class="k">def</span> <span class="nf">cosine_sum_parallel_2d</span><span class="p">(</span><span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
 
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Parallel Numba-accelerated row-wise sum of the cosines of the</span>
-<span class="sd">    elements of a two-dimensional NumPy array :math:`\mathbf{x}`.</span>
+<span class="sd">    Parallel Numba-accelerated column-wise sum of the cosines of the</span>
+<span class="sd">    elements in a two-dimensional NumPy array :math:`\mathbf{x}`.</span>
 
 <span class="sd">    .. math::</span>
 
@@ -925,15 +929,15 @@
 <span class="sd">    xs : `np.ndarray`</span>
 <span class="sd">        Matrix :math:`\mathbf{x}`.</span>
 
-<span class="sd">        **Shape**: :math:`(N,\,M)`.</span>
+<span class="sd">        **Shape**: :math:`(M,\,N)`.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    s : `np.ndarray`</span>
-<span class="sd">        Row-wise sum of the cosines of the elements of the matrix</span>
+<span class="sd">        Column-wise sums of the cosines of the elements in the matrix</span>
 <span class="sd">        :math:`\mathbf{x}`.</span>
 
-<span class="sd">        **Shape**: :math:`(N,)`.</span>
+<span class="sd">        **Shape**: :math:`(M,)`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -948,8 +952,8 @@
 <span class="k">def</span> <span class="nf">cosine_sum_inplace_2d</span><span class="p">(</span><span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">s</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Serial in-place Numba-accelerated row-wise sum of the cosines of the</span>
-<span class="sd">    elements of a two-dimensional NumPy array :math:`\mathbf{x}`.</span>
+<span class="sd">    Serial in-place Numba-accelerated column-wise sum of the cosines of</span>
+<span class="sd">    the elements in a two-dimensional NumPy array :math:`\mathbf{x}`.</span>
 
 <span class="sd">    .. math::</span>
 
@@ -960,13 +964,13 @@
 <span class="sd">    xs : `np.ndarray`</span>
 <span class="sd">        Matrix :math:`\mathbf{x}`.</span>
 
-<span class="sd">        **Shape**: :math:`(N,\,M)`.</span>
+<span class="sd">        **Shape**: :math:`(M,\,N)`.</span>
 
 <span class="sd">    s : `np.ndarray`</span>
-<span class="sd">        Array to hold row-wise sum of the cosines of the elements of the</span>
-<span class="sd">        matrix :math:`\mathbf{x}`.</span>
+<span class="sd">        Array to hold the column-wise sums of the cosines of the</span>
+<span class="sd">        elements in the matrix :math:`\mathbf{x}`.</span>
 
-<span class="sd">        **Shape**: :math:`(N,)`.</span>
+<span class="sd">        **Shape**: :math:`(M,)`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">assert</span> <span class="n">s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -981,8 +985,8 @@
         <span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">s</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Parallel in-place Numba-accelerated row-wise sum of the cosines of</span>
-<span class="sd">    the elements of a two-dimensional NumPy array :math:`\mathbf{x}`.</span>
+<span class="sd">    Parallel in-place Numba-accelerated column-wise sum of the cosines</span>
+<span class="sd">    of the elements in a two-dimensional NumPy array :math:`\mathbf{x}`.</span>
 
 <span class="sd">    .. math::</span>
 
@@ -993,11 +997,11 @@
 <span class="sd">    xs : `np.ndarray`</span>
 <span class="sd">        Matrix :math:`\mathbf{x}`.</span>
 
-<span class="sd">        **Shape**: :math:`(N,\,M)`.</span>
+<span class="sd">        **Shape**: :math:`(M,\,N)`.</span>
 
 <span class="sd">    s : `np.ndarray`</span>
-<span class="sd">        Array to hold row-wise sum of the cosines of the elements of the</span>
-<span class="sd">        matrix :math:`\mathbf{x}`.</span>
+<span class="sd">        Array to hold the column-wise sums of the cosines of the</span>
+<span class="sd">        elements in the matrix :math:`\mathbf{x}`.</span>
 
 <span class="sd">        **Shape**: :math:`(N,)`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1013,7 +1017,7 @@
 <span class="k">def</span> <span class="nf">sine_sum_1d</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Serial Numba-accelerated sum of the sines of the elements of a</span>
+<span class="sd">    Serial Numba-accelerated sum of the sines of the elements in a</span>
 <span class="sd">    one-dimensional NumPy array :math:`\mathbf{x}`.</span>
 
 <span class="sd">    .. math::</span>
@@ -1030,7 +1034,7 @@
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    s : `float`</span>
-<span class="sd">        Sum of the sines of the elements of the vector</span>
+<span class="sd">        Sum of the sines of the elements in the vector</span>
 <span class="sd">        :math:`\mathbf{x}`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -1046,8 +1050,8 @@
 <span class="k">def</span> <span class="nf">sine_sum_2d</span><span class="p">(</span><span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Serial Numba-accelerated row-wise sum of the sines of the elements</span>
-<span class="sd">    of a two-dimensional NumPy array :math:`\mathbf{x}`.</span>
+<span class="sd">    Serial Numba-accelerated column-wise sum of the sines of the</span>
+<span class="sd">    elements in a two-dimensional NumPy array :math:`\mathbf{x}`.</span>
 
 <span class="sd">    .. math::</span>
 
@@ -1058,15 +1062,15 @@
 <span class="sd">    xs : `np.ndarray`</span>
 <span class="sd">        Matrix :math:`\mathbf{x}`.</span>
 
-<span class="sd">        **Shape**: :math:`(N,\,M)`.</span>
+<span class="sd">        **Shape**: :math:`(M,\,N)`.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    s : `np.ndarray`</span>
-<span class="sd">        Row-wise sum of the sines of the elements of the matrix</span>
+<span class="sd">        Column-wise sums of the sines of the elements in the matrix</span>
 <span class="sd">        :math:`\mathbf{x}`.</span>
 
-<span class="sd">        **Shape**: :math:`(N,)`.</span>
+<span class="sd">        **Shape**: :math:`(M,)`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -1081,8 +1085,8 @@
 <span class="k">def</span> <span class="nf">sine_sum_parallel_2d</span><span class="p">(</span><span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Parallel Numba-accelerated row-wise sum of the sines of the</span>
-<span class="sd">    elements of a two-dimensional NumPy array :math:`\mathbf{x}`.</span>
+<span class="sd">    Parallel Numba-accelerated column-wise sum of the sines of the</span>
+<span class="sd">    elements in a two-dimensional NumPy array :math:`\mathbf{x}`.</span>
 
 <span class="sd">    .. math::</span>
 
@@ -1093,15 +1097,15 @@
 <span class="sd">    xs : `np.ndarray`</span>
 <span class="sd">        Matrix :math:`\mathbf{x}`.</span>
 
-<span class="sd">        **Shape**: :math:`(N,\,M)`.</span>
+<span class="sd">        **Shape**: :math:`(M,\,N)`.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    s : `np.ndarray`</span>
-<span class="sd">        Row-wise sum of the sines of the elements of the matrix</span>
+<span class="sd">        Column-wise sums of the sines of the elements in the matrix</span>
 <span class="sd">        :math:`\mathbf{x}`.</span>
 
-<span class="sd">        **Shape**: :math:`(N,)`.</span>
+<span class="sd">        **Shape**: :math:`(M,)`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -1116,8 +1120,8 @@
 <span class="k">def</span> <span class="nf">sine_sum_inplace_2d</span><span class="p">(</span><span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">s</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Serial in-place Numba-accelerated row-wise sum of the sines of the</span>
-<span class="sd">    elements of a two-dimensional NumPy array :math:`\mathbf{x}`.</span>
+<span class="sd">    Serial in-place Numba-accelerated column-wise sum of the sines of</span>
+<span class="sd">    the elements in a two-dimensional NumPy array :math:`\mathbf{x}`.</span>
 
 <span class="sd">    .. math::</span>
 
@@ -1128,13 +1132,13 @@
 <span class="sd">    xs : `np.ndarray`</span>
 <span class="sd">        Matrix :math:`\mathbf{x}`.</span>
 
-<span class="sd">        **Shape**: :math:`(N,\,M)`.</span>
+<span class="sd">        **Shape**: :math:`(M,\,N)`.</span>
 
 <span class="sd">    s : `np.ndarray`</span>
-<span class="sd">        Array to hold row-wise sum of the sines of the elements of the</span>
-<span class="sd">        matrix :math:`\mathbf{x}`.</span>
+<span class="sd">        Array to hold the column-wise sums of the sines of the elements</span>
+<span class="sd">        in the matrix :math:`\mathbf{x}`.</span>
 
-<span class="sd">        **Shape**: :math:`(N,)`.</span>
+<span class="sd">        **Shape**: :math:`(M,)`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">assert</span> <span class="n">s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -1149,8 +1153,8 @@
         <span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">s</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Parallel in-place Numba-accelerated row-wise sum of the sines of</span>
-<span class="sd">    the elements of a two-dimensional NumPy array :math:`\mathbf{x}`.</span>
+<span class="sd">    Parallel in-place Numba-accelerated column-wise sum of the sines of</span>
+<span class="sd">    the elements in a two-dimensional NumPy array :math:`\mathbf{x}`.</span>
 
 <span class="sd">    .. math::</span>
 
@@ -1161,13 +1165,13 @@
 <span class="sd">    xs : `np.ndarray`</span>
 <span class="sd">        Matrix :math:`\mathbf{x}`.</span>
 
-<span class="sd">        **Shape**: :math:`(N,\,M)`.</span>
+<span class="sd">        **Shape**: :math:`(M,\,N)`.</span>
 
 <span class="sd">    s : `np.ndarray`</span>
-<span class="sd">        Array to hold row-wise sum of the sines of the elements of the</span>
-<span class="sd">        matrix :math:`\mathbf{x}`.</span>
+<span class="sd">        Array to hold the column-wise sums of the sines of the elements</span>
+<span class="sd">        in the matrix :math:`\mathbf{x}`.</span>
 
-<span class="sd">        **Shape**: :math:`(N,)`.</span>
+<span class="sd">        **Shape**: :math:`(M,)`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">assert</span> <span class="n">s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -1206,7 +1210,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+</div><script src="../../../_static/documentation_options.js?v=8d563738"></script>
     <script src="../../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/scripts/furo.js?v=4e2eecee"></script>

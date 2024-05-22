@@ -500,7 +500,7 @@
 <h1>radius_of_gyration<a class="headerlink" href="#radius-of-gyration" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="mdcraft.algorithm.molecule.radius_of_gyration">
-<span class="sig-prename descclassname"><span class="pre">mdcraft.algorithm.molecule.</span></span><span class="sig-name descname"><span class="pre">radius_of_gyration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">group</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.mdanalysis.org/stable/documentation_pages/core/groups.html#MDAnalysis.core.groups.AtomGroup" title="(in MDAnalysis v2.7.0)"><span class="pre">AtomGroup</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grouping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">masses</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">com</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">images</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dimensions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_groups</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">components</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/mdcraft/algorithm/molecule.html#radius_of_gyration"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mdcraft.algorithm.molecule.radius_of_gyration" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">mdcraft.algorithm.molecule.</span></span><span class="sig-name descname"><span class="pre">radius_of_gyration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">group</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.mdanalysis.org/stable/documentation_pages/core/groups.html#MDAnalysis.core.groups.AtomGroup" title="(in MDAnalysis v2.7.0)"><span class="pre">AtomGroup</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grouping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">masses</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">com</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">images</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dimensions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_groups</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">components</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/mdcraft/algorithm/molecule.html#radius_of_gyration"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mdcraft.algorithm.molecule.radius_of_gyration" title="Link to this definition">¶</a></dt>
 <dd><p>Computes the radii of gyration <span class="math notranslate nohighlight">\(R_\mathrm{g}\)</span> for a collection
 of atoms.</p>
 <p>For a group of <span class="math notranslate nohighlight">\(N\)</span> atoms with masses <span class="math notranslate nohighlight">\(m_i\)</span> and positions
@@ -533,7 +533,7 @@ provided in <cite>group</cite>, the atom masses and positions are retrieved
 from it and do not need to be provided in <cite>masses</cite> and
 <cite>positions</cite>, respectively. If the <code class="code docutils literal notranslate"><span class="pre">AtomGroup</span></code> abides by the
 standard topological heirarchy, you can specify the desired
-grouping in <cite>grouping</cite> and the appropriate centers of mass will
+grouping in <cite>grouping</cite> and the appropriate radii of gyration will
 be calculated. Otherwise, if and only if the <code class="code docutils literal notranslate"><span class="pre">AtomGroup</span></code>
 contains equisized or identical groups corresponding to the
 desired grouping (i.e., the <code class="code docutils literal notranslate"><span class="pre">AtomGroup</span></code> has atoms that are
@@ -548,19 +548,18 @@ are not embedded in the <code class="code docutils literal notranslate"><span cl
 <cite>images</cite> (and <cite>dimensions</cite>).</p>
 <p>If the <code class="code docutils literal notranslate"><span class="pre">AtomGroup</span></code> does not have the correct structural
 information and the residues or segments do not contain the same
-number of atoms, the <em>unwrapped</em> atom masses and positions can
-each be provided directly as a <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a>, list, or
-tuple in <cite>masses</cite> and <cite>positions</cite>, respectively. To calculate the
-overall center of mass, the array-like object holding the masses
-should be one-dimensional, while that containing the positions
-should be two-dimensional. To calculate centers of mass for
-multiple groups, the array-like object holding the masses should
-be two-dimensional (indices: group, atom), while that containing
-the positions should be three-dimensional (indices: group, atom,
-axis). When a list or tuple is used, the inner arrays do not have
-to be homogeneously shaped, thus allowing you to calculate the
-centers of mass for residues or segments with different numbers
-of atoms.</p>
+number of atoms, the atom masses and positions can each be
+provided directly as a <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a> or list in <cite>masses</cite>
+and <cite>positions</cite>, respectively. To calculate the overall radius of
+gyration, the array-like object holding the masses should be
+one-dimensional, while that containing the positions should be
+two-dimensional. To calculate radii of gyration for multiple
+groups, the array-like object holding the masses should be
+two-dimensional (indices: group, atom), while that containing the
+positions should be three-dimensional (indices: group, atom,
+axis). When a list is used, the inner arrays do not have to be
+homogeneously shaped, thus allowing you to calculate the radii of
+gyration for residues or segments with different numbers of atoms.</p>
 <p>You may also provide only one of the atom masses or positions, in
 which case the missing information will be retrieved from the
 <code class="code docutils literal notranslate"><span class="pre">AtomGroup</span></code> provided in <cite>group</cite>. This is generally not
@@ -570,19 +569,19 @@ may be incompatible.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>group</strong><span class="classifier"><cite>MDAnalysis.AtomGroup</cite>, optional</span></dt><dd><p>Collection of atoms to compute the centers of mass for. If not
+<dt><strong>group</strong><span class="classifier"><cite>MDAnalysis.AtomGroup</cite>, optional</span></dt><dd><p>Collection of atoms to compute the radii of gyration for. If not
 provided, the atom masses and posititions must be provided
 directly in <cite>masses</cite> and <cite>positions</cite>, respectively.</p>
 </dd>
-<dt><strong>grouping</strong><span class="classifier"><cite>str</cite>, optional</span></dt><dd><p>Determines which center of mass is calculated if atom masses and
-positions are retrieved from <cite>group</cite>.</p>
+<dt><strong>grouping</strong><span class="classifier"><cite>str</cite>, optional</span></dt><dd><p>Determines which radius of gyration is calculated if atom masses
+and positions are retrieved from <cite>group</cite>.</p>
 <div class="docutils container">
 <p><strong>Valid values</strong>:</p>
 <ul class="simple">
-<li><p><code class="code docutils literal notranslate"><span class="pre">None</span></code>: Center of mass of all atoms in <cite>group</cite>.</p></li>
-<li><p><code class="code docutils literal notranslate"><span class="pre">&quot;residues&quot;</span></code>: Centers of mass for each residue or
+<li><p><code class="code docutils literal notranslate"><span class="pre">None</span></code>: Radius of gyration of all atoms in <cite>group</cite>.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">&quot;residues&quot;</span></code>: Radius of gyration for each residue or
 molecule in <cite>group</cite>.</p></li>
-<li><p><code class="code docutils literal notranslate"><span class="pre">&quot;segments&quot;</span></code>: Centers of mass for each segment or
+<li><p><code class="code docutils literal notranslate"><span class="pre">&quot;segments&quot;</span></code>: Radius of gyration for each segment or
 chain in <cite>group</cite>.</p></li>
 </ul>
 </div>
@@ -594,17 +593,17 @@ chain in <cite>group</cite>.</p></li>
 <p>For equisized or identical groups, the <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a>
 object should have shape</p>
 <ul class="simple">
-<li><p><span class="math notranslate nohighlight">\((N,)\)</span> for the overall center of mass,</p></li>
+<li><p><span class="math notranslate nohighlight">\((N,)\)</span> for the overall radius of gyration,</p></li>
 <li><p><span class="math notranslate nohighlight">\((N_\mathrm{res},\,N/N_\mathrm{res})\)</span> for the residue
-centers of mass, where <span class="math notranslate nohighlight">\(N_\mathrm{res}\)</span> is
-the number of residues, or</p></li>
+radii of gyration, where <span class="math notranslate nohighlight">\(N_\mathrm{res}\)</span> is the
+number of residues, or</p></li>
 <li><p><span class="math notranslate nohighlight">\((N_\mathrm{seg},\,N/N_\mathrm{seg}\)</span> for the segment
-centers of mass, where <span class="math notranslate nohighlight">\(N_\mathrm{seg}\)</span> is
-the number of segments.</p></li>
+radii of gyration, where <span class="math notranslate nohighlight">\(N_\mathrm{seg}\)</span> is the
+number of segments.</p></li>
 </ul>
-<p>For groups with different numbers of atoms, the array-like
-object should contain inner lists or tuples holding the
-masses of the atoms in each group.</p>
+<p>For groups with different numbers of atoms, the list should
+contain inner array-like objects holding the masses of the
+atoms in each group.</p>
 </div>
 <p><strong>Reference unit</strong>: <span class="math notranslate nohighlight">\(\mathrm{g/mol}\)</span>.</p>
 </dd>
@@ -615,15 +614,15 @@ masses of the atoms in each group.</p>
 <p>For equisized or identical groups, the <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a>
 object should have shape</p>
 <ul class="simple">
-<li><p><span class="math notranslate nohighlight">\((N,\,3)\)</span> for the overall center of mass,</p></li>
+<li><p><span class="math notranslate nohighlight">\((N,\,3)\)</span> for the overall radius of gyration,</p></li>
 <li><p><span class="math notranslate nohighlight">\((N_\mathrm{res},\,N/N_\mathrm{res},\,3)\)</span> for the
-residue centers of mass, or</p></li>
+residue radii of gyration, or</p></li>
 <li><p><span class="math notranslate nohighlight">\((N_\mathrm{seg},\,N/N_\mathrm{seg},\,3)\)</span> for the
-segment centers of mass.</p></li>
+segment radii of gyration.</p></li>
 </ul>
-<p>For groups with different numbers of atoms, the array-like
-object should contain inner lists or tuples holding the
-positions of the atoms in each group.</p>
+<p>For groups with different numbers of atoms, the list should
+contain inner array-like objects holding the positions of the
+atoms in each group.</p>
 </div>
 <p><strong>Reference unit</strong>: <span class="math notranslate nohighlight">\(\mathrm{Å}\)</span>.</p>
 </dd>
@@ -668,12 +667,112 @@ calculated and returned instead.</p>
 <li><p><span class="math notranslate nohighlight">\((N_\mathrm{res},)\)</span> for <code class="code docutils literal notranslate"><span class="pre">grouping=&quot;residues&quot;</span></code>.</p></li>
 <li><p><span class="math notranslate nohighlight">\((N_\mathrm{seg},)\)</span> for <code class="code docutils literal notranslate"><span class="pre">grouping=&quot;segments&quot;</span></code>.</p></li>
 </ul>
+<p>If <code class="code docutils literal notranslate"><span class="pre">components=True</span></code>, an additional axis with length
+<span class="math notranslate nohighlight">\(3\)</span> is added to the end.</p>
 </div>
 <p><strong>Reference unit</strong>: <span class="math notranslate nohighlight">\(\mathrm{Å}\)</span>.</p>
 </dd>
 </dl>
 </dd>
 </dl>
+<p class="rubric">Examples</p>
+<p>For an <a class="reference external" href="https://docs.mdanalysis.org/stable/documentation_pages/core/groups.html#MDAnalysis.core.groups.AtomGroup" title="(in MDAnalysis v2.7.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">MDAnalysis.core.groups.AtomGroup</span></code></a> object with all
+necessary topological information and an unwrapped trajectory, the
+overall, per-residue, and per-segment radii of gyration can be
+calculated as follows:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">universe</span> <span class="o">=</span> <span class="n">mda</span><span class="o">.</span><span class="n">Universe</span><span class="p">(</span><span class="s2">&quot;topology.pdb&quot;</span><span class="p">,</span> <span class="s2">&quot;trajectory.nc&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">group</span> <span class="o">=</span> <span class="n">universe</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;all&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Rg_ovr</span> <span class="o">=</span> <span class="n">radius_of_gyration</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Rg_res</span> <span class="o">=</span> <span class="n">radius_of_gyration</span><span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="s2">&quot;residues&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Rg_seg</span> <span class="o">=</span> <span class="n">radius_of_gyration</span><span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="s2">&quot;segments&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If the <code class="code docutils literal notranslate"><span class="pre">AtomGroup</span></code> does not contain residue or segment
+information and the per-residue or per-segment centers of mass,
+respectively, are desired, the number of residues or segments can be
+provided in <cite>n_groups</cite>:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Rg_res</span> <span class="o">=</span> <span class="n">radius_of_gyration</span><span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="s2">&quot;residues&quot;</span><span class="p">,</span> <span class="n">n_groups</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="c1"># 2 residues</span>
+</pre></div>
+</div>
+<p>If the trajectory is wrapped, the number of periodic boundary
+crossings must be provided in <cite>images</cite>. Additionally, if the
+system dimensions are not embedded in the <code class="code docutils literal notranslate"><span class="pre">AtomGroup</span></code>, they
+must also be provided in <cite>dimensions</cite>:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">images</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+<span class="go">                       (0, 1, 0), (0, 0, 1), (-1, 1, 0)))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dimensions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">((</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Rg_ovr</span> <span class="o">=</span> <span class="n">radius_of_gyration</span><span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="n">images</span><span class="o">=</span><span class="n">images</span><span class="p">,</span> <span class="n">dimensions</span><span class="o">=</span><span class="n">dimensions</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Alternatively, if the atom masses and positions are directly
+available as <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a> objects, the overall radius of
+gyration can be calculated as follows:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">masses</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">((</span><span class="mf">12.01</span><span class="p">,</span> <span class="mf">1.01</span><span class="p">,</span> <span class="mf">1.01</span><span class="p">,</span> <span class="mf">12.01</span><span class="p">,</span> <span class="mf">1.01</span><span class="p">,</span> <span class="mf">1.01</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(((</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.07579</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+<span class="go">                          (0.86681, 0.60144, 0.0),</span>
+<span class="go">                          (-0.86681, 0.60144, 0.0),</span>
+<span class="go">                          (0.0, -0.07579, 1.0),</span>
+<span class="go">                          (0.86681, 0.60144, 1.0),</span>
+<span class="go">                          (-0.86681, 0.60144, 1.0)))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Rg_ovr</span> <span class="o">=</span> <span class="n">radius_of_gyration</span><span class="p">(</span><span class="n">masses</span><span class="o">=</span><span class="n">masses</span><span class="p">,</span> <span class="n">positions</span><span class="o">=</span><span class="n">positions</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If the per-residue radius of gyration is desired, the number of
+residues can be provided in <cite>n_groups</cite>:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Rg_res</span> <span class="o">=</span> <span class="n">radius_of_gyration</span><span class="p">(</span><span class="n">masses</span><span class="o">=</span><span class="n">masses</span><span class="p">,</span> <span class="n">positions</span><span class="o">=</span><span class="n">positions</span><span class="p">,</span>
+<span class="go">                                n_groups=2)</span>
+</pre></div>
+</div>
+<p>or the arrays containing the atom masses and positions can be
+reshaped to the appropriate shapes:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">n_groups</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Rg_res</span> <span class="o">=</span> <span class="n">radius_of_gyration</span><span class="p">(</span>
+<span class="go">        masses=masses.reshape((n_groups, -1)),</span>
+<span class="go">        positions=positions.reshape((n_groups, -1, 3))</span>
+<span class="go">    )</span>
+</pre></div>
+</div>
+<p>Like before, if the trajectory is wrapped, the number of periodic
+boundary crossings and system dimensions must be provided in
+<cite>images</cite> and <cite>dimensions</cite>, respectively:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">images</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+<span class="go">                       (0, 0, 1), (0, 0, 1), (0, 0, 1)))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dimensions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">((</span><span class="mf">12.0</span><span class="p">,</span> <span class="mf">12.0</span><span class="p">,</span> <span class="mf">12.0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Rg_ovr</span> <span class="o">=</span> <span class="n">radius_of_gyration</span><span class="p">(</span><span class="n">masses</span><span class="o">=</span><span class="n">masses</span><span class="p">,</span> <span class="n">positions</span><span class="o">=</span><span class="n">positions</span><span class="p">,</span>
+<span class="go">                                images=images, dimensions=dimensions)</span>
+</pre></div>
+</div>
+<p>Finally, if the per-residue or per-segment radius of gyration is
+desired but the groups contain different numbers of atoms, the
+the atom masses and positions can be provided as lists of arrays
+holding the masses and positions of the atoms in each group:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">masses</span> <span class="o">=</span> <span class="p">[(</span><span class="mf">12.01</span><span class="p">,</span> <span class="mf">1.01</span><span class="p">,</span> <span class="mf">1.01</span><span class="p">),</span> <span class="p">(</span><span class="mf">22.99</span><span class="p">,),</span> <span class="p">(</span><span class="mf">12.01</span><span class="p">,</span> <span class="mf">1.01</span><span class="p">)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">positions</span> <span class="o">=</span> <span class="p">[((</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.07579</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+<span class="go">                  (0.86681, 0.60144, 0.0),</span>
+<span class="go">                  (-0.86681, 0.60144, 0.0)),</span>
+<span class="go">                 ((0.0, 0.0, 0.0),),</span>
+<span class="go">                 ((0.0, -0.07579, 1.0),</span>
+<span class="go">                  (0.86681, 0.60144, 1.0))]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Rg_res</span> <span class="o">=</span> <span class="n">radius_of_gyration</span><span class="p">(</span><span class="n">masses</span><span class="o">=</span><span class="n">masses</span><span class="p">,</span> <span class="n">positions</span><span class="o">=</span><span class="n">positions</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>It is still possible to pass in the number of periodic boundary
+crossings if the trajectory is wrapped, but attention must be paid
+to the shape of the array:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">images</span> <span class="o">=</span> <span class="p">[((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+<span class="go">              ((1, 1, 1),),</span>
+<span class="go">              ((0, 1, 0), (0, 1, 0))]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dimensions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">((</span><span class="mf">10.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Rg_res</span> <span class="o">=</span> <span class="n">radius_of_gyration</span><span class="p">(</span><span class="n">masses</span><span class="o">=</span><span class="n">masses</span><span class="p">,</span> <span class="n">positions</span><span class="o">=</span><span class="n">positions</span><span class="p">,</span>
+<span class="go">                                images=images, dimensions=dimensions)</span>
+</pre></div>
+</div>
+<p>For any of the examples above, the components of the radii of
+gyration can be calculated and returned by setting
+<code class="code docutils literal notranslate"><span class="pre">components=True</span></code>:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Rg_ovr</span> <span class="o">=</span> <span class="n">radius_of_gyration</span><span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="n">components</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
 </dd></dl>
 
 </section>

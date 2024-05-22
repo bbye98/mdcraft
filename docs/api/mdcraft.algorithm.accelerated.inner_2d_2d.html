@@ -507,7 +507,8 @@ combinations of multiple one-dimensional NumPy arrays
 <span class="math notranslate nohighlight">\((3,)\)</span>.</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
-\[\mathbf{q}\cdot\mathbf{r}=q_1r_1+q_2r_2+q_3r_3\]</div>
+\[\mathbf{q}_i\cdot\mathbf{r}_j
+=q_{i1}r_{j1}+q_{i2}r_{j2}+q_{i3}r_{j3}\]</div>
 </div>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -522,7 +523,8 @@ combinations of multiple one-dimensional NumPy arrays
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl>
-<dt><strong>s</strong><span class="classifier"><cite>np.ndarray</cite></span></dt><dd><p>Inner products of the vectors <span class="math notranslate nohighlight">\(\mathbf{q}\cdot\mathbf{r}\)</span>.</p>
+<dt><strong>s</strong><span class="classifier"><cite>np.ndarray</cite></span></dt><dd><p>Inner products of the vectors,
+<span class="math notranslate nohighlight">\(\mathbf{q}_i\cdot\mathbf{r}_j\)</span>.</p>
 <p><strong>Shape</strong>: <span class="math notranslate nohighlight">\((N_q,\,N_r)\)</span>.</p>
 </dd>
 </dl>

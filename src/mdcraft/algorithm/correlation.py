@@ -37,9 +37,9 @@ def correlation_fft(
     .. math::
 
        \begin{gather*}
-         \hat{\mathbf{X}}(\omega)=\mathcal{F}\{\mathbf{X}(t)\}\\
+         \hat{\mathbf{X}}(\omega)=\mathcal{F}[\mathbf{X}(t)]\\
          \mathrm{R}_{\mathbf{XX}}(\tau)=\mathcal{F}^{-1}
-         \{\hat{\mathbf{X}}(\omega)\hat{\mathbf{X}}^*(\omega)\}
+         [\hat{\mathbf{X}}(\omega)\hat{\mathbf{X}}^*(\omega)]
        \end{gather*}
 
     where :math:`\tau` is the time lag and the asterisk (:math:`^*`)
@@ -50,8 +50,8 @@ def correlation_fft(
 
     .. math::
 
-       \mathrm{R}_{\mathbf{XY}}(\tau)=\mathcal{F}^{-1}(\mathcal{F}
-       (\mathbf{X}(t))\cdot\mathcal{F}(\mathbf{Y}(t)))
+       \mathrm{R}_{\mathbf{XY}}(\tau)=\mathcal{F}^{-1}[\mathcal{F}
+       [\mathbf{X}(t)]\cdot\mathcal{F}[\mathbf{Y}(t)]]
 
     Parameters
     ----------
