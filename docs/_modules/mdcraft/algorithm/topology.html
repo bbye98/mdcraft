@@ -543,11 +543,11 @@
 <span class="sd">        **Reference unit**: :math:`\\mathrm{nm}`.</span>
 
 <span class="sd">    N : `int`, optional</span>
-<span class="sd">        Total number of particles (monomers). Must be provided for</span>
-<span class="sd">        random melts or polymers.</span>
+<span class="sd">        Total number of particles. Must be provided for random melts or</span>
+<span class="sd">        polymers.</span>
 
 <span class="sd">    N_p : `int`, default: :code:`1`</span>
-<span class="sd">        Number of particles (monomers) :math:`N_p` in each</span>
+<span class="sd">        Number of atoms (monomers) :math:`N_\\mathrm{p}` in each</span>
 <span class="sd">        segment (polymer chain).</span>
 
 <span class="sd">        **Valid values**: :math:`1\\leq N_\\mathrm{p}\\leq N`, with</span>
@@ -564,11 +564,10 @@
 <span class="sd">           :math:`z`-dimension to :code:`0` in `dimensions` and</span>
 <span class="sd">           :code:`flexible=True`. This function will then return</span>
 <span class="sd">           the wall particle positions and the :math:`x`- and</span>
-<span class="sd">           :math:`y`-dimensions closest to those specified in `dimensions`</span>
-<span class="sd">           that also satisfy the lattice periodicity.</span>
+<span class="sd">           :math:`y`-dimensions closest to those specified in</span>
+<span class="sd">           `dimensions` that satisfy the lattice periodicity.</span>
 
-<span class="sd">           Keep in mind that walls should only be built in the</span>
-<span class="sd">           :math:`z`-direction.</span>
+<span class="sd">           Walls should only be built in the :math:`z`-direction.</span>
 
 <span class="sd">        .. container::</span>
 
@@ -627,7 +626,7 @@
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    positions : `numpy.ndarray` or `openmm.unit.Quantity`</span>
-<span class="sd">        Generated particle positions.</span>
+<span class="sd">        Particle positions.</span>
 
 <span class="sd">        **Shape**: :math:`(N,\\,3)`.</span>
 

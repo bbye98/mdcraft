@@ -747,7 +747,7 @@
 <span class="sd">    must also be provided in `dimensions`:</span>
 
 <span class="sd">    &gt;&gt;&gt; images = np.array(((1, 0, 0), (0, 0, 0), (0, -1, 0),</span>
-<span class="sd">                           (0, 1, 0), (0, 0, 1), (-1, 1, 0)))</span>
+<span class="sd">    ...                    (0, 1, 0), (0, 0, 1), (-1, 1, 0)))</span>
 <span class="sd">    &gt;&gt;&gt; dimensions = np.array((5.0, 8.0, 10.0))</span>
 <span class="sd">    &gt;&gt;&gt; com_ovr = center_of_mass(group, images=images, dimensions=dimensions)</span>
 
@@ -757,11 +757,11 @@
 
 <span class="sd">    &gt;&gt;&gt; masses = np.array((12.01, 1.01, 1.01, 12.01, 1.01, 1.01))</span>
 <span class="sd">    &gt;&gt;&gt; positions = np.array(((0.0, -0.07579, 0.0),</span>
-<span class="sd">                              (0.86681, 0.60144, 0.0),</span>
-<span class="sd">                              (-0.86681, 0.60144, 0.0),</span>
-<span class="sd">                              (0.0, -0.07579, 1.0),</span>
-<span class="sd">                              (0.86681, 0.60144, 1.0),</span>
-<span class="sd">                              (-0.86681, 0.60144, 1.0)))</span>
+<span class="sd">    ...                       (0.86681, 0.60144, 0.0),</span>
+<span class="sd">    ...                       (-0.86681, 0.60144, 0.0),</span>
+<span class="sd">    ...                       (0.0, -0.07579, 1.0),</span>
+<span class="sd">    ...                       (0.86681, 0.60144, 1.0),</span>
+<span class="sd">    ...                       (-0.86681, 0.60144, 1.0)))</span>
 <span class="sd">    &gt;&gt;&gt; com_ovr = center_of_mass(masses=masses, positions=positions)</span>
 
 <span class="sd">    If the per-residue center of mass is desired, the number of residues</span>
@@ -774,14 +774,14 @@
 
 <span class="sd">    &gt;&gt;&gt; n_groups = 2</span>
 <span class="sd">    &gt;&gt;&gt; com_res = center_of_mass(masses=masses.reshape((n_groups, -1)),</span>
-<span class="sd">                                 positions=positions.reshape((n_groups, -1, 3)))</span>
+<span class="sd">    ...                          positions=positions.reshape((n_groups, -1, 3)))</span>
 
 <span class="sd">    Like before, if the trajectory is wrapped, the number of periodic</span>
 <span class="sd">    boundary crossings and system dimensions must be provided in</span>
 <span class="sd">    `images` and `dimensions`, respectively:</span>
 
 <span class="sd">    &gt;&gt;&gt; images = np.array(((0, 0, 0), (0, 0, 0), (0, 0, 0),</span>
-<span class="sd">                           (0, 0, 1), (0, 0, 1), (0, 0, 1)))</span>
+<span class="sd">    ...                    (0, 0, 1), (0, 0, 1), (0, 0, 1)))</span>
 <span class="sd">    &gt;&gt;&gt; dimensions = np.array((12.0, 12.0, 12.0))</span>
 <span class="sd">    &gt;&gt;&gt; com_ovr = center_of_mass(masses=masses, positions=positions,</span>
 <span class="sd">                                 images=images, dimensions=dimensions)</span>
@@ -793,11 +793,11 @@
 
 <span class="sd">    &gt;&gt;&gt; masses = [(12.01, 1.01, 1.01), (22.99,), (12.01, 1.01)]</span>
 <span class="sd">    &gt;&gt;&gt; positions = [((0.0, -0.07579, 0.0),</span>
-<span class="sd">                      (0.86681, 0.60144, 0.0),</span>
-<span class="sd">                      (-0.86681, 0.60144, 0.0)),</span>
-<span class="sd">                     ((0.0, 0.0, 0.0),),</span>
-<span class="sd">                     ((0.0, -0.07579, 1.0),</span>
-<span class="sd">                      (0.86681, 0.60144, 1.0))]</span>
+<span class="sd">    ...               (0.86681, 0.60144, 0.0),</span>
+<span class="sd">    ...               (-0.86681, 0.60144, 0.0)),</span>
+<span class="sd">    ...              ((0.0, 0.0, 0.0),),</span>
+<span class="sd">    ...              ((0.0, -0.07579, 1.0),</span>
+<span class="sd">    ...               (0.86681, 0.60144, 1.0))]</span>
 <span class="sd">    &gt;&gt;&gt; com_res = center_of_mass(masses=masses, positions=positions)</span>
 
 <span class="sd">    It is still possible to pass in the number of periodic boundary</span>
@@ -805,8 +805,8 @@
 <span class="sd">    to the shape of the array:</span>
 
 <span class="sd">    &gt;&gt;&gt; images = [((0, 0, 0), (0, 0, 0), (0, 0, 0)),</span>
-<span class="sd">                  ((1, 1, 1),),</span>
-<span class="sd">                  ((0, 1, 0), (0, 1, 0))]</span>
+<span class="sd">    ...           ((1, 1, 1),),</span>
+<span class="sd">    ...           ((0, 1, 0), (0, 1, 0))]</span>
 <span class="sd">    &gt;&gt;&gt; dimensions = np.array((10.0, 10.0, 10.0))</span>
 <span class="sd">    &gt;&gt;&gt; com_res = center_of_mass(masses=masses, positions=positions,</span>
 <span class="sd">                                 images=images, dimensions=dimensions)</span>
@@ -1165,11 +1165,11 @@
 
 <span class="sd">    &gt;&gt;&gt; masses = np.array((12.01, 1.01, 1.01, 12.01, 1.01, 1.01))</span>
 <span class="sd">    &gt;&gt;&gt; positions = np.array(((0.0, -0.07579, 0.0),</span>
-<span class="sd">                              (0.86681, 0.60144, 0.0),</span>
-<span class="sd">                              (-0.86681, 0.60144, 0.0),</span>
-<span class="sd">                              (0.0, -0.07579, 1.0),</span>
-<span class="sd">                              (0.86681, 0.60144, 1.0),</span>
-<span class="sd">                              (-0.86681, 0.60144, 1.0)))</span>
+<span class="sd">    ...                       (0.86681, 0.60144, 0.0),</span>
+<span class="sd">    ...                       (-0.86681, 0.60144, 0.0),</span>
+<span class="sd">    ...                       (0.0, -0.07579, 1.0),</span>
+<span class="sd">    ...                       (0.86681, 0.60144, 1.0),</span>
+<span class="sd">    ...                       (-0.86681, 0.60144, 1.0)))</span>
 <span class="sd">    &gt;&gt;&gt; Rg_ovr = radius_of_gyration(masses=masses, positions=positions)</span>
 
 <span class="sd">    If the per-residue radius of gyration is desired, the number of</span>
@@ -1183,16 +1183,16 @@
 
 <span class="sd">    &gt;&gt;&gt; n_groups = 2</span>
 <span class="sd">    &gt;&gt;&gt; Rg_res = radius_of_gyration(</span>
-<span class="sd">            masses=masses.reshape((n_groups, -1)),</span>
-<span class="sd">            positions=positions.reshape((n_groups, -1, 3))</span>
-<span class="sd">        )</span>
+<span class="sd">    ...     masses=masses.reshape((n_groups, -1)),</span>
+<span class="sd">    ...     positions=positions.reshape((n_groups, -1, 3))</span>
+<span class="sd">    ... )</span>
 
 <span class="sd">    Like before, if the trajectory is wrapped, the number of periodic</span>
 <span class="sd">    boundary crossings and system dimensions must be provided in</span>
 <span class="sd">    `images` and `dimensions`, respectively:</span>
 
 <span class="sd">    &gt;&gt;&gt; images = np.array(((0, 0, 0), (0, 0, 0), (0, 0, 0),</span>
-<span class="sd">                           (0, 0, 1), (0, 0, 1), (0, 0, 1)))</span>
+<span class="sd">    ...                    (0, 0, 1), (0, 0, 1), (0, 0, 1)))</span>
 <span class="sd">    &gt;&gt;&gt; dimensions = np.array((12.0, 12.0, 12.0))</span>
 <span class="sd">    &gt;&gt;&gt; Rg_ovr = radius_of_gyration(masses=masses, positions=positions,</span>
 <span class="sd">                                    images=images, dimensions=dimensions)</span>
@@ -1204,11 +1204,11 @@
 
 <span class="sd">    &gt;&gt;&gt; masses = [(12.01, 1.01, 1.01), (22.99,), (12.01, 1.01)]</span>
 <span class="sd">    &gt;&gt;&gt; positions = [((0.0, -0.07579, 0.0),</span>
-<span class="sd">                      (0.86681, 0.60144, 0.0),</span>
-<span class="sd">                      (-0.86681, 0.60144, 0.0)),</span>
-<span class="sd">                     ((0.0, 0.0, 0.0),),</span>
-<span class="sd">                     ((0.0, -0.07579, 1.0),</span>
-<span class="sd">                      (0.86681, 0.60144, 1.0))]</span>
+<span class="sd">    ...               (0.86681, 0.60144, 0.0),</span>
+<span class="sd">    ...               (-0.86681, 0.60144, 0.0)),</span>
+<span class="sd">    ...              ((0.0, 0.0, 0.0),),</span>
+<span class="sd">    ...              ((0.0, -0.07579, 1.0),</span>
+<span class="sd">    ...               (0.86681, 0.60144, 1.0))]</span>
 <span class="sd">    &gt;&gt;&gt; Rg_res = radius_of_gyration(masses=masses, positions=positions)</span>
 
 <span class="sd">    It is still possible to pass in the number of periodic boundary</span>
@@ -1216,8 +1216,8 @@
 <span class="sd">    to the shape of the array:</span>
 
 <span class="sd">    &gt;&gt;&gt; images = [((0, 0, 0), (0, 0, 0), (0, 0, 0)),</span>
-<span class="sd">                  ((1, 1, 1),),</span>
-<span class="sd">                  ((0, 1, 0), (0, 1, 0))]</span>
+<span class="sd">    ...           ((1, 1, 1),),</span>
+<span class="sd">    ...           ((0, 1, 0), (0, 1, 0))]</span>
 <span class="sd">    &gt;&gt;&gt; dimensions = np.array((10.0, 10.0, 10.0))</span>
 <span class="sd">    &gt;&gt;&gt; Rg_res = radius_of_gyration(masses=masses, positions=positions,</span>
 <span class="sd">                                    images=images, dimensions=dimensions)</span>

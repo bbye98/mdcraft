@@ -45,11 +45,11 @@ def create_atoms(
         **Reference unit**: :math:`\\mathrm{nm}`.
 
     N : `int`, optional
-        Total number of particles (monomers). Must be provided for
-        random melts or polymers.
+        Total number of particles. Must be provided for random melts or
+        polymers.
 
     N_p : `int`, default: :code:`1`
-        Number of particles (monomers) :math:`N_p` in each
+        Number of atoms (monomers) :math:`N_\\mathrm{p}` in each
         segment (polymer chain).
 
         **Valid values**: :math:`1\\leq N_\\mathrm{p}\\leq N`, with
@@ -66,11 +66,10 @@ def create_atoms(
            :math:`z`-dimension to :code:`0` in `dimensions` and
            :code:`flexible=True`. This function will then return
            the wall particle positions and the :math:`x`- and
-           :math:`y`-dimensions closest to those specified in `dimensions`
-           that also satisfy the lattice periodicity.
+           :math:`y`-dimensions closest to those specified in
+           `dimensions` that satisfy the lattice periodicity.
 
-           Keep in mind that walls should only be built in the
-           :math:`z`-direction.
+           Walls should only be built in the :math:`z`-direction.
 
         .. container::
 
@@ -129,7 +128,7 @@ def create_atoms(
     Returns
     -------
     positions : `numpy.ndarray` or `openmm.unit.Quantity`
-        Generated particle positions.
+        Particle positions.
 
         **Shape**: :math:`(N,\\,3)`.
 

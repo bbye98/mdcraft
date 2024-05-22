@@ -249,7 +249,7 @@ def center_of_mass(
     must also be provided in `dimensions`:
 
     >>> images = np.array(((1, 0, 0), (0, 0, 0), (0, -1, 0),
-                           (0, 1, 0), (0, 0, 1), (-1, 1, 0)))
+    ...                    (0, 1, 0), (0, 0, 1), (-1, 1, 0)))
     >>> dimensions = np.array((5.0, 8.0, 10.0))
     >>> com_ovr = center_of_mass(group, images=images, dimensions=dimensions)
 
@@ -259,11 +259,11 @@ def center_of_mass(
 
     >>> masses = np.array((12.01, 1.01, 1.01, 12.01, 1.01, 1.01))
     >>> positions = np.array(((0.0, -0.07579, 0.0),
-                              (0.86681, 0.60144, 0.0),
-                              (-0.86681, 0.60144, 0.0),
-                              (0.0, -0.07579, 1.0),
-                              (0.86681, 0.60144, 1.0),
-                              (-0.86681, 0.60144, 1.0)))
+    ...                       (0.86681, 0.60144, 0.0),
+    ...                       (-0.86681, 0.60144, 0.0),
+    ...                       (0.0, -0.07579, 1.0),
+    ...                       (0.86681, 0.60144, 1.0),
+    ...                       (-0.86681, 0.60144, 1.0)))
     >>> com_ovr = center_of_mass(masses=masses, positions=positions)
 
     If the per-residue center of mass is desired, the number of residues
@@ -276,14 +276,14 @@ def center_of_mass(
 
     >>> n_groups = 2
     >>> com_res = center_of_mass(masses=masses.reshape((n_groups, -1)),
-                                 positions=positions.reshape((n_groups, -1, 3)))
+    ...                          positions=positions.reshape((n_groups, -1, 3)))
 
     Like before, if the trajectory is wrapped, the number of periodic
     boundary crossings and system dimensions must be provided in
     `images` and `dimensions`, respectively:
 
     >>> images = np.array(((0, 0, 0), (0, 0, 0), (0, 0, 0),
-                           (0, 0, 1), (0, 0, 1), (0, 0, 1)))
+    ...                    (0, 0, 1), (0, 0, 1), (0, 0, 1)))
     >>> dimensions = np.array((12.0, 12.0, 12.0))
     >>> com_ovr = center_of_mass(masses=masses, positions=positions,
                                  images=images, dimensions=dimensions)
@@ -295,11 +295,11 @@ def center_of_mass(
 
     >>> masses = [(12.01, 1.01, 1.01), (22.99,), (12.01, 1.01)]
     >>> positions = [((0.0, -0.07579, 0.0),
-                      (0.86681, 0.60144, 0.0),
-                      (-0.86681, 0.60144, 0.0)),
-                     ((0.0, 0.0, 0.0),),
-                     ((0.0, -0.07579, 1.0),
-                      (0.86681, 0.60144, 1.0))]
+    ...               (0.86681, 0.60144, 0.0),
+    ...               (-0.86681, 0.60144, 0.0)),
+    ...              ((0.0, 0.0, 0.0),),
+    ...              ((0.0, -0.07579, 1.0),
+    ...               (0.86681, 0.60144, 1.0))]
     >>> com_res = center_of_mass(masses=masses, positions=positions)
 
     It is still possible to pass in the number of periodic boundary
@@ -307,8 +307,8 @@ def center_of_mass(
     to the shape of the array:
 
     >>> images = [((0, 0, 0), (0, 0, 0), (0, 0, 0)),
-                  ((1, 1, 1),),
-                  ((0, 1, 0), (0, 1, 0))]
+    ...           ((1, 1, 1),),
+    ...           ((0, 1, 0), (0, 1, 0))]
     >>> dimensions = np.array((10.0, 10.0, 10.0))
     >>> com_res = center_of_mass(masses=masses, positions=positions,
                                  images=images, dimensions=dimensions)
@@ -664,11 +664,11 @@ def radius_of_gyration(
 
     >>> masses = np.array((12.01, 1.01, 1.01, 12.01, 1.01, 1.01))
     >>> positions = np.array(((0.0, -0.07579, 0.0),
-                              (0.86681, 0.60144, 0.0),
-                              (-0.86681, 0.60144, 0.0),
-                              (0.0, -0.07579, 1.0),
-                              (0.86681, 0.60144, 1.0),
-                              (-0.86681, 0.60144, 1.0)))
+    ...                       (0.86681, 0.60144, 0.0),
+    ...                       (-0.86681, 0.60144, 0.0),
+    ...                       (0.0, -0.07579, 1.0),
+    ...                       (0.86681, 0.60144, 1.0),
+    ...                       (-0.86681, 0.60144, 1.0)))
     >>> Rg_ovr = radius_of_gyration(masses=masses, positions=positions)
 
     If the per-residue radius of gyration is desired, the number of
@@ -682,16 +682,16 @@ def radius_of_gyration(
 
     >>> n_groups = 2
     >>> Rg_res = radius_of_gyration(
-            masses=masses.reshape((n_groups, -1)),
-            positions=positions.reshape((n_groups, -1, 3))
-        )
+    ...     masses=masses.reshape((n_groups, -1)),
+    ...     positions=positions.reshape((n_groups, -1, 3))
+    ... )
 
     Like before, if the trajectory is wrapped, the number of periodic
     boundary crossings and system dimensions must be provided in
     `images` and `dimensions`, respectively:
 
     >>> images = np.array(((0, 0, 0), (0, 0, 0), (0, 0, 0),
-                           (0, 0, 1), (0, 0, 1), (0, 0, 1)))
+    ...                    (0, 0, 1), (0, 0, 1), (0, 0, 1)))
     >>> dimensions = np.array((12.0, 12.0, 12.0))
     >>> Rg_ovr = radius_of_gyration(masses=masses, positions=positions,
                                     images=images, dimensions=dimensions)
@@ -703,11 +703,11 @@ def radius_of_gyration(
 
     >>> masses = [(12.01, 1.01, 1.01), (22.99,), (12.01, 1.01)]
     >>> positions = [((0.0, -0.07579, 0.0),
-                      (0.86681, 0.60144, 0.0),
-                      (-0.86681, 0.60144, 0.0)),
-                     ((0.0, 0.0, 0.0),),
-                     ((0.0, -0.07579, 1.0),
-                      (0.86681, 0.60144, 1.0))]
+    ...               (0.86681, 0.60144, 0.0),
+    ...               (-0.86681, 0.60144, 0.0)),
+    ...              ((0.0, 0.0, 0.0),),
+    ...              ((0.0, -0.07579, 1.0),
+    ...               (0.86681, 0.60144, 1.0))]
     >>> Rg_res = radius_of_gyration(masses=masses, positions=positions)
 
     It is still possible to pass in the number of periodic boundary
@@ -715,8 +715,8 @@ def radius_of_gyration(
     to the shape of the array:
 
     >>> images = [((0, 0, 0), (0, 0, 0), (0, 0, 0)),
-                  ((1, 1, 1),),
-                  ((0, 1, 0), (0, 1, 0))]
+    ...           ((1, 1, 1),),
+    ...           ((0, 1, 0), (0, 1, 0))]
     >>> dimensions = np.array((10.0, 10.0, 10.0))
     >>> Rg_res = radius_of_gyration(masses=masses, positions=positions,
                                     images=images, dimensions=dimensions)
