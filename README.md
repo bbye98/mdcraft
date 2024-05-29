@@ -6,6 +6,8 @@
 [![continuous-integration](
 https://github.com/bbye98/mdcraft/actions/workflows/ci.yml/badge.svg)](
 https://github.com/bbye98/mdcraft/actions/workflows/ci.yml)
+[![Documentation Status](https://readthedocs.org/projects/mdcraft/badge/?version=latest)](
+https://mdcraft.readthedocs.io/en/latest/?badge=latest)
 
 MDCraft is a toolkit of analysis modules and helper functions for
 molecular dynamics (MD) simulations.

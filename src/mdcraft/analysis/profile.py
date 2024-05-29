@@ -860,7 +860,7 @@ class DensityProfile(DynamicAnalysisBase):
             del self._results
             if self._average:
                 self.results.number_densities \
-                    = self.results.number_densities.sum(axis=1)
+                    = self.results.number_densities.sum(axis=2)
         else:
             del self._positions
         if self._recenter is not None:
