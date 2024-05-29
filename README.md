@@ -12,7 +12,7 @@ https://mdcraft.readthedocs.io/en/latest/?badge=latest)
 MDCraft is a toolkit of analysis modules and helper functions for
 molecular dynamics (MD) simulations.
 
-* **Documentation**: https://bbye98.github.io/mdcraft/
+* **Documentation**: https://mdcraft.readthedocs.io/
 * **Conda**: https://anaconda.org/bbye98/mdcraft
 * **Python Package Index (PyPI)**: https://pypi.org/project/mdcraft/
 
