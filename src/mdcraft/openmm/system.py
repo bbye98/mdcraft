@@ -404,6 +404,7 @@ def add_slab_correction(
 
         # Register slab correction to the system
         system.addForce(slab_corr)
+        logging.info("Slab correction applied to the system.")
 
     return integrator
 

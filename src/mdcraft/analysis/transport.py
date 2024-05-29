@@ -924,8 +924,7 @@ class Onsager(SerialAnalysisBase):
                 emsg = ("The selected frames must be evenly spaced and "
                         "proceed forward in time.")
                 raise ValueError(emsg)
-        elif hasattr(self._sliced_trajectory, "step") \
-                and self._sliced_trajectory.step <= 0:
+        elif self.step <= 0:
             raise ValueError("The analysis must proceed forward in time.")
 
         # Find all unique AtomGroup combinations
@@ -937,11 +936,7 @@ class Onsager(SerialAnalysisBase):
         # crossings
         self._positions = np.empty((self.n_frames, self._N, 3))
         if self._unwrap:
-            self.universe.trajectory[
-                self._sliced_trajectory.frames[0]
-                if hasattr(self._sliced_trajectory, "frames")
-                else (self.start or 0)
-            ]
+            self._sliced_trajectory[0]
             for f in self.universe.atoms.fragments:
                 make_whole(f)
             self._positions_old = self.universe.atoms.positions

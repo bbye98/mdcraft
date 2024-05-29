@@ -365,11 +365,7 @@ class Gyradius(_PolymerAnalysisBase):
     def _prepare(self) -> None:
 
         if self._unwrap:
-            self.universe.trajectory[
-                self._sliced_trajectory.frames[0]
-                if hasattr(self._sliced_trajectory, "frames")
-                else (self.start or 0)
-            ]
+            self._sliced_trajectory[0]
 
             # Preallocate arrays to store number of boundary crossings for
             # each particle
@@ -403,11 +399,7 @@ class Gyradius(_PolymerAnalysisBase):
             # for parallel analysis
             if self._parallel:
                 self._positions = np.empty((self.n_frames, self._N, 3))
-                for i, _ in enumerate(self.universe.trajectory[
-                        list(self._sliced_trajectory.frames)
-                        if hasattr(self._sliced_trajectory, "frames")
-                        else slice(self.start, self.stop, self.step)
-                    ]):
+                for i, _ in enumerate(self._sliced_trajectory):
                     for g, gr, s in zip(self._groups, self._groupings, self._slices):
                         if self._internal and gr == "residues":
                             self._positions[i, s] = center_of_mass(g, gr)
@@ -692,11 +684,7 @@ class EndToEndVector(_PolymerAnalysisBase):
 
         self._e2e = np.empty((self.n_frames, self._N_chains, 3))
         if self._unwrap:
-            self.universe.trajectory[
-                self._sliced_trajectory.frames[0]
-                if hasattr(self._sliced_trajectory, "frames")
-                else (self.start or 0)
-            ]
+            self._sliced_trajectory[0]
 
             # Preallocate arrays to store number of boundary crossings for
             # the first and last monomer in each chain
@@ -995,11 +983,7 @@ class SingleChainStructureFactor(DynamicAnalysisBase):
 
         # Unwrap particle positions, if necessary
         if self._unwrap:
-            self.universe.trajectory[
-                self._sliced_trajectory.frames[0]
-                if hasattr(self._sliced_trajectory, "frames")
-                else (self.start or 0)
-            ]
+            self._sliced_trajectory[0]
 
             if self._internal and self._grouping == "residues":
                 self._positions_old = center_of_mass(self._group,
@@ -1031,11 +1015,7 @@ class SingleChainStructureFactor(DynamicAnalysisBase):
             )
 
             # Store particle positions in a shared memory array
-            for i, _ in enumerate(self.universe.trajectory[
-                    list(self._sliced_trajectory.frames)
-                    if hasattr(self._sliced_trajectory, "frames")
-                    else slice(self.start, self.stop, self.step)
-                ]):
+            for i, _ in enumerate(self._sliced_trajectory):
 
                 # Store atom or center-of-mass positions in the current frame
                 if self._internal and self._grouping == "residues":

@@ -128,10 +128,10 @@ class DipoleMoment(DynamicAnalysisBase):
        -\langle\mathbf{M}\rangle^2}}{3\varepsilon_0 Vk_\mathrm{B}T}
 
     where the angular brackets :math:`\langle\,\cdot\,\rangle` denote
-    the ensemble average, the overline signifies the spatial average,
+    the ensemble average, the overline signifies the time average,
     :math:`\varepsilon_0` is the vacuum permittivity,
     :math:`k_\mathrm{B}` is the Boltzmann constant, and :math:`T` is
-    the system temperature.
+    the temperature.
 
     Parameters
     ----------
@@ -152,9 +152,9 @@ class DipoleMoment(DynamicAnalysisBase):
 
     dimensions : array-like, keyword-only, optional
         System dimensions. If the
-        :class:`MDAnalysis.core.universe.Universe` object that the
-        groups in `groups` belong to does not contain dimensionality
-        information, provide it here. Affected by `scales`.
+        :class:`MDAnalysis.core.universe.Universe` object that `groups`
+        belong to does not contain dimensionality information, provide
+        it here. Affected by `scales`.
 
         **Shape**: :math:`(3,)`.
 
@@ -188,7 +188,7 @@ class DipoleMoment(DynamicAnalysisBase):
         Determines whether the analysis is performed in parallel.
 
     verbose : `bool`, keyword-only, default: :code:`True`
-        Determines whether progress is printed to the console.
+        Determines whether detailed progress is shown.
 
     **kwargs
         Additional keyword arguments to pass to
@@ -206,21 +206,24 @@ class DipoleMoment(DynamicAnalysisBase):
         :code:`results.units["results.times"]`.
 
     results.times : `numpy.ndarray`
-        Changes in time :math:`t-t_0`.
+        Times :math:`t`.
 
         **Shape**: :math:`(N_t,)`.
 
         **Reference unit**: :math:`\mathrm{ps}`.
 
     results.dipoles : `numpy.ndarray`
-        Instantaneous dipole moment vectors :math:`\mathbf{M}`.
+        Instantaneous dipole moment vectors :math:`\mathbf{M}(t)` or
+        time-averaged dipole moment vectors :math:`\mathbf{M}`.
 
-        **Shape**: :math:`(N_t,\,N_\mathrm{g},\,3)`.
+        **Shape**: :math:`(N_t,\,N_\mathrm{g},\,3)`
+        or :math:`(1,\,N_\mathrm{g},\,3)`.
 
         **Reference unit**: :math:`\mathrm{e\cdotÅ}`.
 
     results.volumes : `numpy.ndarray`
-        System volumes :math:`V`.
+        Instantaneous system volumes :math:`V(t)` or time-averaged
+        system volume :math:`V`.
 
         **Shape**: :math:`(N_t,)`.
 
@@ -321,11 +324,7 @@ class DipoleMoment(DynamicAnalysisBase):
     def _prepare(self) -> None:
 
         if self._unwrap:
-            self.universe.trajectory[
-                self._sliced_trajectory.frames[0]
-                if hasattr(self._sliced_trajectory, "frames")
-                else (self.start or 0)
-            ]
+            self._sliced_trajectory[0]
 
             # Preallocate arrays to store positions and number of
             # boundary crossings
@@ -341,11 +340,7 @@ class DipoleMoment(DynamicAnalysisBase):
             # for parallel analysis
             if self._parallel:
                 self._positions = np.empty((self.n_frames, self._N, 3))
-                for i, _ in enumerate(self.universe.trajectory[
-                        list(self._sliced_trajectory.frames)
-                        if hasattr(self._sliced_trajectory, "frames")
-                        else slice(self.start, self.stop, self.step)
-                    ]):
+                for i, _ in enumerate(self._sliced_trajectory):
                     for g, s in zip(self._groups, self._slices):
                         self._positions[i, s] = g.positions
 

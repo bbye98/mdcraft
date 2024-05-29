@@ -442,6 +442,11 @@ class DensityProfile(DynamicAnalysisBase):
     parallel : `bool`, keyword-only, default: :code:`False`
         Determines whether the analysis is performed in parallel.
 
+        .. note::
+
+           The Joblib threading backend generally provides the best
+           performance.
+
     verbose : `bool`, keyword-only, default: :code:`True`
         Determines whether detailed progress is shown.
 
@@ -480,7 +485,9 @@ class DensityProfile(DynamicAnalysisBase):
         Number density profiles.
 
         **Shape**: :math:`(N_\\mathrm{axes},)` list of
-        :math:`(N_\\mathrm{bins},)` arrays.
+        :math:`(N_\\mathrm{groups},\\,N_\\mathrm{bins},)` arrays. If
+        :code:`average=False`, an additional second dimension of
+        length :math:`N_\\mathrm{frames}` is present.
 
         **Reference unit**: :math:`\\mathrm{Å}^{-3}`.
 
@@ -488,7 +495,9 @@ class DensityProfile(DynamicAnalysisBase):
         Charge density profiles, if charge information is available.
 
         **Shape**: :math:`(N_\\mathrm{axes},)` list of
-        :math:`(N_\\mathrm{bins},)` arrays.
+        :math:`(N_\\mathrm{bins},)` arrays. If :code:`average=False`, an
+        additional first dimension of length :math:`N_\\mathrm{frames}`
+        is present.
 
         **Reference unit**: :math:`\\mathrm{e/Å}^{-3}`.
 
@@ -683,11 +692,7 @@ class DensityProfile(DynamicAnalysisBase):
         if self._recenter is not None:
 
             # Navigate to first frame in analysis
-            self.universe.trajectory[
-                self._sliced_trajectory.frames[0]
-                if hasattr(self._sliced_trajectory, "frames")
-                else (self.start or 0)
-            ]
+            self._sliced_trajectory[0]
 
             # Preallocate arrays to store number of boundary crossings
             # for each particle
@@ -755,11 +760,8 @@ class DensityProfile(DynamicAnalysisBase):
                 self.results.times \
                     = np.asarray(self._sliced_trajectory.frames) * self._dt
             else:
-                self.results.times = self._dt * np.arange(
-                    self._sliced_trajectory.start,
-                    self._sliced_trajectory.stop,
-                    self._sliced_trajectory.step
-                )
+                self.results.times = self._dt * np.arange(self.start,
+                                                          self.stop, self.step)
 
         # Store reference units
         self.results.units = {
@@ -852,8 +854,10 @@ class DensityProfile(DynamicAnalysisBase):
             if self._recenter is not None:
                 del self._positions
             self.results.number_densities = np.stack(
-                [r[1] for r in sorted(self._results)], axis=1
+                [r[1] for r in sorted(self._results)],
+                axis=2
             )
+            del self._results
             if self._average:
                 self.results.number_densities \
                     = self.results.number_densities.sum(axis=1)
@@ -862,6 +866,7 @@ class DensityProfile(DynamicAnalysisBase):
         if self._recenter is not None:
             del self._positions_old, self._images, self._thresholds
 
+        # Normalize histograms by bin volume
         V = np.prod(self._dimensions)
         for a in range(len(self._axes)):
             denom = self._n_bins[a] / V
@@ -871,22 +876,22 @@ class DensityProfile(DynamicAnalysisBase):
 
             if self._charges is not None:
                 self.results.charge_densities[a] = np.einsum(
-                    "g,...gb->...b",
+                    "g,g...b->...b",
                     self._charges,
                     self.results.number_densities[a]
                 )
 
     def calculate_potential_profile(
-            self, dielectric: float, axis: Union[int, str], *,
+            self, dielectric: float, axis: Union[int, str] = None, *,
             sigma_q: Union[float, "unit.Quantity", Q_] = None,
             dV: Union[float, "unit.Quantity", Q_] = None,
             threshold: float = 1e-5, V0: Union[float, "unit.Quantity", Q_] = 0,
             method: str = "integral", pbc: bool = False) -> None:
 
         """
-        Calculates the average potential profile in the given dimension
-        using the charge density profile by numerically solving Poisson's
-        equation for electrostatics.
+        Calculates the potential profiles in the specified dimensions
+        using the charge density profiles by numerically solving
+        Poisson's equation for electrostatics.
 
         Parameters
         ----------
@@ -894,8 +899,8 @@ class DensityProfile(DynamicAnalysisBase):
             Relative permittivity or dielectric constant
             :math:`\\varepsilon_\\mathrm{r}`.
 
-        axis : `int` or `str`
-            Axis along which to compute the potential profiles.
+        axis : `int`, `str`, or array-like
+            Axis along which to compute the potential profile.
 
             .. container::
 

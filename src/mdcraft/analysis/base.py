@@ -136,8 +136,8 @@ class SerialAnalysisBase(AnalysisBase):
 
     def run(
             self, start: int = None, stop: int = None, step: int = None,
-            frames: Union[slice, np.ndarray[int]] = None, n_jobs: int = 1,
-            verbose: bool = None, **kwargs) -> "SerialAnalysisBase":
+            frames: Union[slice, np.ndarray[int]] = None, verbose: bool = None,
+            **kwargs) -> "SerialAnalysisBase":
 
         """
         Performs the calculation in serial.
@@ -233,9 +233,8 @@ class NumbaAnalysisBase(SerialAnalysisBase):
 
     def run(
             self, start: int = None, stop: int = None, step: int = None,
-            frames: Union[slice, np.ndarray[int]] = None, n_threads: int = None,
-            verbose: bool = None, **kwargs
-        ) -> "NumbaAnalysisBase":
+            frames: Union[slice, np.ndarray[int]] = None, verbose: bool = None,
+            *, n_threads: int = None, **kwargs) -> "NumbaAnalysisBase":
 
         """
         Performs the calculation.
@@ -254,11 +253,11 @@ class NumbaAnalysisBase(SerialAnalysisBase):
         frames : `slice` or array-like, optional
             Index or logical array of the desired trajectory frames.
 
-        n_threads : `int`, keyword-only, optional
-            Number of threads to use for analysis.
-
         verbose : `bool`, optional
             Determines whether detailed progress is shown.
+
+        n_threads : `int`, keyword-only, optional
+            Number of threads to use for analysis.
 
         **kwargs
             Additional keyword arguments to pass to
@@ -312,8 +311,8 @@ class ParallelAnalysisBase(SerialAnalysisBase):
     def run(
             self, start: int = None, stop: int = None, step: int = None,
             frames: Union[slice, np.ndarray[int]] = None, verbose: bool = None,
-            n_jobs: int = None, module: str = "multiprocessing",
-            block: bool = True, method: str = None, **kwargs
+            *, n_jobs: int = None, module: str = "multiprocessing",
+            method: str = None, block: bool = True, **kwargs
         ) -> "ParallelAnalysisBase":
 
         """
@@ -348,17 +347,17 @@ class ParallelAnalysisBase(SerialAnalysisBase):
             **Valid values**: :code:`"dask"`, :code:`"joblib"`, and
             :code:`"multiprocessing"`.
 
+        method : `str`, keyword-only, optional
+            Specifies which Dask scheduler, Joblib backend, or
+            multiprocessing start method is used.
+
         block : `bool`, keyword-only, default: :code:`True`
             Determines whether the trajectory is split into smaller
             blocks that are processed serially in parallel with other
             blocks. This "split–apply–combine" approach is generally
             faster since the trajectory attributes do not have to be
-            packaged for each analysis run. Has no effect if
-            :code:`module="multiprocessing"`.
-
-        method : `str`, keyword-only, optional
-            Specifies which Dask scheduler, Joblib backend, or
-            multiprocessing start method is used.
+            packaged for each analysis run. Only available for
+            :code:`module="dask"`.
 
         **kwargs
             Additional keyword arguments to pass to
@@ -432,9 +431,10 @@ class ParallelAnalysisBase(SerialAnalysisBase):
 
             jobs = []
             if block:
-                for frame, index in zip(np.array_split(frames, n_jobs),
-                                        np.array_split(indices, n_jobs)):
-                    jobs.append(dask.delayed(self._dask_job_block)(frame, index))
+                for frames_, indices_ in zip(np.array_split(frames, n_jobs),
+                                             np.array_split(indices, n_jobs)):
+                    jobs.append(dask.delayed(self._dask_job_block)
+                                (frames_, indices_))
             else:
                 for frame, index in zip(frames, indices):
                     jobs.append(dask.delayed(self._single_frame_parallel)
@@ -456,23 +456,12 @@ class ParallelAnalysisBase(SerialAnalysisBase):
                          f"({n_jobs=}, backend={method})...")
             with (_tqdm_joblib(tqdm(total=n_frames)) if verbose
                   else contextlib.suppress()):
-                if block:
-                    self._results = joblib.Parallel(
-                        n_jobs=n_jobs, backend=method, **kwargs
-                    )(
-                        joblib.delayed(self._single_frame_parallel)(f, i)
-                        for frames_, indices_ in zip(
-                            np.array_split(frames, n_jobs),
-                            np.array_split(indices, n_jobs)
-                        ) for f, i in zip(frames_, indices_)
-                    )
-                else:
-                    self._results = joblib.Parallel(
-                        n_jobs=n_jobs, prefer=method, **kwargs
-                    )(
-                        joblib.delayed(self._single_frame_parallel)(f, i)
-                        for f, i in zip(frames, indices)
-                    )
+                self._results = joblib.Parallel(
+                    n_jobs=n_jobs, backend=method, **kwargs
+                )(
+                    joblib.delayed(self._single_frame_parallel)(f, i)
+                    for f, i in zip(frames, indices)
+                )
 
         else:
             if module != "multiprocessing":

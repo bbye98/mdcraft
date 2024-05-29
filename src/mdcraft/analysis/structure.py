@@ -609,6 +609,10 @@ class RadialDistributionFunction(DynamicAnalysisBase):
     parallel : `bool`, keyword-only, default: :code:`False`
         Determines whether the analysis is performed in parallel.
 
+        .. note::
+
+           The Dask backend generally provides the best performance.
+
     verbose : `bool`, keyword-only, default: :code:`True`
         Determines whether detailed progress is shown.
 
@@ -1910,10 +1914,9 @@ class IntermediateScatteringFunction(StructureFactor):
                         "proceed forward in time.")
                 raise ValueError(emsg)
             df = df[0]
-        elif hasattr(self._sliced_trajectory, "step"):
-            if self._sliced_trajectory.step <= 0:
+        else:
+            if (df := self.step) <= 0:
                 raise ValueError("The analysis must proceed forward in time.")
-            df = self._sliced_trajectory.step
 
         # Determine all unique pairs
         self.results.pairs = (

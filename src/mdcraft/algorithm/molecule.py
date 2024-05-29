@@ -286,7 +286,7 @@ def center_of_mass(
     ...                    (0, 0, 1), (0, 0, 1), (0, 0, 1)))
     >>> dimensions = np.array((12.0, 12.0, 12.0))
     >>> com_ovr = center_of_mass(masses=masses, positions=positions,
-                                 images=images, dimensions=dimensions)
+    ...                          images=images, dimensions=dimensions)
 
     Finally, if the per-residue or per-segment center of mass is
     desired but the groups contain different numbers of atoms, the
@@ -311,7 +311,7 @@ def center_of_mass(
     ...           ((0, 1, 0), (0, 1, 0))]
     >>> dimensions = np.array((10.0, 10.0, 10.0))
     >>> com_res = center_of_mass(masses=masses, positions=positions,
-                                 images=images, dimensions=dimensions)
+    ...                          images=images, dimensions=dimensions)
     """
 
     # Check whether grouping is valid
@@ -654,7 +654,7 @@ def radius_of_gyration(
     must also be provided in `dimensions`:
 
     >>> images = np.array(((1, 0, 0), (0, 0, 0), (0, -1, 0),
-                           (0, 1, 0), (0, 0, 1), (-1, 1, 0)))
+    ...                    (0, 1, 0), (0, 0, 1), (-1, 1, 0)))
     >>> dimensions = np.array((5.0, 8.0, 10.0))
     >>> Rg_ovr = radius_of_gyration(group, images=images, dimensions=dimensions)
 
@@ -675,7 +675,7 @@ def radius_of_gyration(
     residues can be provided in `n_groups`:
 
     >>> Rg_res = radius_of_gyration(masses=masses, positions=positions,
-                                    n_groups=2)
+    ...                             n_groups=2)
 
     or the arrays containing the atom masses and positions can be
     reshaped to the appropriate shapes:
@@ -694,7 +694,7 @@ def radius_of_gyration(
     ...                    (0, 0, 1), (0, 0, 1), (0, 0, 1)))
     >>> dimensions = np.array((12.0, 12.0, 12.0))
     >>> Rg_ovr = radius_of_gyration(masses=masses, positions=positions,
-                                    images=images, dimensions=dimensions)
+    ...                             images=images, dimensions=dimensions)
 
     Finally, if the per-residue or per-segment radius of gyration is
     desired but the groups contain different numbers of atoms, the
@@ -719,7 +719,7 @@ def radius_of_gyration(
     ...           ((0, 1, 0), (0, 1, 0))]
     >>> dimensions = np.array((10.0, 10.0, 10.0))
     >>> Rg_res = radius_of_gyration(masses=masses, positions=positions,
-                                    images=images, dimensions=dimensions)
+    ...                             images=images, dimensions=dimensions)
 
     For any of the examples above, the components of the radii of
     gyration can be calculated and returned by setting
