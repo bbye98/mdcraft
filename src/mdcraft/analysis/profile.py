@@ -820,10 +820,10 @@ class DensityProfile(DynamicAnalysisBase):
                                        (0, self._dimensions[axis]))[0]
 
     def _single_frame_parallel(
-            self, frame: int, index: int) -> tuple[int, np.ndarray[float]]:
+            self, index: int) -> tuple[int, np.ndarray[float]]:
 
         # Set current trajectory frame
-        self._trajectory[frame]
+        self._sliced_trajectory[index]
 
         # Preallocate array to hold bin counts for the current frame
         results = np.empty((len(self._axes), self._n_groups, self._n_bins[0]))

@@ -794,10 +794,9 @@ class RadialDistributionFunction(DynamicAnalysisBase):
                 dims=dims, exclusion=self._exclusion
             )
 
-    def _single_frame_parallel(
-            self, frame: int, index: int) -> np.ndarray[float]:
+    def _single_frame_parallel(self, index: int) -> np.ndarray[float]:
 
-        _ts = self._trajectory[frame]
+        _ts = self._sliced_trajectory[index]
         result = np.empty(1 + self._n_bins)
 
         dims = _ts.dimensions

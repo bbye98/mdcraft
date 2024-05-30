@@ -386,10 +386,9 @@ class DipoleMoment(DynamicAnalysisBase):
             = self.universe.trajectory.ts.volume
 
     def _single_frame_parallel(
-            self, frame: int, index: int
-        ) -> tuple[int, float, np.ndarray[float]]:
+            self, index: int) -> tuple[int, float, np.ndarray[float]]:
 
-        self._trajectory[frame]
+        self._sliced_trajectory[index]
         results = np.empty((self._n_groups, 3))
 
         for i, (g, s, q) in enumerate(zip(self._groups, self._slices,

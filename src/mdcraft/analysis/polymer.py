@@ -457,9 +457,9 @@ class Gyradius(_PolymerAnalysisBase):
                 ).mean(axis=0)
 
     def _single_frame_parallel(
-            self, frame: int, index: int) -> tuple[int, np.ndarray[float]]:
+            self, index: int) -> tuple[int, np.ndarray[float]]:
 
-        self._trajectory[frame]
+        self._sliced_trajectory[index]
         shape = [self._n_groups]
         if self._components:
             shape.append(3)
@@ -1078,8 +1078,7 @@ class SingleChainStructureFactor(DynamicAnalysisBase):
             self.results.scsf += (np.sin(arg).sum(axis=0) ** 2
                                   + np.cos(arg).sum(axis=0) ** 2)
 
-    def _single_frame_parallel(
-            self, frame: int, index: int) -> np.ndarray[float]:
+    def _single_frame_parallel(self, index: int) -> np.ndarray[float]:
 
         # Compute the single-chain structure factor by squaring the
         # cosine and sine terms and adding them together

@@ -53,29 +53,6 @@ def _tqdm_joblib(tqdm_obj: tqdm) -> Generator:
         joblib.parallel.BatchCompletionCallBack = old_batch_callback
         tqdm_obj.close()
 
-def _istarmap(
-        self: multiprocessing.pool.Pool, func: Callable[[Any], Any],
-        iterable: Iterable, chunk_size: int = 1) -> Iterable:
-
-    self._check_running()
-    if chunk_size < 1:
-        raise ValueError("Chunk size must be greater than 1.")
-
-    task_batches = multiprocessing.pool.Pool._get_tasks(func, iterable,
-                                                        chunk_size)
-    result = multiprocessing.pool.IMapIterator(self)
-    self._taskqueue.put((
-        self._guarded_task_generation(
-            result._job,
-            multiprocessing.pool.starmapstar,
-            task_batches
-        ),
-        result._set_length
-    ))
-    return (item for chunk in result for item in chunk)
-
-multiprocessing.pool.Pool.istarmap = _istarmap
-
 class Hash(dict):
 
     """
@@ -299,13 +276,11 @@ class ParallelAnalysisBase(SerialAnalysisBase):
             self, trajectory: ReaderBase, verbose: bool = False, **kwargs):
         super().__init__(trajectory, verbose, **kwargs)
 
-    def _dask_job_block(
-            self, frames: Union[slice, np.ndarray[int]],
-            indices: np.ndarray[int]) -> list:
-        return [self._single_frame_parallel(f, i) for f, i in zip(frames, indices)]
+    def _dask_job_block(self, indices: np.ndarray[int]) -> list:
+        return [self._single_frame_parallel(i) for i in zip(indices)]
 
     @abstractmethod
-    def _single_frame_parallel(self, frame: int, index: int):
+    def _single_frame_parallel(self, index: int):
         pass
 
     def run(
@@ -383,11 +358,7 @@ class ParallelAnalysisBase(SerialAnalysisBase):
 
         n_jobs = min(n_jobs or np.inf, self.n_frames,
                      len(os.sched_getaffinity(0)))
-        frames = (frames if frames
-                  else np.arange(self.start or 0, self.stop or self.n_frames,
-                                 self.step))
-        n_frames = len(frames)
-        indices = np.arange(n_frames)
+        indices = np.arange(self.n_frames)
 
         if verbose:
             time_start = datetime.now()
@@ -431,14 +402,11 @@ class ParallelAnalysisBase(SerialAnalysisBase):
 
             jobs = []
             if block:
-                for frames_, indices_ in zip(np.array_split(frames, n_jobs),
-                                             np.array_split(indices, n_jobs)):
-                    jobs.append(dask.delayed(self._dask_job_block)
-                                (frames_, indices_))
+                for indices_ in np.array_split(indices, n_jobs):
+                    jobs.append(dask.delayed(self._dask_job_block)(indices_))
             else:
-                for frame, index in zip(frames, indices):
-                    jobs.append(dask.delayed(self._single_frame_parallel)
-                                (frame, index))
+                for index in indices:
+                    jobs.append(dask.delayed(self._single_frame_parallel)(index))
 
             blocks = dask.delayed(jobs).persist(**config)
             if verbose:
@@ -454,14 +422,12 @@ class ParallelAnalysisBase(SerialAnalysisBase):
 
             logging.info("Starting analysis using Joblib "
                          f"({n_jobs=}, backend={method})...")
-            with (_tqdm_joblib(tqdm(total=n_frames)) if verbose
+            with (_tqdm_joblib(tqdm(total=self.n_frames)) if verbose
                   else contextlib.suppress()):
                 self._results = joblib.Parallel(
                     n_jobs=n_jobs, backend=method, **kwargs
-                )(
-                    joblib.delayed(self._single_frame_parallel)(f, i)
-                    for f, i in zip(frames, indices)
-                )
+                )(joblib.delayed(self._single_frame_parallel)(i)
+                  for i in indices)
 
         else:
             if module != "multiprocessing":
@@ -481,12 +447,10 @@ class ParallelAnalysisBase(SerialAnalysisBase):
                 self._results = (
                     tuple(
                         tqdm(
-                            p.istarmap(self._single_frame_parallel,
-                                       zip(frames, indices)),
-                            total=n_frames
+                            p.imap(self._single_frame_parallel, indices),
+                            total=self.n_frames
                         )
-                    ) if verbose else p.starmap(self._single_frame_parallel,
-                                                zip(frames, indices))
+                    ) if verbose else p.map(self._single_frame_parallel, indices)
                 )
 
         if verbose:
