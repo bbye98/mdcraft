@@ -3,6 +3,8 @@
 **/.pytest_cache/
 .ruff_cache/
 dist/
+docs/build/
+docs/source/api/
 src/mdcraft.egg-info
 tests/data/
 .coverage

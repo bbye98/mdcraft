@@ -7,7 +7,7 @@ This module contains helper functions for unit manipulation and reduction.
 """
 
 from numbers import Number
-from typing import Union
+from typing import Any, Union
 
 import numpy as np
 
@@ -165,7 +165,7 @@ def get_lj_scaling_factors(
     return get_scaling_factors(bases, other)
 
 def strip_unit(
-        value: Union[Number, "unit.Quantity", Q_],
+        value: Union[Number, str, "unit.Quantity", Q_],
         unit_: Union[str, "unit.Unit", ureg.Unit] = None
     ) -> tuple[Number, Union[None, "unit.Unit", ureg.Unit]]:
 
@@ -175,7 +175,8 @@ def strip_unit(
 
     Parameters
     ----------
-    value : `numbers.Number`, `openmm.unit.Quantity`, or `pint.Quantity`
+    value : `numbers.Number`, `str`, `openmm.unit.Quantity`, or \
+    `pint.Quantity`
         Physical quantity for which to get the magnitude of in the
         unit specified in `unit_`.
 
@@ -204,6 +205,8 @@ def strip_unit(
     If no target unit is specified, the magnitude and original unit of
     the quantity are returned.
 
+    >>> strip_unit(1.380649e-23)
+    (1.380649e-23, None)
     >>> strip_unit(1.380649e-23 * ureg.joule * ureg.kelvin ** -1)
     (1.380649e-23, <Unit('joule / kelvin')>)
 
@@ -230,7 +233,39 @@ def strip_unit(
     ...            / (ureg.kelvin * ureg.mole),
     ...            unit.joule / (unit.kelvin * unit.mole))
     (8.31446261815324, Unit({BaseUnit(..., name="kelvin", ...): -1.0, ...}))
+
+    This function also supports strings directly:
+
+    >>> strip_unit("299792458 m/s")
+    (299792458.0, 'meter / second')
+    >>> strip_unit("299792458 m/s", "ft/s")
+    (983571056.4304463, 'foot / second')
+    >>> strip_unit("299792458 m/s", unit.foot / unit.second)
+    (983571056.4304463, Unit({BaseUnit(..., name="foot", ...): 1.0, ...}))
+    >>> strip_unit("299792458 m/s", ureg.foot / ureg.second)
+    (983571056.4304463, <Unit('foot / second')>)
     """
+
+    def convert_openmm_to_pint(ou: "unit.Unit") -> ureg.Unit:
+
+        """
+        Converts an OpenMM unit to a Pint unit.
+
+        Parameters
+        ----------
+        ou : `openmm.unit.Unit`
+            OpenMM unit to convert.
+
+        Returns
+        -------
+        pu : `pint.Unit`
+            Pint unit equivalent to the OpenMM unit.
+        """
+
+        pu = ureg.Unit("")
+        for u, p in ou.iter_base_or_scaled_units():
+            pu *= ureg.Unit(u.name.replace(" ", "_")) ** p
+        return pu
 
     if isinstance(value, Q_):
 
@@ -244,9 +279,7 @@ def strip_unit(
             # Convert OpenMM target unit (unit__ = unit_) to Pint unit
             # (unit_) and return unit__
             if getattr(unit_, "__module__", None) == "openmm.unit.unit":
-                unit_, unit__ = ureg.Unit(""), unit_
-                for u, p in unit__.iter_base_or_scaled_units():
-                    unit_ *= ureg.Unit(u.name.replace(" ", "_")) ** p
+                unit_, unit__ = convert_openmm_to_pint(unit_), unit_
 
             # Convert str or Pint target unit (unit_) to Pint unit
             # (unit__)
@@ -293,7 +326,54 @@ def strip_unit(
         if swap:
             unit_, unit__ = unit__, unit_
 
+    elif isinstance(value, str):
+        value = ureg(value)
+        if isinstance(value, Number):
+            return value, unit_
+        else:
+            if unit_ is not None:
+                unit__ = unit_
+                if getattr(unit_, "__module__", None) == "openmm.unit.unit":
+                    unit_ = convert_openmm_to_pint(unit_)
+                value = value.to(unit_)
+                if isinstance(unit__, str):
+                    unit__ = str(value.units)
+                value = value.magnitude
+            else:
+                value, unit__ = value.magnitude, str(value.units)
+
     else:
         unit__ = unit_
 
     return value, unit__
+
+def is_unitless(value: Any) -> bool:
+
+        """
+        Determines whether a value is unitless.
+
+        Parameters
+        ----------
+        value : `Any`
+            Value to check for unitlessness.
+
+        Returns
+        -------
+        is_unitless : `bool`
+            Whether the value is unitless.
+
+        Examples
+        --------
+        >>> is_unitless(90.0)
+        True
+        >>> is_unitless("90 degrees")
+        False
+        >>> is_unitless(90.0 * ureg.degree)
+        False
+        >>> is_unitless(90.0 * unit.degree)
+        False
+        >>> is_unitless({"quantity": 90 * ureg.degree})
+        True
+        """
+
+        return strip_unit(value)[1] is None

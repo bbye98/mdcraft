@@ -9,6 +9,76 @@ This module contains miscellaneous Numba-accelerated algorithms.
 import numba
 import numpy as np
 
+@numba.njit("f8[:](f8[:],i8)", fastmath=True)
+def histogram_bin_edges_1d_int(
+        array: np.ndarray[float], n_bins: int) -> np.ndarray[float]:
+
+    """
+    Serial Numba-accelerated function to compute the uniform histogram
+    bin edges for a one-dimensional NumPy array :math:`\mathbf{a}`
+    and a specified number of bins :math:`N_\mathrm{bins}`.
+
+    Parameters
+    ----------
+    array : `np.ndarray`
+        One-dimensional array :math:`\mathbf{a}`.
+
+    n_bins : `int`
+        Number of bins :math:`N_\mathrm{bins}`.
+
+    Returns
+    -------
+    bin_edges : `np.ndarray`
+        Uniform histogram bin edges for the array :math:`\mathbf{a}`.
+    """
+
+    min_, max_ = array.min(), array.max()
+    n_edges = n_bins + 1
+    bin_edges = np.empty(n_edges)
+    delta = (max_ - min_) / n_bins
+    for i in range(n_edges):
+        bin_edges[i] = min_ + i * delta
+    bin_edges[-1] = max_
+    return bin_edges
+
+@numba.njit("i8[:](f8[:],i8,f8[:])", fastmath=True)
+def histogram_1d_int_1d(
+        array: np.ndarray[float], n_bins: int, bin_edges: np.ndarray[float]
+    ) -> np.ndarray[int]:
+
+    """
+    Serial Numba-accelerated function to compute the histogram of a
+    one-dimensional NumPy array :math:`\mathbf{a}` using predetermined
+    bin edges for :math:`N_\mathrm{bins}` bins.
+
+    Parameters
+    ----------
+    array : `np.ndarray`
+        One-dimensional array :math:`\mathbf{a}`.
+
+    n_bins : `int`
+        Number of bins :math:`N_\mathrm{bins}`.
+
+    bin_edges : `np.ndarray`
+        Bin edges.
+
+    Returns
+    -------
+    histogram_ : `np.ndarray`
+        Histogram of the array :math:`\mathbf{a}`.
+    """
+
+    min_, max_ = bin_edges[0], bin_edges[-1]
+    histogram_ = np.zeros(n_bins, dtype=np.intp)
+    for x in array:
+        if x == max_:
+            bin_ = n_bins - 1
+        else:
+            bin_ = int(n_bins * (x - min_) / (max_ - min_))
+        if 0 <= bin_ < n_bins:
+            histogram_[bin_] += 1
+    return histogram_
+
 @numba.njit("f8(f8[:],f8[:])", fastmath=True)
 def dot_1d_1d(a: np.ndarray[float], b: np.ndarray[float]) -> float:
 
