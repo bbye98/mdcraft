@@ -105,8 +105,8 @@ def calculate_relative_permittivity(
 class DipoleMoment(DynamicAnalysisBase):
 
     r"""
-    Serial and parallel implementations to calculate the instantaneous
-    dipole moment vectors :math:`\mathbf{M}(t)`.
+    Serial and parallel implementations to calculate the dipole moment
+    vectors :math:`\mathbf{M}`.
 
     For a system with :math:`N` atoms or molecules, the dipole moment is
     given by
@@ -136,15 +136,15 @@ class DipoleMoment(DynamicAnalysisBase):
     Parameters
     ----------
     groups : `MDAnalysis.AtomGroup` or array-like
-        Group(s) of atoms for which the dipole moments are calculated.
+        Groups of atoms for which the dipole moments are calculated.
 
     charges : array-like, keyword-only, optional
-        Charge information for the atoms in the :math:`N_\mathrm{g}`
-        groups in `groups`. If not provided, it should be available in
-        and will be retrieved from the main
+        Charges :math:`q_i` for the atoms in the
+        :math:`N_\mathrm{groups}` groups in `groups`. If not provided,
+        it should be available in and will be retrieved from the main
         :class:`MDAnalysis.core.universe.Universe` object.
 
-        **Shape**: :math:`(N_\mathrm{g},)` array of real numbers or
+        **Shape**: :math:`(N_\mathrm{groups},)` array of real numbers or
         :math:`(N_i,)` arrays, where :math:`N_i` is the number of atoms
         in group :math:`i`.
 
@@ -152,23 +152,24 @@ class DipoleMoment(DynamicAnalysisBase):
 
     dimensions : array-like, keyword-only, optional
         System dimensions. If the
-        :class:`MDAnalysis.core.universe.Universe` object that `groups`
-        belong to does not contain dimensionality information, provide
-        it here. Affected by `scales`.
+        :class:`MDAnalysis.core.universe.Universe` object that the
+        atom groups in `groups` belong to does not contain
+        dimensionality information, provide it here. Affected by
+        `dim_scales`.
 
         **Shape**: :math:`(3,)`.
 
-        **Reference unit**: :math:`\mathrm{Å}`.
+        **Reference unit**: :math:`\\mathrm{Å}`.
 
-    scales : array-like, keyword-only, optional
-        Scaling factors for each system dimension. If an `int` is
+    dim_scales : array-like, keyword-only, optional
+        Scaling factors for the system dimensions. If an `int` is
         provided, the same value is used for all axes.
 
         **Shape**: :math:`(3,)`.
 
     average : `bool`, keyword-only, default: :code:`False`
         Determines whether the dipole moment vectors and volumes are
-        time-averaged.
+        averaged over the :math:`N_\\mathrm{frames}` analysis frames.
 
     reduced : `bool`, keyword-only, default: :code:`False`
         Specifies whether the data is in reduced units. Only affects
@@ -179,7 +180,7 @@ class DipoleMoment(DynamicAnalysisBase):
         mass for molecules with net charges. Must be enabled if your
         system contains molecules with net charges and you want to
         calculate the relative permittivity, but should be disabled if
-        you are only interested in the instantaneous dipole moment.
+        you are only interested in the dipole moment.
 
     unwrap : `bool`, keyword-only, default: :code:`False`
         Determines whether atom positions are unwrapped.
@@ -198,17 +199,17 @@ class DipoleMoment(DynamicAnalysisBase):
     ----------
     universe : `MDAnalysis.Universe`
         :class:`MDAnalysis.core.universe.Universe` object containing all
-        information describing the system.
+        information describing the simulation system.
 
     results.units : `dict`
         Reference units for the results. For example, to get the
         reference units for :code:`results.times`, call
-        :code:`results.units["results.times"]`.
+        :code:`results.units["times"]`.
 
     results.times : `numpy.ndarray`
-        Times :math:`t`.
+        Times :math:`t`. Only available if :code:`average=False`.
 
-        **Shape**: :math:`(N_t,)`.
+        **Shape**: :math:`(N_\mathrm{frames},)`.
 
         **Reference unit**: :math:`\mathrm{ps}`.
 
@@ -246,7 +247,7 @@ class DipoleMoment(DynamicAnalysisBase):
             self, groups: Union[mda.AtomGroup, tuple[mda.AtomGroup]],
             charges: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
             dimensions: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
-            scales: Union[float, tuple[float]] = 1, average: bool = False,
+            dim_scales: Union[float, tuple[float]] = 1, average: bool = False,
             reduced: bool = False, neutralize: bool = False,
             unwrap: bool = False, parallel: bool = False, verbose: bool = True,
             **kwargs) -> None:
@@ -266,9 +267,9 @@ class DipoleMoment(DynamicAnalysisBase):
         else:
             raise ValueError("No system dimensions found or provided.")
 
-        if isinstance(scales, Real) or (len(scales) == 3
-                                        and isinstance(scales[0], Real)):
-            self._dimensions *= scales
+        if isinstance(dim_scales, Real) or (len(dim_scales) == 3
+                                        and isinstance(dim_scales[0], Real)):
+            self._dimensions *= dim_scales
         else:
             emsg = ("The scaling factor(s) must be provided as a "
                     "floating-point number or in an array with shape (3,). ")

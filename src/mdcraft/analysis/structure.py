@@ -20,7 +20,7 @@ from scipy.signal import argrelextrema
 from scipy.special import jv
 
 from .base import DynamicAnalysisBase, NumbaAnalysisBase
-from .. import FOUND_OPENMM, ureg, Q_
+from .. import FOUND_OPENMM, Q_, ureg
 from ..algorithm import accelerated
 from ..algorithm.molecule import center_of_mass
 from ..algorithm.unit import strip_unit

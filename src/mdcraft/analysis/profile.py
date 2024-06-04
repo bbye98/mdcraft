@@ -84,7 +84,7 @@ def calculate_surface_charge_density(
         :math:`\varepsilon_\mathrm{r}`. Required if `dV` is provided.
 
     L : `float`, keyword-only, optional
-        System size in the dimension that `bins` and
+        System size :math:`L` in the dimension that `bins` and
         `charge_density_profile` were calculated in. If not specified,
         it is determined using the first and last values in `bins`,
         assuming that the bin centers are uniformly spaced.
@@ -590,11 +590,11 @@ class DensityProfile(DynamicAnalysisBase):
         **Reference unit**: :math:`\\mathrm{e}`.
 
     dimensions : array-like, keyword-only, optional
-        System dimensions. If the
+        System dimensions :math:`(L_x,\\,L_y,\\,L_z)`. If the
         :class:`MDAnalysis.core.universe.Universe` object that the
         atom groups in `groups` belong to does not contain
         dimensionality information, provide it here. Affected by
-        `scale_factors`.
+        `dim_scales`.
 
         **Shape**: :math:`(3,)`.
 
@@ -611,7 +611,7 @@ class DensityProfile(DynamicAnalysisBase):
 
         **Reference unit**: :math:`\\mathrm{ps}`.
 
-    scale_factors : array-like, keyword-only, optional
+    dim_scales : array-like, keyword-only, optional
         Scale factors for the system dimensions. If an `int` is
         provided, the same value is used for all axes.
 
@@ -666,17 +666,16 @@ class DensityProfile(DynamicAnalysisBase):
         :code:`results.units["bins"]`.
 
     results.times : `numpy.ndarray`
-        Times at which the density profiles are calculated. Only
-        available if :code:`average=False`.
+        Times :math:`t`. Only available if :code:`average=False`.
 
         **Shape**: :math:`(N_\\mathrm{frames},)`.
 
         **Reference unit**: :math:`\\mathrm{ps}`.
 
     results.bins : `dict`
-        Bin centers corresponding to the density profiles in each
-        dimension. The key is the axis, e.g., :code:`results.bins["z"]`
-        for the :math:`z`-axis.
+        Bin centers :math:`z` corresponding to the density profiles in
+        each dimension. The key is the axis, e.g.,
+        :code:`results.bins["z"]` for the :math:`z`-axis.
 
         **Shape**: Each array has shape :math:`(N_\\mathrm{bins},)`.
 
@@ -692,8 +691,9 @@ class DensityProfile(DynamicAnalysisBase):
         **Reference unit**: :math:`\\mathrm{Å}`.
 
     results.number_densities : `dict`
-        Number density profiles. The key is the axis, e.g.,
-        :code:`results.number_densities["z"]` for the :math:`z`-axis.
+        Number density profiles :math:`\\rho(z)`. The key is the axis,
+        e.g., :code:`results.number_densities["z"]` for the
+        :math:`z`-axis.
 
         **Shape**: Each array has shape
         :math:`(N_\\mathrm{groups},\\,N_\\mathrm{bins},)`. If
@@ -703,9 +703,10 @@ class DensityProfile(DynamicAnalysisBase):
         **Reference unit**: :math:`\\mathrm{Å}^{-3}`.
 
     results.charge_densities : `dict`
-        Charge density profiles. Only available if charge information
-        was found or provided. The key is the axis, e.g.,
-        :code:`results.charge_densities["z"]` for the :math:`z`-axis.
+        Charge density profiles :math:`\\rho_q(z)`. Only available if
+        charge information was found or provided. The key is the axis,
+        e.g., :code:`results.charge_densities["z"]` for the
+        :math:`z`-axis.
 
         **Shape**: Each array has shape :math:`(N_\\mathrm{bins},)`. If
         :code:`average=False`, an additional first dimension of length
@@ -714,16 +715,17 @@ class DensityProfile(DynamicAnalysisBase):
         **Reference unit**: :math:`\\mathrm{e/Å}^{-3}`.
 
     results.surface_charge_densities : `numpy.ndarray`
-        Surface charge densities. Only available after running
-        :meth:`calculate_surface_charge_densities`.
+        Surface charge densities :math:`\\sigma_q`. Only available after
+        running :meth:`calculate_surface_charge_densities`.
 
         **Shape**: :math:`(N_\\mathrm{axes},)` or
         :math:`(N_\\mathrm{axes},\,N_\\mathrm{frames})`.
 
     results.potentials : `dict`
-        Potential profiles. Only available after running
-        :meth:`calculate_potential_profiles`. The key is the axis, e.g.,
-        :code:`results.potentials["z"]` for the :math:`z`-axis.
+        Potential profiles :math:`\\Psi(z)`. Only available after
+        running :meth:`calculate_potential_profiles`. The key is the
+        axis, e.g., :code:`results.potentials["z"]` for the
+        :math:`z`-axis.
 
         **Shape**: Each array has shape :math:`(N_\\mathrm{bins},)`. If
         :code:`average=False`, an additional second dimension of
@@ -745,7 +747,7 @@ class DensityProfile(DynamicAnalysisBase):
                 tuple[Union[mda.AtomGroup, int, list[mda.AtomGroup, int]],
                       np.ndarray[float]]
             ] = None,
-            scale_factors: Union[float, tuple[float]] = 1,
+            dim_scales: Union[float, tuple[float]] = 1,
             average: bool = True, reduced: bool = False,
             parallel: bool = False, verbose: bool = True, **kwargs) -> None:
 
@@ -846,12 +848,12 @@ class DensityProfile(DynamicAnalysisBase):
                 raise TypeError("'dt' cannot have units when 'reduced=True'.")
             self._dt = strip_unit(dt, "ps")[0]
 
-        if (isinstance(scale_factors, Real)
-            or (len(scale_factors) == 3
-                and all(isinstance(f, Real) for f in scale_factors))):
-            self._dimensions *= scale_factors
+        if (isinstance(dim_scales, Real)
+            or (len(dim_scales) == 3
+                and all(isinstance(f, Real) for f in dim_scales))):
+            self._dimensions *= dim_scales
         else:
-            emsg = ("'scale_factors' must be a floating-point number "
+            emsg = ("'dim_scales' must be a floating-point number "
                     "or an array with shape (3,).")
             raise ValueError(emsg)
 
@@ -1322,11 +1324,11 @@ class DensityProfile(DynamicAnalysisBase):
 
         sigmas_q : `float`, array-like, `openmm.unit.Quantity`, or \
         `pint.Quantity`, keyword-only, optional
-            Total surface charge densities :math:`\\sigma_q`. Used to
-            ensure that the electric field in the bulk of the solution
-            is zero. If not provided, it is determined using `dVs` and
-            the charge density profiles, or the average values in the
-            centers of the integrated charge density profiles.
+            Surface charge densities :math:`\\sigma_q`. Used to ensure
+            that the electric field in the bulk of the solution is zero.
+            If not provided, it is determined using `dVs` and the charge
+            density profiles, or the average values in the centers of
+            the integrated charge density profiles.
 
             .. note::
 

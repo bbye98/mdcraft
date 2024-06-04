@@ -53,13 +53,13 @@ class ConstantVolumeHeatCapacity:
         **Valid values**: :code:`"lammps"`, :code:`"openmm"`.
 
     energies : `numpy.ndarray` or `pint.Quantity`, optional
-        Potential energies. If not provided, the log file must be
-        provided in `log_file`.
+        Potential or total energies :math:`U`. If not provided, the
+        log file must be provided in `log_file`.
 
     temperature : `float`, `openmm.unit.Quantity`, or `pint.Quantity`, \
     optional
-        System temperature. If not provided, the averaged temperature
-        from the log file (if available) is used.
+        System temperature :math:`T`. If not provided, the averaged
+        temperature from the log file (if available) is used.
 
     reduced : `bool`, keyword-only, default: :code:`False`
         Specifies whether the data is in reduced units.
@@ -75,18 +75,18 @@ class ConstantVolumeHeatCapacity:
         :code:`results.units["temperature"]`.
 
     results.energies : `numpy.ndarray`
-        Total (kinetic + potential) energies.
+        Potential or total energies :math:`U`.
 
         **Reference unit**: :math:`\\mathrm{kcal/mol}` or
         :math:`\\mathrm{kJ/mol}`.
 
     results.temperature : `float`
-        System temperature.
+        System temperature :math:`T`.
 
         **Reference unit**: :math:`\\mathrm{K}`.
 
     results.heat_capacity : `float`
-        Constant-volume heat capacity.
+        Constant-volume heat capacity :math:`C_V`.
 
         **Reference unit**: :math:`\\mathrm{kcal/K}` or
         :math:`\\mathrm{kJ/K}`.
