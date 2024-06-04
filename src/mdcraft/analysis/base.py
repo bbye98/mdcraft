@@ -9,13 +9,13 @@ Numba libraries for parallelization.
 """
 
 from abc import abstractmethod
-from collections.abc import Generator, Iterable
+from collections.abc import Generator
 import contextlib
 from datetime import datetime
 import logging
 import multiprocessing
 import os
-from typing import Any, Callable, TextIO, Union
+from typing import TextIO, Union
 import warnings
 
 try:
