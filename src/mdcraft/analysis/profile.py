@@ -690,7 +690,7 @@ class DensityProfile(DynamicAnalysisBase):
         :math:`z`-axis.
 
         **Shape**: Each array has shape
-        :math:`(N_\\mathrm{groups},\\,N_\\mathrm{bins},)`. If
+        :math:`(N_\\mathrm{groups},\\,N_\\mathrm{bins})`. If
         :code:`average=False`, an additional second dimension of
         length :math:`N_\\mathrm{frames}` is present.
 
@@ -713,7 +713,7 @@ class DensityProfile(DynamicAnalysisBase):
         running :meth:`calculate_surface_charge_densities`.
 
         **Shape**: :math:`(N_\\mathrm{axes},)` or
-        :math:`(N_\\mathrm{axes},\,N_\\mathrm{frames})`.
+        :math:`(N_\\mathrm{axes},\\,N_\\mathrm{frames})`.
 
     results.potentials : `dict`
         Potential profiles :math:`\\Psi(z)`. Only available after
@@ -893,12 +893,12 @@ class DensityProfile(DynamicAnalysisBase):
             else:
                 try:
                     grp = np.r_[
-                        *[
+                        tuple(
                             self._slices[
                                 g if isinstance(g, int)
                                 else self._groups.index(g)
                             ] for g in grp
-                        ]
+                        )
                     ]
                 except ValueError:
                     emsg = "Invalid atom group or index passed to 'recenter'."
@@ -1319,8 +1319,8 @@ class DensityProfile(DynamicAnalysisBase):
 
             .. note::
 
-               :math:`\sigma_q` and :math:`\Delta\Psi` should have the
-               same sign.
+               :math:`\\sigma_q` and :math:`\\Delta\\Psi` should have
+               the same sign.
 
             **Shapes**: :math:`(N_\\mathrm{axes},)` or
             :math:`(N_\\mathrm{axes},\\,N_\\mathrm{frames})`.
