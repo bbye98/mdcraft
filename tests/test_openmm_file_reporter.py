@@ -27,7 +27,7 @@ def test_classes_netcdffile_netcdfreporter():
     temp = 300 * unit.kelvin
     size = 3.4 * unit.angstrom
     mass = 39.948 * unit.amu
-    scales = u.get_lj_scaling_factors({
+    scales = u.get_lj_scale_factors({
         "energy": (unit.BOLTZMANN_CONSTANT_kB * temp).in_units_of(unit.kilojoule),
         "length": size,
         "mass": mass

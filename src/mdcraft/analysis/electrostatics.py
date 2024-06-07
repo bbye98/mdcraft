@@ -11,7 +11,6 @@ from numbers import Real
 from typing import Union
 
 import MDAnalysis as mda
-from MDAnalysis.lib.mdamath import make_whole
 import numpy as np
 
 from .base import DynamicAnalysisBase
@@ -28,8 +27,8 @@ def calculate_relative_permittivity(
 
     r"""
     Calculates the relative permittivity (or static dielectric constant)
-    :math:`\varepsilon_\mathrm{r}` of a medium using the instantaneous
-    dipole moments :math:`\mathbf{M}(t)`.
+    :math:`\varepsilon_\mathrm{r}` of a medium using dipole moments
+    :math:`\mathbf{M}`.
 
     The dipole moment fluctuation formula [1]_ relates the relative
     permittivity to the dipole moment via
@@ -49,14 +48,15 @@ def calculate_relative_permittivity(
 
        If residues (molecules) in your system have net charges, the
        dipole moments must be made position-independent by subtracting
-       the product of the net charge and the center of mass or geometry.
+       the product of the net charges and the centers of mass or
+       geometry.
 
     Parameters
     ----------
     M : array-like
-        Instantaneous dipole moments over :math:`N_t` frames.
+        Dipole moment vectors :math:`\mathbf{M}`.
 
-        **Shape**: :math:`(N_t,\,3)`.
+        **Shape**: :math:`(N_\mathrm{frames},\,3)`.
 
         **Reference unit**: :math:`\mathrm{e\cdotÅ}`.
 
@@ -67,7 +67,7 @@ def calculate_relative_permittivity(
 
            If :code:`reduced=True`, `temperature` should be equal to the
            energy scale. When the Lennard-Jones potential is used, it
-           generally means that :math:`T^* = 1`, or `temperature=1`.
+           generally means that :math:`T^*=1`, or `temperature=1`.
 
         **Reference unit**: :math:`\mathrm{K}`.
 
@@ -91,31 +91,29 @@ def calculate_relative_permittivity(
        *50* (4), 841–858. https://doi.org/10.1080/00268978300102721.
     """
 
-    if reduced:
-        return (1 + 4 * np.pi * (M ** 2 - M.mean(axis=0) ** 2).mean()
-                    / (volume.mean() * temperature))
-    else:
-        M *= ureg.elementary_charge * ureg.angstrom
-        temperature *= ureg.kelvin
-        volume *= ureg.angstrom ** 3
-        return (1 + (M ** 2 - M.mean(axis=0) ** 2).mean()
-                / (ureg.vacuum_permittivity * volume.mean()
-                   * ureg.boltzmann_constant * temperature)).magnitude
+    conversion_factor = 4 * np.pi if reduced else (
+        1 * ureg.elementary_charge ** 2
+        / (ureg.vacuum_permittivity * ureg.angstrom
+           * ureg.boltzmann_constant * ureg.kelvin)
+    ).m_as(ureg.dimensionless)
+
+    return 1 + (conversion_factor * (M ** 2 - M.mean(axis=0) ** 2).mean()
+                / (volume * temperature))
 
 class DipoleMoment(DynamicAnalysisBase):
 
-    r"""
+    """
     Serial and parallel implementations to calculate the dipole moment
-    vectors :math:`\mathbf{M}`.
+    :math:`\\mathbf{M}`.
 
     For a system with :math:`N` atoms or molecules, the dipole moment is
     given by
 
     .. math::
 
-       \mathbf{M}=\sum_i^{N}q_i\mathbf{z}_i
+       \\mathbf{M}=\\sum_i^{N}q_i\\mathbf{z}_i
 
-    where :math:`q_i` and :math:`\mathbf{z}_i` are the charge and
+    where :math:`q_i` and :math:`\\mathbf{z}_i` are the charge and
     position of entity :math:`i`.
 
     The dipole moment can be used to estimate the relative permittivity
@@ -124,13 +122,14 @@ class DipoleMoment(DynamicAnalysisBase):
 
     .. math::
 
-       \varepsilon_\mathrm{r}=1+\frac{\overline{\langle\mathbf{M}^2\rangle
-       -\langle\mathbf{M}\rangle^2}}{3\varepsilon_0 Vk_\mathrm{B}T}
+       \\varepsilon_\\mathrm{r}=1+\\frac{\\overline{
+       \\langle\\mathbf{M}^2\\rangle-\\langle\\mathbf{M}\\rangle^2
+       }}{3\\varepsilon_0 Vk_\\mathrm{B}T}
 
-    where the angular brackets :math:`\langle\,\cdot\,\rangle` denote
+    where the angular brackets :math:`\\langle\,\\cdot\,\\rangle` denote
     the ensemble average, the overline signifies the time average,
-    :math:`\varepsilon_0` is the vacuum permittivity,
-    :math:`k_\mathrm{B}` is the Boltzmann constant, and :math:`T` is
+    :math:`\\varepsilon_0` is the vacuum permittivity,
+    :math:`k_\\mathrm{B}` is the Boltzmann constant, and :math:`T` is
     the temperature.
 
     Parameters
@@ -138,20 +137,27 @@ class DipoleMoment(DynamicAnalysisBase):
     groups : `MDAnalysis.AtomGroup` or array-like
         Groups of atoms for which the dipole moments are calculated.
 
-    charges : array-like, keyword-only, optional
+        .. note::
+
+           If :code:`neutralize=True` or :code:`unwrap=True`, all atoms
+           of any particular must belong to the same atom group.
+
+    charges : array-like, `openmm.unit.Quantity`, or \
+    `pint.Quantity`, keyword-only,optional
         Charges :math:`q_i` for the atoms in the
-        :math:`N_\mathrm{groups}` groups in `groups`. If not provided,
+        :math:`N_\\mathrm{groups}` groups in `groups`. If not provided,
         it should be available in and will be retrieved from the main
         :class:`MDAnalysis.core.universe.Universe` object.
 
-        **Shape**: :math:`(N_\mathrm{groups},)` array of real numbers or
-        :math:`(N_i,)` arrays, where :math:`N_i` is the number of atoms
-        in group :math:`i`.
+        **Shape**: :math:`(N_\\mathrm{groups},)` array of real numbers
+        or :math:`(N_i,)` arrays, where :math:`N_i` is the number of
+        atoms in group :math:`i`.
 
-        **Reference unit**: :math:`\mathrm{e}`.
+        **Reference unit**: :math:`\\mathrm{e}`.
 
-    dimensions : array-like, keyword-only, optional
-        System dimensions. If the
+    dimensions : array-like, `openmm.unit.Quantity`, or \
+    `pint.Quantity`, keyword-only, optional
+        System dimensions :math:`(L_x,\\,L_y,\\,L_z)`. If the
         :class:`MDAnalysis.core.universe.Universe` object that the
         atom groups in `groups` belong to does not contain
         dimensionality information, provide it here. Affected by
@@ -162,7 +168,7 @@ class DipoleMoment(DynamicAnalysisBase):
         **Reference unit**: :math:`\\mathrm{Å}`.
 
     dim_scales : array-like, keyword-only, optional
-        Scaling factors for the system dimensions. If an `int` is
+        Scale factors for the system dimensions. If an `int` is
         provided, the same value is used for all axes.
 
         **Shape**: :math:`(3,)`.
@@ -176,11 +182,15 @@ class DipoleMoment(DynamicAnalysisBase):
         :meth:`calculate_relative_permittivity` calls.
 
     neutralize : `bool`, keyword-only, default: :code:`False`
-        Specifies whether the net charge is subtracted at the center of
-        mass for molecules with net charges. Must be enabled if your
-        system contains molecules with net charges and you want to
-        calculate the relative permittivity, but should be disabled if
-        you are only interested in the dipole moment.
+        Specifies whether net charges of molecules are subtracted at the
+        center of mass. Must be enabled if your system contains
+        molecules with net charges and you want to calculate the
+        relative permittivity, but should be disabled if you are only
+        interested in the dipole moment.
+
+        .. note::
+
+           The topology must contain residue (molecule) information.
 
     unwrap : `bool`, keyword-only, default: :code:`False`
         Determines whether atom positions are unwrapped.
@@ -203,36 +213,34 @@ class DipoleMoment(DynamicAnalysisBase):
 
     results.units : `dict`
         Reference units for the results. For example, to get the
-        reference units for :code:`results.times`, call
+        reference units for `results.times`, call
         :code:`results.units["times"]`.
 
     results.times : `numpy.ndarray`
         Times :math:`t`. Only available if :code:`average=False`.
 
-        **Shape**: :math:`(N_\mathrm{frames},)`.
+        **Shape**: :math:`(N_\\mathrm{frames},)`.
 
-        **Reference unit**: :math:`\mathrm{ps}`.
+        **Reference unit**: :math:`\\mathrm{ps}`.
 
     results.dipoles : `numpy.ndarray`
-        Instantaneous dipole moment vectors :math:`\mathbf{M}(t)` or
-        time-averaged dipole moment vectors :math:`\mathbf{M}`.
+        Dipole moment vectors :math:`\\mathbf{M}`.
 
-        **Shape**: :math:`(N_t,\,N_\mathrm{g},\,3)`
-        or :math:`(1,\,N_\mathrm{g},\,3)`.
+        **Shape**: :math:`(N_\\mathrm{groups},\\,3)` or
+        :math:`(N_\\mathrm{frames},\\,N_\\mathrm{groups},\\,3)`.
 
-        **Reference unit**: :math:`\mathrm{e\cdotÅ}`.
+        **Reference unit**: :math:`\\mathrm{e\\cdotÅ}`.
 
     results.volumes : `numpy.ndarray`
-        Instantaneous system volumes :math:`V(t)` or time-averaged
-        system volume :math:`V`.
+        System volumes :math:`V`.
 
-        **Shape**: :math:`(N_t,)`.
+        **Shape**: :math:`(N_\\mathrm{frames},)`.
 
-        **Reference unit**: :math:`\mathrm{Å^3}`.
+        **Reference unit**: :math:`\\mathrm{Å^3}`.
 
-    results.dielectric : `numpy.ndarray`
+    results.dielectrics : `numpy.ndarray`
         Relative permittivity (or static dielectric constant)
-        :math:`\varepsilon_\mathrm{r}` in each dimension.
+        :math:`\\varepsilon_\\mathrm{r}` in each dimension.
 
         **Shape**: :math:`(3,)`.
 
@@ -255,45 +263,43 @@ class DipoleMoment(DynamicAnalysisBase):
         self._groups = [groups] if isinstance(groups, mda.AtomGroup) else groups
         self._n_groups = len(self._groups)
         self.universe = self._groups[0].universe
-
         super().__init__(self.universe.trajectory, parallel, verbose, **kwargs)
 
         if dimensions is not None:
             if len(dimensions) != 3:
                 raise ValueError("'dimensions' must have length 3.")
-            self._dimensions = np.asarray(strip_unit(dimensions, "angstrom")[0])
+            self._dimensions = np.asarray(strip_unit(dimensions, "Å")[0])
         elif self.universe.dimensions is not None:
             self._dimensions = self.universe.dimensions[:3].copy()
         else:
             raise ValueError("No system dimensions found or provided.")
 
-        if isinstance(dim_scales, Real) or (len(dim_scales) == 3
-                                        and isinstance(dim_scales[0], Real)):
+        if (isinstance(dim_scales, Real)
+            or (len(dim_scales) == 3
+                and all(isinstance(f, Real) for f in dim_scales))):
             self._dimensions *= dim_scales
         else:
-            emsg = ("The scaling factor(s) must be provided as a "
-                    "floating-point number or in an array with shape (3,). ")
+            emsg = ("'dim_scales' must be a floating-point number "
+                    "or an array with shape (3,).")
             raise ValueError(emsg)
 
-        # Determine the number of particles in each group and their
-        # corresponding indices
-        self._Ns = np.fromiter((g.n_atoms for g in self._groups), dtype=int,
+        self._Ns = np.fromiter((ag.n_atoms for ag in self._groups), dtype=int,
                                count=self._n_groups)
         self._N = self._Ns.sum()
         self._slices = []
-        index = 0
+        _ = 0
         for N in self._Ns:
-            self._slices.append(slice(index, index + N))
-            index += N
+            self._slices.append(slice(_, _ + N))
+            _ += N
 
         if charges is not None:
             charges = list(charges)
             if len(charges) == self._n_groups:
-                for i, (g, q) in enumerate(zip(self._groups, charges)):
-                    charges[i] = strip_unit(q, "elementary_charge")[0]
+                for i, (ag, q) in enumerate(zip(self._groups, charges)):
+                    charges[i] = strip_unit(q, "e")[0]
                     if isinstance(charges[i], Real):
-                        charges[i] *= np.ones(g.n_atoms)
-                    elif g.n_atoms != len(charges[i]):
+                        charges[i] *= np.ones(ag.n_atoms)
+                    elif ag.n_atoms != len(charges[i]):
                         emsg = ("The number of charges in "
                                 f"'charges[{i}]' is not equal to the "
                                 "number of atoms in the corresponding "
@@ -305,7 +311,7 @@ class DipoleMoment(DynamicAnalysisBase):
                         "equal to the number of groups.")
                 raise ValueError(emsg)
         elif hasattr(self.universe.atoms, "charges"):
-            self._charges = [g.charges for g in self._groups]
+            self._charges = [ag.charges for ag in self._groups]
         else:
             raise ValueError("The topology has no charge information.")
 
@@ -313,8 +319,6 @@ class DipoleMoment(DynamicAnalysisBase):
             self.universe.atoms.total_charge(compound="residues"), 0,
             atol=1e-6
         )
-        self._all_included = (sum(g.n_atoms for g in self._groups)
-                              == self.universe.atoms.n_atoms)
 
         self._average = average
         self._reduced = reduced
@@ -325,15 +329,19 @@ class DipoleMoment(DynamicAnalysisBase):
     def _prepare(self) -> None:
 
         if self._unwrap:
+
+            # Navigate to first frame in analysis
             self._sliced_trajectory[0]
 
-            # Preallocate arrays to store positions and number of
-            # boundary crossings
+            # Preallocate arrays to determine the number of periodic
+            # boundary crossings for each atom
             self._positions_old = np.empty((self._N, 3))
-            for g, s in zip(self._groups, self._slices):
-                for f in g.fragments:
-                    make_whole(f)
-                self._positions_old[s] = g.positions
+            for ag, s in zip(self._groups, self._slices):
+
+                # Locally unwrap molecules at the edge of the simulation
+                # system
+                self._positions_old[s] = ag.unwrap()
+
             self._images = np.zeros((self._N, 3), dtype=int)
             self._thresholds = self._dimensions / 2
 
@@ -342,81 +350,115 @@ class DipoleMoment(DynamicAnalysisBase):
             if self._parallel:
                 self._positions = np.empty((self.n_frames, self._N, 3))
                 for i, _ in enumerate(self._sliced_trajectory):
-                    for g, s in zip(self._groups, self._slices):
-                        self._positions[i, s] = g.positions
+                    for ag, s in zip(self._groups, self._slices):
+                        self._positions[i, s] = ag.positions
 
-                    unwrap(self._positions[i], self._positions_old,
-                           self._dimensions, thresholds=self._thresholds,
-                           images=self._images)
+                    # Globally unwrap atom positions
+                    unwrap(
+                        self._positions[i],
+                        self._positions_old,
+                        self._dimensions,
+                        thresholds=self._thresholds,
+                        images=self._images
+                    )
 
-                del self._positions_old
-                del self._images
-                del self._thresholds
+        # Store reference units
+        self.results.units = {"dipoles": ureg.elementary_charge * ureg.angstrom,
+                              "volumes": ureg.angstrom ** 3}
 
-        # Preallocate arrays to store results and store reference units
-        self.results.dipoles = np.zeros((self.n_frames, self._n_groups, 3))
+        # Preallocate arrays to store dipole moments and system volumes
+        self.results.dipoles = np.empty((self.n_frames, self._n_groups, 3))
         self.results.volumes = np.empty(self.n_frames)
-        self.results.units = {
-            "dipoles": ureg.elementary_charge * ureg.angstrom,
-            "volumes": ureg.angstrom ** 3
-        }
+
+        # Store time information, if necessary
         if not self._average:
-            self.results.times = (self.step * self._trajectory.dt
-                                  * np.arange(self.n_frames))
+            self.results.times = np.fromiter(
+                (ts.time for ts in self._sliced_trajectory),
+                dtype=float,
+                count=self.n_frames
+            )
             self.results.units["times"] = ureg.picosecond
+
+        # Preallocate array to hold atom positions for a given frame
+        # (so that one doesn't have to be recreated each frame)
         if not self._parallel:
             self._positions = np.empty((self._N, 3))
 
     def _single_frame(self) -> None:
 
-        for i, (g, s, q) in enumerate(zip(self._groups, self._slices,
-                                          self._charges)):
-            self._positions[s] = g.positions
-            self._positions[0, 0] += self._dimensions[0] / 2
+        for i, (ag, s, q) in enumerate(zip(self._groups, self._slices,
+                                           self._charges)):
+
+            # Store atom positions in the current frame
+            self._positions[s] = ag.positions
+
+            # Globally unwrap atom positions
             if self._unwrap:
-                unwrap(self._positions[s], self._positions_old[s],
-                       self._dimensions, thresholds=self._thresholds,
-                       images=self._images[s])
+                unwrap(
+                    self._positions[s],
+                    self._positions_old[s],
+                    self._dimensions,
+                    thresholds=self._thresholds,
+                    images=self._images[s]
+                )
+
+            # Subtract the net charge at the center of mass of each
+            # molecule, if necessary
             if self._neutralize:
                 q -= q * np.concatenate([r.atoms.masses / r.mass
-                                         for r in g.residues])
-            self.results.dipoles[self._frame_index, i] \
-                += q @ self._positions[s]
+                                         for r in ag.residues])
 
+            # Calculate the dipole moment for the current frame
+            self.results.dipoles[self._frame_index, i] = q @ self._positions[s]
+
+        # Store the system volume for the current frame
         self.results.volumes[self._frame_index] \
             = self.universe.trajectory.ts.volume
 
     def _single_frame_parallel(
             self, index: int) -> tuple[int, float, np.ndarray[float]]:
 
-        self._sliced_trajectory[index]
-        results = np.empty((self._n_groups, 3))
+        # Set current trajectory frame
+        ts = self._sliced_trajectory[index]
 
-        for i, (g, s, q) in enumerate(zip(self._groups, self._slices,
-                                          self._charges)):
+        # Preallocate arrays to hold
+        dipoles = np.empty((self._n_groups, 3))
+
+        for i, (ag, s, q) in enumerate(zip(self._groups, self._slices,
+                                           self._charges)):
+
+            # Get atom positions in the current frame
             positions = (self._positions[index, s] if self._unwrap
-                         else g.positions)
+                         else ag.positions)
+
+            # Subtract the net charge at the center of mass of each
+            # molecule, if necessary
             if self._neutralize:
                 q -= q * np.concatenate([r.atoms.masses / r.mass
-                                         for r in g.residues])
-            results[i] = q @ positions
+                                         for r in ag.residues])
 
-        return index, self._trajectory.ts.volume, results
+            # Calculate the dipole moment for the current frame
+            dipoles[i] = q @ positions
+
+        return index, ts.volume, dipoles
 
     def _conclude(self) -> None:
 
-        # Consolidate results from parallel analysis
+        # Consolidate parallel results and clean up memory by deleting
+        # arrays that will not be reused
         if self._parallel:
             self._results = sorted(self._results)
             self.results.volumes = np.fromiter((r[1] for r in self._results),
                                                dtype=float, count=self.n_frames)
             self.results.dipoles = np.stack([r[2] for r in self._results])
+
+            del self._results
+            if self._unwrap:
+                del self._positions
         else:
             del self._positions
-            if self._unwrap:
-                del self._positions_old
-                del self._images
-                del self._thresholds
+        if self._unwrap:
+            del self._positions_old, self._images, self._thresholds
 
         # Average results, if requested
         if self._average:
@@ -428,8 +470,8 @@ class DipoleMoment(DynamicAnalysisBase):
 
         r"""
         Calculates the relative permittivity (or static dielectric
-        constant) :math:`\varepsilon_\mathrm{r}` of a medium using the
-        instantaneous dipole moments :math:`\mathbf{M}(t)`.
+        constant) :math:`\varepsilon_\mathrm{r}` of a medium using
+        dipole moments :math:`\mathbf{M}`.
 
         Parameters
         ----------
@@ -442,7 +484,7 @@ class DipoleMoment(DynamicAnalysisBase):
                :class:`DipoleMoment` constructor, `temperature` should
                be equal to the energy scale. When the Lennard-Jones
                potential is used, it generally means that
-               :math:`T^* = 1`, or `temperature=1`.
+               :math:`T^*=1`, or `temperature=1`.
 
             **Reference unit**: :math:`\mathrm{K}`.
         """
@@ -457,21 +499,18 @@ class DipoleMoment(DynamicAnalysisBase):
                     "the net charge is subtracted at the center of "
                     "mass of each molecule carrying a net charge.")
             raise RuntimeError(emsg)
-        elif not self._all_included:
-            emsg = ("Cannot compute relative permittivity when not all"
-                    "atoms in the system are accounted for in the "
-                    "groups.")
-            raise RuntimeError(emsg)
-        else:
-            temperature, unit_ = strip_unit(temperature, "kelvin")
-            if self._reduced and not isinstance(unit_, str):
-                emsg = ("'temperature' cannot have units when reduced=True.")
-                raise ValueError(emsg)
 
-            dipoles = self.results.dipoles
-            if self._n_groups > 1:
-                dipoles = dipoles.sum(axis=1)
-            self.results.dielectric = calculate_relative_permittivity(
-                dipoles, temperature, self.results.volumes.mean(),
-                reduced=self._reduced
-            )
+        temperature, unit_ = strip_unit(temperature, "kelvin")
+        if self._reduced and not isinstance(unit_, str):
+            emsg = ("'temperature' cannot have units when reduced=True.")
+            raise ValueError(emsg)
+
+        dipoles = self.results.dipoles
+        if self._n_groups > 1:
+            dipoles = dipoles.sum(axis=dipoles.ndim - 2)
+        self.results.dielectrics = calculate_relative_permittivity(
+            dipoles,
+            temperature,
+            self.results.volumes.mean(),
+            reduced=self._reduced
+        )

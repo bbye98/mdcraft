@@ -23,8 +23,8 @@ def test_class_density_profile():
     ld = LinearDensity(universe.atoms, "residues").run()
     dp = DensityProfile(universe.atoms, "residues", axes="xy", n_bins=200,
                         average=False).run()
-    # pdp = DensityProfile(universe.atoms, "residues", axes="xy", n_bins=200,
-    #                      parallel=True).run()
+    pdp = DensityProfile(universe.atoms, "residues", axes="xy", n_bins=200,
+                         parallel=True).run(module="joblib", n_jobs=1)
 
     for ax in "xy":
         number_density = (0.602214076 * ld.results[ax].mass_density
@@ -34,12 +34,12 @@ def test_class_density_profile():
         # TEST CASE 1: Number density profiles
         assert np.allclose(number_density,
                            dp.results.number_densities[ax].mean(axis=1))
-        # assert np.allclose(number_density, pdp.results.number_densities[ax])
+        assert np.allclose(number_density, pdp.results.number_densities[ax])
 
         # TEST CASE 2: Charge density profiles
         assert np.allclose(charge_density,
                            dp.results.charge_densities[ax].mean(axis=0))
-        # assert np.allclose(charge_density, pdp.results.charge_densities[ax])
+        assert np.allclose(charge_density, pdp.results.charge_densities[ax])
 
     # TEST CASE 3: Wrong number of dielectric constants
     with pytest.raises(ValueError):

@@ -19,8 +19,8 @@ from scipy import integrate, sparse
 
 from .base import Hash, DynamicAnalysisBase
 from .. import FOUND_OPENMM, Q_, ureg
-from ..algorithm.accelerated import (histogram_bin_edges_1d_int,
-                                     histogram_1d_int_1d)
+from ..algorithm.accelerated import (numba_histogram_bin_edges,
+                                     numba_histogram)
 from ..algorithm.molecule import center_of_mass
 from ..algorithm.topology import unwrap, wrap
 from ..algorithm.unit import is_unitless, strip_unit
@@ -569,7 +569,8 @@ class DensityProfile(DynamicAnalysisBase):
         in `axes`. If an `int` is provided, the same value is used for
         all axes.
 
-    charges : array-like, keyword-only, optional
+    charges : array-like, `openmm.unit.Quantity`, or `pint.Quantity`, \
+    keyword-only, optional
         Charge numbers :math:`z_i` for the entities in the
         :math:`N_\\mathrm{groups}` atom groups in `groups`. If not
         provided, they will be retrieved from the main
@@ -589,7 +590,8 @@ class DensityProfile(DynamicAnalysisBase):
 
         **Reference unit**: :math:`\\mathrm{e}`.
 
-    dimensions : array-like, keyword-only, optional
+    dimensions : array-like, `openmm.unit.Quantity`, or \
+    `pint.Quantity`, keyword-only, optional
         System dimensions :math:`(L_x,\\,L_y,\\,L_z)`. If the
         :class:`MDAnalysis.core.universe.Universe` object that the
         atom groups in `groups` belong to does not contain
@@ -600,18 +602,7 @@ class DensityProfile(DynamicAnalysisBase):
 
         **Reference unit**: :math:`\\mathrm{Å}`.
 
-    dt : `float`, `openmm.unit.Quantity`, or `pint.Quantity`, \
-    keyword-only, optional
-        Time between frames :math:`\\Delta t`. While this is normally
-        determined from the trajectory, the trajectory may not have the
-        correct information if the data is in reduced units. For
-        example, if your reduced timestep is :math:`0.01` and you output
-        trajectory data every :math:`10,000` timesteps, then
-        :math:`\\Delta t=100`.
-
-        **Reference unit**: :math:`\\mathrm{ps}`.
-
-    dim_scales : array-like, keyword-only, optional
+    dim_scales : `float` or array-like, keyword-only, optional
         Scale factors for the system dimensions. If an `int` is
         provided, the same value is used for all axes.
 
@@ -659,6 +650,9 @@ class DensityProfile(DynamicAnalysisBase):
     universe : `MDAnalysis.Universe`
         :class:`MDAnalysis.core.universe.Universe` object containing all
         information describing the simulation system.
+
+    axes : `tuple`
+        Axes along which the density profiles are calculated.
 
     results.units : `dict`
         Reference units for the results. For example, to get the
@@ -741,7 +735,6 @@ class DensityProfile(DynamicAnalysisBase):
             n_bins: Union[int, tuple[int]] = 201, *,
             charges: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
             dimensions: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
-            dt: Union[float, "unit.Quantity", Q_] = None,
             recenter: Union[
                 mda.AtomGroup, int, list[mda.AtomGroup, int],
                 tuple[Union[mda.AtomGroup, int, list[mda.AtomGroup, int]],
@@ -765,12 +758,12 @@ class DensityProfile(DynamicAnalysisBase):
             self._groupings = self._n_groups * [groupings]
         else:
             if self._n_groups != len(groupings):
-                emsg = ("The number of grouping values is not equal to "
-                        "the number of atom groups.")
+                emsg = ("The shape of 'groupings' is incompatible with "
+                        "that of 'groups'.")
                 raise ValueError(emsg)
             for gr in groupings:
                 if gr not in GROUPINGS:
-                    emsg = (f"Invalid grouping '{groupings}'. Valid values: "
+                    emsg = (f"Invalid grouping '{gr}'. Valid values: "
                             "'" + "', '".join(GROUPINGS) + "'.")
                     raise ValueError(emsg)
             self._groupings = groupings
@@ -784,18 +777,18 @@ class DensityProfile(DynamicAnalysisBase):
                 count=len(axes),
                 dtype=int
             )
-        self._axes = [chr(120 + i) for i in self._axis_indices]
-        if not all(ax in "xyz" for ax in self._axes):
+        self.axes = tuple(chr(120 + i) for i in self._axis_indices)
+        if not all(ax in "xyz" for ax in self.axes):
             raise ValueError("Invalid axis passed in 'axes'.")
-        self._n_axes = len(self._axes)
+        self._n_axes = len(self.axes)
 
         if isinstance(n_bins, int):
-            self._n_bins = n_bins * np.ones(len(self._axes), dtype=int)
+            self._n_bins = n_bins * np.ones(len(self.axes), dtype=int)
         elif isinstance(n_bins, str):
             emsg = "'n_bins' must be an integer or an iterable object."
             raise ValueError(emsg)
         else:
-            if len(n_bins) != len(self._axes):
+            if len(n_bins) != len(self.axes):
                 emsg = ("The shape of 'n_bins' is incompatible with "
                         "the number of axes to calculate density "
                         "profiles along.")
@@ -807,8 +800,8 @@ class DensityProfile(DynamicAnalysisBase):
 
         if charges is not None:
             if len(charges) != self._n_groups:
-                emsg = ("The number of group charges is not equal to "
-                        "the number of groups.")
+                emsg = ("The shape of 'charges' is incompatible with "
+                        "that of 'groups'.")
                 raise ValueError(emsg)
             if reduced and not is_unitless(charges):
                 emsg = "'charges' cannot have units when 'reduced=True'."
@@ -840,13 +833,6 @@ class DensityProfile(DynamicAnalysisBase):
             self._dimensions = self.universe.dimensions[:3].copy()
         else:
             raise ValueError("No system dimensions found or provided.")
-
-        if dt is None:
-            self._dt = self._trajectory.dt
-        else:
-            if reduced and not is_unitless(dt):
-                raise TypeError("'dt' cannot have units when 'reduced=True'.")
-            self._dt = strip_unit(dt, "ps")[0]
 
         if (isinstance(dim_scales, Real)
             or (len(dim_scales) == 3
@@ -907,12 +893,12 @@ class DensityProfile(DynamicAnalysisBase):
             else:
                 try:
                     grp = np.r_[
-                        *(
+                        *[
                             self._slices[
                                 g if isinstance(g, int)
                                 else self._groups.index(g)
                             ] for g in grp
-                        )
+                        ]
                     ]
                 except ValueError:
                     emsg = "Invalid atom group or index passed to 'recenter'."
@@ -932,11 +918,11 @@ class DensityProfile(DynamicAnalysisBase):
         # Specify bin centers and edges for each axis
         self.results.bins = Hash()
         self.results.bin_edges = Hash()
-        for ia, ax, n in zip(self._axis_indices, self._axes, self._n_bins):
+        for ia, ax, n in zip(self._axis_indices, self.axes, self._n_bins):
             d = self._dimensions[ia]
             self.results.bins[ax] = np.linspace(s := d / (2 * n), d - s, n)
             self.results.bin_edges[ax] \
-                = histogram_bin_edges_1d_int(np.asarray((0, d)), n)
+                = numba_histogram_bin_edges(np.asarray((0, d)), n)
 
         # Store entity masses for center of mass calculations
         self._masses = np.empty(self._N)
@@ -1008,7 +994,7 @@ class DensityProfile(DynamicAnalysisBase):
                 shape.append(self.n_frames)
             self.results.number_densities = Hash({
                 ax: np.zeros((*shape, n))
-                for ax, n in zip(self._axes, self._n_bins)
+                for ax, n in zip(self.axes, self._n_bins)
             })
 
         # Store reference units
@@ -1027,15 +1013,14 @@ class DensityProfile(DynamicAnalysisBase):
 
         # Store time information, if necessary
         if not self._average:
-            try:
-                self.results.times \
-                    = self._dt * np.asarray(self._sliced_trajectory.frames)
-            except AttributeError:
-                self.results.times \
-                    = self._dt * np.arange(self.start, self.stop, self.step)
+            self.results.times = np.fromiter(
+                (ts.time for ts in self._sliced_trajectory),
+                dtype=float,
+                count=self.n_frames
+            )
             self.results.units["times"] = ureg.picosecond
 
-    def _single_frame(self):
+    def _single_frame(self) -> None:
 
         # Store atom or center-of-mass positions in the current frame
         for ag, gr, s in zip(self._groups, self._groupings, self._slices):
@@ -1044,7 +1029,8 @@ class DensityProfile(DynamicAnalysisBase):
 
         if self._recenter is not None:
 
-            # Globally unwrap entity positions for correct center of mass
+            # Globally unwrap entity positions for correct centers of
+            # mass
             unwrap(
                 self._positions,
                 self._positions_old,
@@ -1072,26 +1058,26 @@ class DensityProfile(DynamicAnalysisBase):
         wrap(self._positions, self._dimensions)
 
         # Compute and tally the bin counts for the entity positions
-        for ax, ia, n in zip(self._axes, self._axis_indices, self._n_bins):
+        for ax, ia, n in zip(self.axes, self._axis_indices, self._n_bins):
             for ig, (gr, s) in enumerate(zip(self._groupings, self._slices)):
                 if self._average:
                     self.results.number_densities[ax][ig] \
-                        += histogram_1d_int_1d(self._positions[s, ia], n,
-                                               self.results.bin_edges[ax])
+                        += numba_histogram(self._positions[s, ia], n,
+                                           self.results.bin_edges[ax])
                 else:
                     self.results.number_densities[ax][ig, self._frame_index] \
-                        = histogram_1d_int_1d(self._positions[s, ia], n,
-                                              self.results.bin_edges[ax])
+                        = numba_histogram(self._positions[s, ia], n,
+                                          self.results.bin_edges[ax])
 
     def _single_frame_parallel(
-            self, index: int) -> tuple[int, np.ndarray[float]]:
+            self, index: int) -> tuple[int, dict[str, np.ndarray[float]]]:
 
         # Set current trajectory frame
         self._sliced_trajectory[index]
 
         # Preallocate arrays to hold bin counts for the current frame
-        results = {ax: np.empty((self._n_groups, n))
-                   for ax, n in zip(self._axes, self._n_bins)}
+        counts = {ax: np.empty((self._n_groups, n))
+                  for ax, n in zip(self.axes, self._n_bins)}
 
         # Calculate or get entity positions
         if self._recenter is None:
@@ -1104,27 +1090,28 @@ class DensityProfile(DynamicAnalysisBase):
             positions = self._positions[index]
 
         # Compute and tally the bin counts for the entity positions
-        for ax, ia, n in zip(self._axes, self._axis_indices, self._n_bins):
+        for ax, ia, n in zip(self.axes, self._axis_indices, self._n_bins):
             for ig, (gr, s) in enumerate(zip(self._groupings, self._slices)):
-                results[ax][ig] = histogram_1d_int_1d(
+                counts[ax][ig] = numba_histogram(
                     positions[s, ia], n, self.results.bin_edges[ax]
                 )
 
-        return index, results
+        return index, counts
 
-    def _conclude(self):
+    def _conclude(self) -> None:
 
         # Consolidate parallel results and clean up memory by deleting
         # arrays that will not be reused
         if self._parallel:
             self._results = sorted(self._results)
             self.results.number_densities = Hash()
-            for ax in self._axes:
+            for ax in self.axes:
                 self.results.number_densities[ax] \
                     = np.stack([r[1][ax] for r in self._results], axis=1)
                 if self._average:
                     self.results.number_densities[ax] \
                         = self.results.number_densities[ax].sum(axis=1)
+
             del self._results
             if self._recenter is not None:
                 del self._positions
@@ -1135,7 +1122,7 @@ class DensityProfile(DynamicAnalysisBase):
 
         # Normalize histograms by bin volume
         volume = np.prod(self._dimensions)
-        for ax, n in zip(self._axes, self._n_bins):
+        for ax, n in zip(self.axes, self._n_bins):
             denom = volume / n
             if self._average:
                 denom *= self.n_frames
@@ -1153,7 +1140,7 @@ class DensityProfile(DynamicAnalysisBase):
         ) -> Union[Real, np.ndarray[Real]]:
 
         """
-        Validates and processes input values to calculation methods.
+        Validates and processes input values to the calculation methods.
 
         Parameters
         ----------
@@ -1240,7 +1227,7 @@ class DensityProfile(DynamicAnalysisBase):
 
         # Validate inputs
         if axes is None:
-            axes = self._axes
+            axes = self.axes
             axis_indices = self._axis_indices
         else:
             if isinstance(axes, Real) \
@@ -1249,7 +1236,7 @@ class DensityProfile(DynamicAnalysisBase):
             axes = tuple(axes)
             axis_indices = [ord(ax.lower()) - 120 for ax in axes]
         try:
-            relative_axes = [self._axes.index(ax) for ax in axes]
+            relative_axes = [self.axes.index(ax) for ax in axes]
         except ValueError:
             raise ValueError("Invalid axis passed in 'axes'.")
         n_axes = len(axes)
@@ -1396,7 +1383,7 @@ class DensityProfile(DynamicAnalysisBase):
 
         # Validate inputs
         if axes is None:
-            axes = self._axes
+            axes = self.axes
             axis_indices = self._axis_indices
         else:
             if isinstance(axes, Real) \
@@ -1405,7 +1392,7 @@ class DensityProfile(DynamicAnalysisBase):
             axes = tuple(axes)
             axis_indices = [ord(ax.lower()) - 120 for ax in axes]
         try:
-            relative_axes = [self._axes.index(ax) for ax in axes]
+            relative_axes = [self.axes.index(ax) for ax in axes]
         except ValueError:
             raise ValueError("Invalid axis passed in 'axes'.")
         n_axes = len(axes)

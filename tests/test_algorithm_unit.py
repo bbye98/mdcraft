@@ -7,17 +7,17 @@ import pytest
 
 sys.path.insert(0, f"{pathlib.Path(__file__).parents[1].resolve().as_posix()}/src")
 from mdcraft import ureg
-from mdcraft.algorithm.unit import get_lj_scaling_factors, strip_unit # noqa: E402
+from mdcraft.algorithm.unit import get_lj_scale_factors, strip_unit # noqa: E402
 
 def test_func_get_lj_scaling_factors():
 
     # TEST CASE 1: Lennard-Jones scaling factors
-    pint_factors = get_lj_scaling_factors({
+    pint_factors = get_lj_scale_factors({
         "mass": 39.948 * ureg.gram / ureg.mole,
         "energy": 3.9520829798737548e-25 * ureg.kilocalorie,
         "length": 3.4 * ureg.angstrom
     })
-    openmm_factors = get_lj_scaling_factors({
+    openmm_factors = get_lj_scale_factors({
         "mass": 39.948 * unit.gram / unit.mole,
         "energy": 0.238 * unit.kilocalorie_per_mole / unit.AVOGADRO_CONSTANT_NA,
         "length": 3.4 * unit.angstrom

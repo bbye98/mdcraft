@@ -1034,6 +1034,234 @@ class RadialDistributionFunction(DynamicAnalysisBase):
             n_q=n_q, n_dims=2 + (self._drop_axis is None), formalism=formalism
         )
 
+@numba.njit("c16(f8[:],f8[:])", fastmath=True)
+def numba_delta_fourier_transform(
+        q: np.ndarray[float], r: np.ndarray[float]) -> complex:
+
+    r"""
+    Serial Numba-accelerated Fourier transform of a Dirac delta function
+    involving two one-dimensional NumPy arrays :math:`\mathbf{q}` and
+    :math:`\mathbf{r}`, each with shape :math:`(3,)`.
+
+    .. math::
+
+        \mathcal{F}[\delta(\mathbf{q}-\mathbf{r})]
+        =\exp(i\mathbf{q}\cdot\mathbf{r})
+
+    Parameters
+    ----------
+    q : `np.ndarray`
+        First vector :math:`\mathbf{q}`.
+
+        **Shape**: :math:`(3,)`.
+
+    r : `np.ndarray`
+        Second vector :math:`\mathbf{r}`.
+
+        **Shape**: :math:`(3,)`.
+
+    Returns
+    -------
+    F : `complex`
+        Fourier transform of the Dirac delta function,
+        :math:`\mathcal{F}[\delta(\mathbf{q}-\mathbf{r})]`.
+    """
+
+    return np.exp(1j * accelerated.numba_dot(q, r))
+
+def delta_fourier_transform_sum(
+        qs: np.ndarray[float], rs: np.ndarray[float]) -> np.ndarray[complex]:
+
+    r"""
+    Evaluates the Fourier transforms of Dirac delta functions involving
+    all possible combinations of multiple one-dimensional NumPy arrays
+    :math:`\mathbf{q}` and :math:`\mathbf{r}`, each with shape
+    :math:`(3,)`, summed over all :math:`\mathbf{r}`.
+
+    .. math::
+
+        \sum_\mathbf{r}\mathcal{F}[\delta(\mathbf{q}-\mathbf{r})]
+        =\sum_\mathbf{r}\exp(i\mathbf{q}\cdot\mathbf{r})
+
+    Parameters
+    ----------
+    qs : `np.ndarray`
+        Multiple vectors :math:`\mathbf{q}`.
+
+        **Shape**: :math:`(N_q,\,3)`.
+
+    rs : `np.ndarray`
+        Multiple vectors :math:`\mathbf{r}`.
+
+        **Shape**: :math:`(N_r,\,3)`.
+
+    Returns
+    -------
+    F : `np.ndarray`
+        Fourier transforms of the Dirac delta functions, summed over all
+        :math:`\mathbf{r}`.
+
+        **Shape**: :math:`(N_q,)`.
+    """
+
+    F = np.empty(qs.shape[0], dtype=np.complex128)
+    for i in numba.prange(qs.shape[0]):
+        F[i] = 0.0j
+        for j in range(rs.shape[0]):
+            F[i] += numba_delta_fourier_transform(qs[i], rs[j])
+    return F
+
+@numba.njit("f8(f8[:])", fastmath=True)
+def numba_pythagorean_trigonometric_identity(r: np.ndarray[float]) -> float:
+
+    r"""
+    Serial Numba-accelerated evaluation of the Pythagorean trigonometric
+    identity for a one-dimensional NumPy array :math:`\mathbf{r}`.
+
+    .. math::
+
+       \left(\sum_{i=1}^3\cos(r_i)\right)^2
+       +\left(\sum_{i=1}^3\sin(r_i)\right)^2
+
+    Parameters
+    ----------
+    r : `np.ndarray`
+        Vector :math:`\mathbf{r}`.
+
+        **Shape**: :math:`(N_r,)`.
+
+    Returns
+    -------
+    c2_s2 : `float`
+        Pythagorean trigonometric identity for the vector
+        :math:`\mathbf{r}`.
+    """
+
+    c = s = 0
+    for i in range(r.shape[0]):
+        c += np.cos(r[i])
+        s += np.sin(r[i])
+    return c ** 2 + s ** 2
+
+@numba.njit("f8(f8[:],f8[:])", fastmath=True)
+def numba_cross_pythagorean_trigonometric_identity(
+        r: np.ndarray[float], s: np.ndarray[float]) -> float:
+
+    r"""
+    Serial Numba-accelerated evaluation of the cross Pythagorean
+    trigonometric identity for two one-dimensional NumPy arrays
+    :math:`\mathbf{r}` and :math:`\mathbf{s}`.
+
+    .. math::
+
+       2\left(\sum_{i=1}^3\cos(r_i)\sum_{j=1}^3\cos(s_j)
+       +\sum_{i=1}^3\sin(r_i)\sum_{j=1}^3\sin(s_j)\right)
+
+    Parameters
+    ----------
+    r : `np.ndarray`
+        First vector :math:`\mathbf{r}`.
+
+        **Shape**: :math:`(N_r,)`.
+
+    s : `np.ndarray`
+        Second vector :math:`\mathbf{s}`.
+
+        **Shape**: :math:`(N_s,)`.
+
+    Returns
+    -------
+    c2_s2 : `float`
+        Cross Pythagorean trigonometric identity for the vectors
+        :math:`\mathbf{r}` and :math:`\mathbf{s}`.
+    """
+
+    c1 = c2 = s1 = s2 = 0
+    for i in range(r.shape[0]):
+        c1 += np.cos(r[i])
+        s1 += np.sin(r[i])
+    for j in range(s.shape[0]):
+        c2 += np.cos(s[j])
+        s2 += np.sin(s[j])
+    return 2 * (c1 * c2 + s1 * s2)
+
+def ssf_trigonometric(qrs: np.ndarray[float]) -> np.ndarray[float]:
+
+    r"""
+    Computes the static structure factors using a two-dimensional NumPy
+    array containing :math:`\mathbf{q}\cdot\mathbf{r}` using the
+    trigonometric form.
+
+    .. math::
+
+        NS(q)=\left\langle\left(\sum_{j=1}^N
+        \cos{(\mathbf{q}\cdot\mathbf{r}_j)}\right)^2+\left(
+        \sum_{j=1}^N\sin{(\mathbf{q}\cdot\mathbf{r}_j)}
+        \right)^2\right\rangle
+
+    Parameters
+    ----------
+    qrs : `np.ndarray`
+        Inner products :math:`\mathbf{q}\cdot\mathbf{r}_j`.
+
+        **Shape**: :math:`(N_q,\,N_r)`.
+
+    Returns
+    -------
+    ssf : `np.ndarray`
+        Static structure factors.
+
+        **Shape**: :math:`(N_q,)`.
+    """
+
+    ssf = np.empty(qrs.shape[0])
+    for i in numba.prange(qrs.shape[0]):
+        ssf[i] = numba_pythagorean_trigonometric_identity(qrs[i])
+    return ssf
+
+def psf_trigonometric(
+        qrs1: np.ndarray[float], qrs2: np.ndarray[float]) -> np.ndarray[float]:
+
+    r"""
+    Computes the partial structure factors given two two-dimensional
+    NumPy arrays, each containing :math:`\mathbf{q}\cdot\mathbf{r}`,
+    using the trigonometric form.
+
+    .. math::
+
+        \frac{NS_{\alpha\beta}(q)}{2-\delta_{\alpha\beta}}
+        =\left\langle
+        \sum_{j=1}^{N_\alpha}\cos{(\mathbf{q}\cdot\mathbf{r}_j)}
+        \sum_{k=1}^{N_\beta}\cos{(\mathbf{q}\cdot\mathbf{r}_k)}
+        +\sum_{j=1}^{N_\alpha}\sin{(\mathbf{q}\cdot\mathbf{r}_j)}
+        \sum_{k=1}^{N_\beta}\sin{(\mathbf{q}\cdot\mathbf{r}_k)}
+        \right\rangle
+
+    Parameters
+    ----------
+    qrs1 : `np.ndarray`
+        First set of inner products :math:`\mathbf{q}\cdot\mathbf{r}_j`.
+
+        **Shape**: :math:`(N_q,\,N_r)`.
+
+    qrs2 : `np.ndarray`
+        Second set of inner products :math:`\mathbf{q}\cdot\mathbf{r}_k`.
+
+        **Shape**: :math:`(N_q,\,N_r)`.
+
+    Returns
+    -------
+    ssf : `np.ndarray`
+        Partial structure factors.
+
+        **Shape**: :math:`(N_q,)`.
+    """
+
+    ssf = np.empty(qrs1.shape[0])
+    for i in numba.prange(qrs1.shape[0]):
+        ssf[i] = numba_cross_pythagorean_trigonometric_identity(qrs1[i], qrs2[i])
+    return ssf
+
 class StructureFactor(NumbaAnalysisBase):
 
     """
@@ -1238,87 +1466,6 @@ class StructureFactor(NumbaAnalysisBase):
         :math:`(C(N_\\mathrm{g}+1,\\,2),\\,N_q)`.
     """
 
-    @staticmethod
-    def ssf_trigonometric_2d(qrs: np.ndarray[float]) -> np.ndarray[float]:
-
-        r"""
-        Computes the static structure factors using a two-dimensional
-        NumPy array containing :math:`\mathbf{q}\cdot\mathbf{r}` using
-        the trigonometric form.
-
-        .. math::
-
-           S(q)=\frac{1}{N}\left\langle\left(\sum_{j=1}^N
-           \cos{(\mathbf{q}\cdot\mathbf{r}_j)}\right)^2+\left(
-           \sum_{j=1}^N\sin{(\mathbf{q}\cdot\mathbf{r}_j)}
-           \right)^2\right\rangle
-
-        Parameters
-        ----------
-        qrs : `np.ndarray`
-            Inner products :math:`\mathbf{q}\cdot\mathbf{r}_j`.
-
-            **Shape**: :math:`(N_q,\,N_r)`.
-
-        Returns
-        -------
-        ssf : `np.ndarray`
-            Static structure factors.
-
-            **Shape**: :math:`(N_q,)`.
-        """
-
-        ssf = np.empty(qrs.shape[0])
-        for i in numba.prange(qrs.shape[0]):
-            ssf[i] = accelerated.pythagorean_trigonometric_identity_1d(qrs[i])
-        return ssf
-
-    @staticmethod
-    def psf_trigonometric_2d_2d(
-            qrs1: np.ndarray[float], qrs2: np.ndarray[float]) -> np.ndarray[float]:
-
-        r"""
-        Computes the partial structure factors given two two-dimensional
-        NumPy arrays, each containing :math:`\mathbf{q}\cdot\mathbf{r}`,
-        using the trigonometric form.
-
-        .. math::
-
-           \frac{NS_{\alpha\beta}(q)}{2-\delta_{\alpha\beta}}
-           =\left\langle
-           \sum_{j=1}^{N_\alpha}\cos{(\mathbf{q}\cdot\mathbf{r}_j)}
-           \sum_{k=1}^{N_\beta}\cos{(\mathbf{q}\cdot\mathbf{r}_k)}
-           +\sum_{j=1}^{N_\alpha}\sin{(\mathbf{q}\cdot\mathbf{r}_j)}
-           \sum_{k=1}^{N_\beta}\sin{(\mathbf{q}\cdot\mathbf{r}_k)}
-           \right\rangle
-
-        Parameters
-        ----------
-        qrs1 : `np.ndarray`
-            First set of inner products :math:`\mathbf{q}\cdot\mathbf{r}_j`.
-
-            **Shape**: :math:`(N_q,\,N_r)`.
-
-        qrs2 : `np.ndarray`
-            Second set of inner products :math:`\mathbf{q}\cdot\mathbf{r}_k`.
-
-            **Shape**: :math:`(N_q,\,N_r)`.
-
-        Returns
-        -------
-        ssf : `np.ndarray`
-            Partial structure factors.
-
-            **Shape**: :math:`(N_q,)`.
-        """
-
-        ssf = np.empty(qrs1.shape[0])
-        for i in numba.prange(qrs1.shape[0]):
-            ssf[i] = accelerated.pythagorean_trigonometric_identity_1d_1d(
-                qrs1[i], qrs2[i]
-            )
-        return ssf
-
     def __init__(
             self, groups: Union[mda.AtomGroup, tuple[mda.AtomGroup]],
             groupings: Union[str, tuple[str]] = "atoms", *,
@@ -1333,7 +1480,6 @@ class StructureFactor(NumbaAnalysisBase):
 
         self._groups = [groups] if isinstance(groups, mda.AtomGroup) else groups
         self.universe = self._groups[0].universe
-
         super().__init__(self.universe.trajectory, verbose, **kwargs)
 
         self._n_groups = len(self._groups)
@@ -1436,20 +1582,17 @@ class StructureFactor(NumbaAnalysisBase):
         # Define the functions to use depending on whether the user
         # wants parallelization
         self._njit = lambda s: numba.njit(s, fastmath=True, parallel=parallel)
-        self._ssf_trigonometric = self._njit("f8[:](f8[:,:])")(
-            self.ssf_trigonometric_2d
-        )
-        self._psf_trigonometric = self._njit("f8[:](f8[:,:],f8[:,:])")(
-            self.psf_trigonometric_2d_2d
-        )
-        if parallel:
-            self._delta_fourier_transform_sum \
-                = accelerated.delta_fourier_transform_sum_parallel_2d_2d
-            self._inner = accelerated.inner_parallel_2d_2d
-        else:
-            self._delta_fourier_transform_sum \
-                = accelerated.delta_fourier_transform_sum_2d_2d
-            self._inner = accelerated.inner_2d_2d
+        self._delta_fourier_transform_sum = self._njit(
+            "c16[:](f8[:,:],f8[:,:])"
+        )(delta_fourier_transform_sum)
+        self._ssf_trigonometric = self._njit(
+            "f8[:](f8[:,:])"
+        )(ssf_trigonometric)
+        self._psf_trigonometric = self._njit(
+            "f8[:](f8[:,:],f8[:,:])"
+        )(psf_trigonometric)
+        self._inner = (accelerated.numba_inner_parallel if parallel
+                       else accelerated.numba_inner)
 
         self._form = form
         self._sort = sort
@@ -1551,6 +1694,186 @@ class StructureFactor(NumbaAnalysisBase):
 
         # Clean up memory by deleting arrays that will not be reused
         del self._positions
+
+@numba.njit("f8(f8[:])", fastmath=True)
+def numba_cosine_sum(x: np.ndarray[float]) -> float:
+
+    r"""
+    Serial Numba-accelerated sum of the cosines of the elements in a
+    one-dimensional NumPy array :math:`\mathbf{x}`.
+
+    .. math::
+
+       \sum_{i=1}^N\cos(x_i)
+
+    Parameters
+    ----------
+    x : `np.ndarray`
+        Vector :math:`\mathbf{x}`.
+
+        **Shape**: :math:`(N,)`.
+
+    Returns
+    -------
+    s : `float`
+        Sum of the cosines of the elements in the vector
+        :math:`\mathbf{x}`.
+    """
+
+    s = 0
+    for i in range(x.shape[0]):
+        s += np.cos(x[i])
+    return s
+
+def cosine_column_sum(xs: np.ndarray[float]) -> np.ndarray[float]:
+
+    r"""
+    Evaluates the column-wise sum of the cosines of the elements in a
+    two-dimensional NumPy array :math:`\mathbf{x}`.
+
+    .. math::
+
+       \sum_{i=1}^N\cos(x_{ij})
+
+    Parameters
+    ----------
+    xs : `np.ndarray`
+        Matrix :math:`\mathbf{x}`.
+
+        **Shape**: :math:`(M,\,N)`.
+
+    Returns
+    -------
+    s : `np.ndarray`
+        Column-wise sums of the cosines of the elements in the matrix
+        :math:`\mathbf{x}`.
+
+        **Shape**: :math:`(M,)`.
+    """
+
+    s = np.empty(xs.shape[0])
+    for i in numba.prange(xs.shape[0]):
+        s[i] = numba_cosine_sum(xs[i])
+    return s
+
+def cosine_column_sum_inplace(
+        xs: np.ndarray[float], s: np.ndarray[float]) -> None:
+
+    r"""
+    Evaluates the column-wise sum of the cosines of the elements in a
+    two-dimensional NumPy array :math:`\mathbf{x}`.
+
+    .. math::
+
+       \sum_{i=1}^N\cos(x_{ij})
+
+    Parameters
+    ----------
+    xs : `np.ndarray`
+        Matrix :math:`\mathbf{x}`.
+
+        **Shape**: :math:`(M,\,N)`.
+
+    s : `np.ndarray`
+        Array to hold the column-wise sums of the cosines of the
+        elements in the matrix :math:`\mathbf{x}`.
+
+        **Shape**: :math:`(N,)`.
+    """
+
+    assert s.shape[0] == xs.shape[0]
+    for i in numba.prange(xs.shape[0]):
+        s[i] = numba_cosine_sum(xs[i])
+
+@numba.njit("f8(f8[:])", fastmath=True)
+def numba_sine_sum(x: np.ndarray[float]) -> float:
+
+    r"""
+    Serial Numba-accelerated sum of the sines of the elements in a
+    one-dimensional NumPy array :math:`\mathbf{x}`.
+
+    .. math::
+
+       \sum_{i=1}^N\sin(x_i)
+
+    Parameters
+    ----------
+    x : `np.ndarray`
+        Vector :math:`\mathbf{x}`.
+
+        **Shape**: :math:`(N,)`.
+
+    Returns
+    -------
+    s : `float`
+        Sum of the sines of the elements in the vector
+        :math:`\mathbf{x}`.
+    """
+
+    s = 0
+    for i in range(x.shape[0]):
+        s += np.sin(x[i])
+    return s
+
+def sine_column_sum(xs: np.ndarray[float]) -> None:
+
+    r"""
+    Evaluates the column-wise sum of the sines of the elements in a
+    two-dimensional NumPy array :math:`\mathbf{x}`.
+
+    .. math::
+
+       \sum_{i=1}^N\sin(x_{ij})
+
+    Parameters
+    ----------
+    xs : `np.ndarray`
+        Matrix :math:`\mathbf{x}`.
+
+        **Shape**: :math:`(M,\,N)`.
+
+    Returns
+    -------
+    s : `np.ndarray`
+        Column-wise sums of the sines of the elements in the matrix
+        :math:`\mathbf{x}`.
+
+        **Shape**: :math:`(M,)`.
+    """
+
+    s = np.empty(xs.shape[0])
+    for i in numba.prange(xs.shape[0]):
+        s[i] = numba_sine_sum(xs[i])
+    return s
+
+def sine_column_sum_inplace(
+        xs: np.ndarray[float], s: np.ndarray[float]) -> None:
+
+    r"""
+    Evaluates the column-wise sum of the sines of the elements in a
+    two-dimensional NumPy array :math:`\mathbf{x}`.
+
+    .. math::
+
+       \sum_{i=1}^N\sin(x_{ij})
+
+    Parameters
+    ----------
+    xs : `np.ndarray`
+        Matrix :math:`\mathbf{x}`.
+
+        **Shape**: :math:`(M,\,N)`.
+
+    s : `np.ndarray`
+        Array to hold the column-wise sums of the sines of the elements
+        in the matrix :math:`\mathbf{x}`.
+
+        **Shape**: :math:`(M,)`.
+    """
+
+    assert s.shape[0] == xs.shape[0]
+    for i in numba.prange(xs.shape[0]):
+        s[i] = numba_sine_sum(xs[i])
 
 class IntermediateScatteringFunction(StructureFactor):
 
@@ -1883,18 +2206,16 @@ class IntermediateScatteringFunction(StructureFactor):
 
         # Define the functions to use depending on whether the user
         # wants parallelization
-        if parallel:
-            self._cosine_sum_2d = accelerated.cosine_sum_parallel_2d
-            self._cosine_sum_inplace_2d \
-                = accelerated.cosine_sum_inplace_parallel_2d
-            self._sine_sum_2d = accelerated.sine_sum_parallel_2d
-            self._sine_sum_inplace_2d \
-                = accelerated.sine_sum_inplace_parallel_2d
-        else:
-            self._cosine_sum_2d = accelerated.cosine_sum_2d
-            self._cosine_sum_inplace_2d = accelerated.cosine_sum_inplace_2d
-            self._sine_sum_2d = accelerated.sine_sum_2d
-            self._sine_sum_inplace_2d = accelerated.sine_sum_inplace_2d
+        self._cosine_column_sum = self._njit(
+            "f8[:](f8[:,:])"
+        )(cosine_column_sum)
+        self._cosine_column_sum_inplace = self._njit(
+            "void(f8[:,:],f8[:])"
+        )(cosine_column_sum_inplace)
+        self._sine_column_sum = self._njit("f8[:](f8[:,:])")(sine_column_sum)
+        self._sine_column_sum_inplace = self._njit(
+            "void(f8[:,:],f8[:])"
+        )(sine_column_sum_inplace)
 
         self._n_lags = n_lags
         self._incoherent = incoherent
@@ -2032,8 +2353,8 @@ class IntermediateScatteringFunction(StructureFactor):
             if self._mode is None:
                 qrs = self._inner(self._wavevectors,
                                   self._positions[rcfi])
-                self._cosine_sum_inplace_2d(qrs, self._cos_sum[rcfi, 0])
-                self._sine_sum_inplace_2d(qrs, self._sin_sum[rcfi, 0])
+                self._cosine_column_sum_inplace(qrs, self._cos_sum[rcfi, 0])
+                self._sine_column_sum_inplace(qrs, self._sin_sum[rcfi, 0])
                 for time_lag in range(min(self._n_lags,
                                           self._frame_index + 1)):
                     rifi = (self._frame_index - time_lag) % self._n_lags
@@ -2046,15 +2367,15 @@ class IntermediateScatteringFunction(StructureFactor):
                                           self._positions[rcfi]
                                           - self._positions[rifi])
                         self.results.iisf[time_lag] += (
-                            self._cosine_sum_2d(qrs)
-                            - 1j * self._sine_sum_2d(qrs)
+                            self._cosine_column_sum(qrs)
+                            - 1j * self._sine_column_sum(qrs)
                         ).real
             else:
                 for i in range(self._n_groups):
                     qrs = self._inner(self._wavevectors,
                                       self._positions[rcfi, self._slices[i]])
-                    self._cosine_sum_inplace_2d(qrs, self._cos_sum[rcfi, i])
-                    self._sine_sum_inplace_2d(qrs, self._sin_sum[rcfi, i])
+                    self._cosine_column_sum_inplace(qrs, self._cos_sum[rcfi, i])
+                    self._sine_column_sum_inplace(qrs, self._sin_sum[rcfi, i])
                 for time_lag in range(min(self._n_lags,
                                           self._frame_index + 1)):
                     rifi = (self._frame_index - time_lag) % self._n_lags
@@ -2072,8 +2393,8 @@ class IntermediateScatteringFunction(StructureFactor):
                                     - self._positions[rifi, self._slices[j]]
                                 )
                                 self.results.iisf[time_lag, j] += (
-                                    self._cosine_sum_2d(qrs)
-                                    - 1j * self._sine_sum_2d(qrs)
+                                    self._cosine_column_sum(qrs)
+                                    - 1j * self._sine_column_sum(qrs)
                                 ).real
                         else:
                             self.results.cisf[time_lag, i] += (

@@ -17,12 +17,12 @@ if FOUND_OPENMM:
     from openmm import unit
     from ..openmm.unit import VACUUM_PERMITTIVITY
 
-def get_scaling_factors(
+def get_scale_factors(
         bases: dict[str, Union["unit.Quantity", Q_]],
         other: dict[str, list] = None) -> dict[str, Union["unit.Quantity", Q_]]:
 
     r"""
-    Evaluates scaling factors for reduced units.
+    Evaluates scale factors for reduced units.
 
     Parameters
     ----------
@@ -46,9 +46,9 @@ def get_scaling_factors(
         and :math:`\mathrm{kJ}`.
 
     other : `dict`, optional
-        Other scaling factors to compute. The key should be the name of
-        the scaling factor, and the value should contain `tuple`
-        objects with the names of bases or default scaling factors and
+        Other scale factors to compute. The key should be the name of
+        the scale factor, and the value should contain `tuple`
+        objects with the names of bases or default scale factors and
         their powers.
 
         **Example**:
@@ -57,7 +57,7 @@ def get_scaling_factors(
     Returns
     -------
     scales : `dict`
-        Scaling factors.
+        Scale factors.
     """
 
     if other is not None:
@@ -69,14 +69,14 @@ def get_scaling_factors(
 
     return bases
 
-def get_lj_scaling_factors(
+def get_lj_scale_factors(
         bases: dict[str, Union["unit.Quantity", Q_]],
         other: dict[str, list] = None) -> dict[str, Union["unit.Quantity", Q_]]:
 
     r"""
-    Evaluates scaling factors for Lennard-Jones reduced units.
+    Evaluates scale factors for Lennard-Jones reduced units.
 
-    By default, the following scaling factors are calculated:
+    By default, the following scale factors are calculated:
 
     ===========================  ===================================================
     Quantity (`dict` key)        Expression
@@ -116,9 +116,9 @@ def get_lj_scaling_factors(
         and :math:`\mathrm{kJ}`.
 
     other : `dict`, optional
-        Other scaling factors to compute. The key should be the name of
-        the scaling factor, and the value should contain `tuple`
-        objects with the names of bases or default scaling factors and
+        Other scale factors to compute. The key should be the name of
+        the scale factor, and the value should contain `tuple`
+        objects with the names of bases or default scale factors and
         their powers.
 
         **Example**:
@@ -127,7 +127,7 @@ def get_lj_scaling_factors(
     Returns
     -------
     scales : `dict`
-        Scaling factors.
+        Scale factors.
     """
 
     if bases["mass"].__module__ == "pint":
@@ -151,7 +151,7 @@ def get_lj_scaling_factors(
             4 * np.pi * VACUUM_PERMITTIVITY * bases["length"] * bases["energy"]
         ).sqrt().in_units_of(unit.elementary_charge)
 
-    # Define the default scaling factors
+    # Define the default scale factors
     bases["velocity"] = bases["length"] / bases["time"]
     bases["force"] = bases["molar_energy"] / bases["length"]
     bases["temperature"] = bases["energy"] / boltzmann_constant
@@ -162,7 +162,7 @@ def get_lj_scaling_factors(
     bases["mass_density"] = bases["mass"] / (bases["length"] ** 3
                                              * avogadro_constant)
 
-    return get_scaling_factors(bases, other)
+    return get_scale_factors(bases, other)
 
 def strip_unit(
         value: Union[Number, str, "unit.Quantity", Q_],

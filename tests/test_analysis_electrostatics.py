@@ -7,7 +7,7 @@ from MDAnalysis.analysis.dielectric import DielectricConstant
 import numpy as np
 
 sys.path.insert(0, f"{pathlib.Path(__file__).parents[1].resolve().as_posix()}/src")
-from mdcraft.analysis import electrostatics # noqa: E402
+from mdcraft.analysis.electrostatics import DipoleMoment # noqa: E402
 
 def test_class_dipole_moment():
 
@@ -22,12 +22,13 @@ def test_class_dipole_moment():
     diel = DielectricConstant(universe.atoms)
     diel.run()
 
-    rp = electrostatics.DipoleMoment(universe.atoms).run()
-    rp.calculate_relative_permittivity(300)
+    dm = DipoleMoment(universe.atoms).run()
+    dm.calculate_relative_permittivity(300)
 
-    prp = electrostatics.DipoleMoment(universe.atoms, parallel=True).run()
-    prp.calculate_relative_permittivity(300)
+    pdm = DipoleMoment(universe.atoms, parallel=True).run(module="joblib",
+                                                          n_jobs=1)
+    pdm.calculate_relative_permittivity(300)
 
     # TEST CASE 1: Relative permittivity of water system
-    assert np.isclose(diel.results.eps_mean, rp.results.dielectric)
-    assert np.isclose(diel.results.eps_mean, prp.results.dielectric)
+    assert np.isclose(diel.results.eps_mean, dm.results.dielectrics)
+    assert np.isclose(diel.results.eps_mean, pdm.results.dielectrics)
