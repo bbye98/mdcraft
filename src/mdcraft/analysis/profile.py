@@ -919,10 +919,11 @@ class DensityProfile(DynamicAnalysisBase):
         self.results.bins = Hash()
         self.results.bin_edges = Hash()
         for ia, ax, n in zip(self._axis_indices, self.axes, self._n_bins):
-            d = self._dimensions[ia]
-            self.results.bins[ax] = np.linspace(s := d / (2 * n), d - s, n)
-            self.results.bin_edges[ax] \
-                = numba_histogram_bin_edges(np.asarray((0, d)), n)
+            self.results.bin_edges[ax] = numba_histogram_bin_edges(
+                np.asarray((0.0, self._dimensions[ia])), n
+            )
+            self.results.bins[ax] = (self.results.bin_edges[ax][:-1]
+                                     + self.results.bin_edges[ax][1:]) / 2
 
         # Store entity masses for center of mass calculations
         self._masses = np.empty(self._N)

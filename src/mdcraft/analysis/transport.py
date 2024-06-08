@@ -37,9 +37,9 @@ def msd_fft(
     cross displacements (CD) of positions :math:`\mathbf{r}_i(t)` and
     :math:`\mathbf{r}_j(t)` using fast Fourier transforms (FFT).
 
-    .. seealso..
+    .. seealso::
 
-       This is an alias function. For more information, see
+       This function is an alias for
        :func:`mdcraft.algorithm.correlation.msd_fft`.
     """
 
@@ -54,9 +54,9 @@ def msd_shift(
     cross displacements (CD) of positions :math:`\mathbf{r}_i(t)` and
     :math:`\mathbf{r}_j(t)` using the Einstein relation.
 
-    .. seealso..
+    .. seealso::
 
-       This is an alias function. For more information, see
+       This function is an alias for
        :func:`mdcraft.algorithm.correlation.msd_shift`.
     """
 

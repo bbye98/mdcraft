@@ -155,19 +155,7 @@ class DipoleMoment(DynamicAnalysisBase):
 
         **Reference unit**: :math:`\\mathrm{e}`.
 
-    dimensions : array-like, `openmm.unit.Quantity`, or \
-    `pint.Quantity`, keyword-only, optional
-        System dimensions :math:`(L_x,\\,L_y,\\,L_z)`. If the
-        :class:`MDAnalysis.core.universe.Universe` object that the
-        atom groups in `groups` belong to does not contain
-        dimensionality information, provide it here. Affected by
-        `dim_scales`.
-
-        **Shape**: :math:`(3,)`.
-
-        **Reference unit**: :math:`\\mathrm{Å}`.
-
-    dim_scales : array-like, keyword-only, optional
+    dim_scales : `float` or array-like, keyword-only, optional
         Scale factors for the system dimensions. If an `int` is
         provided, the same value is used for all axes.
 
@@ -254,7 +242,6 @@ class DipoleMoment(DynamicAnalysisBase):
     def __init__(
             self, groups: Union[mda.AtomGroup, tuple[mda.AtomGroup]],
             charges: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
-            dimensions: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
             dim_scales: Union[float, tuple[float]] = 1, average: bool = False,
             reduced: bool = False, neutralize: bool = False,
             unwrap: bool = False, parallel: bool = False, verbose: bool = True,
@@ -263,21 +250,15 @@ class DipoleMoment(DynamicAnalysisBase):
         self._groups = [groups] if isinstance(groups, mda.AtomGroup) else groups
         self._n_groups = len(self._groups)
         self.universe = self._groups[0].universe
+        if self.universe.dimensions is None:
+            raise ValueError("Trajectory does not contain system "
+                             "dimension information.")
         super().__init__(self.universe.trajectory, parallel, verbose, **kwargs)
-
-        if dimensions is not None:
-            if len(dimensions) != 3:
-                raise ValueError("'dimensions' must have length 3.")
-            self._dimensions = np.asarray(strip_unit(dimensions, "Å")[0])
-        elif self.universe.dimensions is not None:
-            self._dimensions = self.universe.dimensions[:3].copy()
-        else:
-            raise ValueError("No system dimensions found or provided.")
 
         if (isinstance(dim_scales, Real)
             or (len(dim_scales) == 3
                 and all(isinstance(f, Real) for f in dim_scales))):
-            self._dimensions *= dim_scales
+            self._dim_scales = dim_scales
         else:
             emsg = ("'dim_scales' must be a floating-point number "
                     "or an array with shape (3,).")
@@ -321,8 +302,8 @@ class DipoleMoment(DynamicAnalysisBase):
         )
 
         self._average = average
-        self._reduced = reduced
         self._neutralize = neutralize
+        self._reduced = reduced
         self._unwrap = unwrap
         self._verbose = verbose
 
@@ -331,7 +312,10 @@ class DipoleMoment(DynamicAnalysisBase):
         if self._unwrap:
 
             # Navigate to first frame in analysis
-            self._sliced_trajectory[0]
+            ts = self._sliced_trajectory[0]
+
+            # Get (scaled) system dimensions
+            dimensions = self._dim_scales * ts.dimensions[:3]
 
             # Preallocate arrays to determine the number of periodic
             # boundary crossings for each atom
@@ -343,7 +327,6 @@ class DipoleMoment(DynamicAnalysisBase):
                 self._positions_old[s] = ag.unwrap()
 
             self._images = np.zeros((self._N, 3), dtype=int)
-            self._thresholds = self._dimensions / 2
 
             # Store unwrapped particle positions in a shared memory array
             # for parallel analysis
@@ -357,8 +340,8 @@ class DipoleMoment(DynamicAnalysisBase):
                     unwrap(
                         self._positions[i],
                         self._positions_old,
-                        self._dimensions,
-                        thresholds=self._thresholds,
+                        dimensions,
+                        thresholds=dimensions / 2,
                         images=self._images
                     )
 
@@ -386,6 +369,10 @@ class DipoleMoment(DynamicAnalysisBase):
 
     def _single_frame(self) -> None:
 
+        # Get (scaled) system dimensions
+        if self._unwrap:
+            dimensions = self._dim_scales * self._ts.dimensions[:3]
+
         for i, (ag, s, q) in enumerate(zip(self._groups, self._slices,
                                            self._charges)):
 
@@ -397,8 +384,8 @@ class DipoleMoment(DynamicAnalysisBase):
                 unwrap(
                     self._positions[s],
                     self._positions_old[s],
-                    self._dimensions,
-                    thresholds=self._thresholds,
+                    dimensions,
+                    thresholds=dimensions / 2,
                     images=self._images[s]
                 )
 
@@ -413,7 +400,7 @@ class DipoleMoment(DynamicAnalysisBase):
 
         # Store the system volume for the current frame
         self.results.volumes[self._frame_index] \
-            = self.universe.trajectory.ts.volume
+            = np.prod(self._dim_scales) * self._ts.volume
 
     def _single_frame_parallel(
             self, index: int) -> tuple[int, float, np.ndarray[float]]:
@@ -440,7 +427,7 @@ class DipoleMoment(DynamicAnalysisBase):
             # Calculate the dipole moment for the current frame
             dipoles[i] = q @ positions
 
-        return index, ts.volume, dipoles
+        return index, np.prod(self._dim_scales) * ts.volume, dipoles
 
     def _conclude(self) -> None:
 
@@ -458,7 +445,7 @@ class DipoleMoment(DynamicAnalysisBase):
         else:
             del self._positions
         if self._unwrap:
-            del self._positions_old, self._images, self._thresholds
+            del self._positions_old, self._images
 
         # Average results, if requested
         if self._average:

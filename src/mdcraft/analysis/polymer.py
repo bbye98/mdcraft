@@ -235,17 +235,6 @@ class Gyradius(_PolymerAnalysisBase):
 
         **Shape**: :math:`(N_\\textrm{groups},)`.
 
-    dimensions : array-like, `openmm.unit.Quantity`, or \
-    `pint.Quantity`, keyword-only, optional
-        System dimensions :math:`(L_x,\\,L_y,\\,L_z)`. If the
-        :class:`MDAnalysis.core.universe.Universe` object that the
-        atom groups in `groups` belong to does not contain
-        dimensionality information, provide it here.
-
-        **Shape**: :math:`(3,)`.
-
-        **Reference unit**: :math:`\\mathrm{Å}`.
-
     components : `bool`, keyword-only, default: :code:`False`
         Specifies whether the components of the radii of gyration are
         calculated and returned instead.
@@ -288,7 +277,6 @@ class Gyradius(_PolymerAnalysisBase):
             groupings: Union[str, tuple[str]] = "atoms",
             n_chains: Union[int, tuple[int]] = None,
             n_monomers: Union[int, tuple[int]] = None, *,
-            dimensions: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
             components: bool = False, unwrap: bool = False,
             parallel: bool = False, verbose: bool = True, **kwargs):
 
@@ -296,13 +284,9 @@ class Gyradius(_PolymerAnalysisBase):
                          unwrap=unwrap, parallel=parallel, verbose=verbose,
                          **kwargs)
 
-        if dimensions is not None:
-            if len(dimensions) != 3:
-                raise ValueError("'dimensions' must have length 3.")
-            self._dimensions = np.asarray(strip_unit(dimensions, "Å")[0])
-        elif self._dimensions is None and unwrap:
-            emsg = ("System dimensions were not found or provided, "
-                    "but are required if 'unwrap=True'.")
+        if self.universe.dimensions is None and unwrap:
+            emsg = ("System dimensions were not found, but are "
+                    "required when 'unwrap=True'.")
             raise ValueError(emsg)
 
         self._Ns_p = self._n_chains * self._n_monomers
@@ -320,7 +304,10 @@ class Gyradius(_PolymerAnalysisBase):
         if self._unwrap:
 
             # Navigate to first frame in analysis
-            self._sliced_trajectory[0]
+            ts = self._sliced_trajectory[0]
+
+            # Get system dimensions
+            dimensions = ts.dimensions[:3]
 
             # Preallocate arrays to determine the number of periodic
             # boundary crossings for each entity
@@ -336,7 +323,7 @@ class Gyradius(_PolymerAnalysisBase):
                         positions=ag.positions,
                         bonds=np.array([(i * N + j, i * N + j + 1)
                                         for i in range(M) for j in range(N - 1)]),
-                        dimensions=self._dimensions,
+                        dimensions=dimensions,
                         masses=ag.masses
                     )
                     self._positions_old[s] = (
@@ -347,7 +334,6 @@ class Gyradius(_PolymerAnalysisBase):
                         )
                     )
             self._images = np.zeros((self._N_p, 3), dtype=int)
-            self._thresholds = self._dimensions / 2
 
             # Store unwrapped entity positions in a shared memory array
             # for parallel analysis
@@ -373,8 +359,8 @@ class Gyradius(_PolymerAnalysisBase):
                     unwrap(
                         self._positions[i],
                         self._positions_old,
-                        self._dimensions,
-                        thresholds=self._thresholds,
+                        dimensions,
+                        thresholds=dimensions / 2,
                         images=self._images
                     )
 
@@ -410,11 +396,12 @@ class Gyradius(_PolymerAnalysisBase):
             # Globally unwrap entity positions for correct centers of
             # mass and radii of gyration
             if self._unwrap:
+                dimensions = self._ts.dimensions[:3]
                 unwrap(
                     positions,
                     self._positions_old[s],
-                    self._dimensions,
-                    thresholds=self._thresholds,
+                    dimensions,
+                    thresholds=dimensions / 2,
                     images=self._images[s]
                 )
 
@@ -481,7 +468,7 @@ class Gyradius(_PolymerAnalysisBase):
             if self._unwrap:
                 del self._positions
         if self._unwrap:
-            del self._positions_old, self._images, self._thresholds
+            del self._positions_old, self._images
 
 def correlation_fft(*args, **kwargs) -> np.ndarray[float]:
 
@@ -966,23 +953,34 @@ class SingleChainStructureFactor(NumbaAnalysisBase, _PolymerAnalysisBase):
 
         **Shape**: :math:`(N_\\textrm{groups},)`.
 
+    form : `str`, keyword-only, default: :code:`"exp"`
+        Expression used to evaluate the single-chain structure factors.
+
+        .. container::
+
+           **Valid values**:
+
+           * :code:`"exp"`: Exponential form. Slightly faster due to
+             fewer mathematical operations.
+           * :code:`"trig"`: Trigonometric form. Slightly slower but
+             doesn't have overflow issues.
+
     dimensions : array-like, `openmm.unit.Quantity`, or \
     `pint.Quantity`, keyword-only, optional
-        System dimensions :math:`(L_x,\\,L_y,\\,L_z)`. If the
-        :class:`MDAnalysis.core.universe.Universe` object that the
-        atom groups in `groups` belong to does not contain
-        dimensionality information, provide it here.
+        System dimensions :math:`(L_x,\\,L_y,\\,L_z)`. Only used to
+        determine the scattering wavevectors when `wavevectors` is not
+        specified.
 
         **Shape**: :math:`(3,)`.
 
         **Reference unit**: :math:`\\mathrm{Å}`.
 
     n_points : `int`, keyword-only, default: :code:`32`
-        Number of points in the scattering wavevector grid. Additional
-        wavevectors can be introduced via `n_surfaces` and
-        `n_surface_points` for more accurate structure factors at small
-        wavenumbers. Alternatively, the desired wavevectors can be
-        specified directly in `wavevectors`.
+        Number of points :math:`n_\mathrm{points}` in the scattering
+        wavevector grid. Additional wavevectors can be introduced via
+        `n_surfaces` and `n_surface_points` for more accurate structure
+        factors at small wavenumbers. Alternatively, the desired
+        wavevectors can be specified directly in `wavevectors`.
 
     n_surfaces : `int`, keyword-only, optional
         Number of spherical surfaces in the first octant that intersect
@@ -1002,9 +1000,17 @@ class SingleChainStructureFactor(NumbaAnalysisBase, _PolymerAnalysisBase):
 
     wavevectors : array-like, `openmm.unit.Quantity`, or `pint.Quantity`, \
     keyword-only, optional
-        Scattering wavevectors :math:`\mathbf{q}` for which to compute
-        structure factors. Has precedence over `n_points`, `n_surfaces`,
-        and `n_surface_points` if specified.
+        Scattering wavevectors
+
+        .. math::
+
+           \\mathbf{q}=2\\pi\\left(\\frac{a}{L_x},\\,\\frac{b}{L_y},\\,
+           \\frac{c}{L_z}\\right)
+
+        for which to compute structure factors. :math:`a`, :math:`b`, and
+        :math:`c` are integers from :math:`0` up to
+        :math:`n_\\mathrm{points}-1`. Has precedence over `n_points`,
+        `n_surfaces`, and `n_surface_points` if specified.
 
         **Shape**: :math:`(N_q,\\,3)`.
 
@@ -1068,51 +1074,56 @@ class SingleChainStructureFactor(NumbaAnalysisBase, _PolymerAnalysisBase):
                                       unwrap=unwrap, parallel=False,
                                       verbose=verbose, **kwargs)
 
-        if dimensions is not None:
-            if len(dimensions) != 3:
-                raise ValueError("'dimensions' must have length 3.")
-            self._dimensions = np.asarray(strip_unit(dimensions, "Å")[0])
-        elif self._dimensions is None:
-            raise ValueError("No system dimensions found or provided.")
-
         if wavevectors is not None:
             self._wavevectors = wavevectors
-        elif np.allclose(self._dimensions, self._dimensions[0]):
-            grid = 2 * np.pi * np.arange(n_points) / self._dimensions[0]
-            self._wavevectors = (np.stack(np.meshgrid(grid, grid, grid), -1)
-                                 .reshape(-1, 3))
-            if n_surfaces:
-                n_theta, n_phi = get_closest_factors(n_surface_points, 2,
-                                                     reverse=True)
-                theta = np.linspace(np.pi / (2 * n_theta + 4),
-                                    np.pi / 2 - np.pi / (2 * n_theta + 4),
-                                    n_theta)
-                phi = np.linspace(np.pi / (2 * n_phi + 4),
-                                  np.pi / 2 - np.pi / (2 * n_phi + 4),
-                                  n_phi)
-                self._wavevectors = np.vstack((
-                    self._wavevectors,
-                    np.einsum(
-                        "o,tpd->otpd",
-                        grid[1:n_surfaces + 1],
-                        np.stack(
-                            (np.sin(theta) * np.cos(phi)[:, None],
-                             np.sin(theta) * np.sin(phi)[:, None],
-                             np.tile(np.cos(theta)[None, :], (n_phi, 1))),
-                            axis=-1
-                        )
-                    ).reshape((n_surfaces * n_surface_points, 3))
-                ))
         else:
-            self._wavevectors = np.stack(
-                np.meshgrid(*[2 * np.pi * np.arange(n_points) / L
-                              for L in self._dimensions]),
-                axis=-1
-            ).reshape(-1, 3)
+            dimensions = strip_unit(
+                dimensions or self.universe.dimensions[:3], "Å"
+            )[0]
+            if dimensions is None:
+                emsg = ("System dimensions were not found, but are "
+                        "required when 'wavevectors' is not specified.")
+                raise ValueError(emsg)
+            elif len(dimensions) != 3:
+                raise ValueError("'dimensions' must have length 3.")
+            dimensions = np.asarray(dimensions)
+
+            if np.allclose(dimensions, dimensions[0]):
+                grid = 2 * np.pi * np.arange(n_points) / dimensions[0]
+                self._wavevectors = (np.stack(np.meshgrid(grid, grid, grid), -1)
+                                    .reshape(-1, 3))
+                if n_surfaces:
+                    n_theta, n_phi = get_closest_factors(n_surface_points, 2,
+                                                        reverse=True)
+                    theta = np.linspace(np.pi / (2 * n_theta + 4),
+                                        np.pi / 2 - np.pi / (2 * n_theta + 4),
+                                        n_theta)
+                    phi = np.linspace(np.pi / (2 * n_phi + 4),
+                                    np.pi / 2 - np.pi / (2 * n_phi + 4),
+                                    n_phi)
+                    self._wavevectors = np.vstack((
+                        self._wavevectors,
+                        np.einsum(
+                            "o,tpd->otpd",
+                            grid[1:n_surfaces + 1],
+                            np.stack(
+                                (np.sin(theta) * np.cos(phi)[:, None],
+                                np.sin(theta) * np.sin(phi)[:, None],
+                                np.tile(np.cos(theta)[None, :], (n_phi, 1))),
+                                axis=-1
+                            )
+                        ).reshape((n_surfaces * n_surface_points, 3))
+                    ))
+            else:
+                self._wavevectors = np.stack(
+                    np.meshgrid(*[2 * np.pi * np.arange(n_points) / L
+                                for L in dimensions]),
+                    axis=-1
+                ).reshape(-1, 3)
         self._wavenumbers = np.linalg.norm(self._wavevectors, axis=1)
 
         if q_max is not None:
-            q_max, _ = strip_unit(q_max, "angstrom^-1")
+            q_max = strip_unit(q_max, "Å^-1")[0]
             keep = self._wavenumbers <= q_max
             self._wavevectors = self._wavevectors[keep]
             self._wavenumbers = self._wavenumbers[keep]
@@ -1181,8 +1192,8 @@ class SingleChainStructureFactor(NumbaAnalysisBase, _PolymerAnalysisBase):
 
     def _conclude(self) -> None:
 
-        # Normalize the single-chain structure factor by
-        # dividing by the total number of monomers and timesteps
+        # Normalize the single-chain structure factor by the number of
+        # monomers and timesteps
         self.results.scsf /= self._n_chains * self._n_monomers * self.n_frames
 
         # Combine values sharing the same wavenumber, if desired
