@@ -1,6 +1,6 @@
 """
-Thermodynamics
-==============
+Thermodynamic properties
+========================
 .. moduleauthor:: Benjamin Ye <GitHub: @bbye98>
 
 This module contains classes to evaluate thermodynamic properties of

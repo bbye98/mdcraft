@@ -468,9 +468,9 @@ class RadialDistributionFunction(DynamicAnalysisBase):
 
     """
     Serial and parallel implementations to calculate the radial
-    distribution function (RDF) :math:`g_{ij}(r)` between types
-    :math:`i` and :math:`j` and its related properties for two-
-    and three-dimensional systems.
+    distribution function (RDF) :math:`g_{\\alpha\\beta}(r)` between
+    types :math:`\\alpha` and :math:`\\beta` and its related properties
+    for two- and three-dimensional systems.
 
     The RDF is given by
 
@@ -533,7 +533,7 @@ class RadialDistributionFunction(DynamicAnalysisBase):
             w_{\\alpha\\beta}(r)
             =-k_\\mathrm{B}T\\ln{g_{\\alpha\\beta}(r)}
 
-         where :math:`k_\mathrm{B}` is the Boltzmann constant and
+         where :math:`k_\\mathrm{B}` is the Boltzmann constant and
          :math:`T` is the system temperature, and
 
        * the static or partial structure factor (see
@@ -693,7 +693,7 @@ class RadialDistributionFunction(DynamicAnalysisBase):
            * :code:`norm=None`: the raw particle pair count in the
              radial histogram bins.
 
-        **Shape**: :math:`(N_\mathrm{bins},)`.
+        **Shape**: :math:`(N_\\mathrm{bins},)`.
 
     results.coordination_numbers : `numpy.ndarray`
         Coordination numbers :math:`n_k`. Only available after running
@@ -730,7 +730,7 @@ class RadialDistributionFunction(DynamicAnalysisBase):
             parallel: bool = False, verbose: bool = True, **kwargs) -> None:
 
         self._groups = (group_1, group_1 if group_2 is None else group_2)
-        self.universe = self.group_1.universe
+        self.universe = self._groups[0].universe
         if self.universe.dimensions is None:
             raise ValueError("Trajectory does not contain system "
                              "dimension information.")
@@ -910,9 +910,9 @@ class RadialDistributionFunction(DynamicAnalysisBase):
         norm = self.n_frames
         if self._norm is not None:
             if self._drop_axis is None:
-                norm *= 4 * np.pi * np.diff(self.results.edges ** 3) / 3
+                norm *= 4 * np.pi * np.diff(self.results.bin_edges ** 3) / 3
             else:
-                norm *= np.pi * np.diff(self.results.edges ** 2)
+                norm *= np.pi * np.diff(self.results.bin_edges ** 2)
             if self._norm == "rdf":
                 _N2 = getattr(self._groups[1], f"n_{self._groupings[1]}")
                 if self._exclusion:
@@ -944,9 +944,9 @@ class RadialDistributionFunction(DynamicAnalysisBase):
         if self._exclusion:
             _N2 -= self._exclusion[1]
         if self._drop_axis is None:
-            norm = 4 * np.diff(self.results.edges ** 3) / 3
+            norm = 4 * np.diff(self.results.bin_edges ** 3) / 3
         else:
-            norm = np.diff(self.results.edges ** 2)
+            norm = np.diff(self.results.bin_edges ** 2)
         return self._area_or_volume * self.results.counts / (
             np.pi * self.n_frames ** 2 * _N2 * norm
             * getattr(self._groups[0], f"n_{self._groupings[0]}")
@@ -1461,7 +1461,7 @@ class StructureFactor(NumbaAnalysisBase):
         **Reference unit**: :math:`\\mathrm{Å}`.
 
     n_points : `int`, keyword-only, default: :code:`32`
-        Number of points :math:`n_\mathrm{points}` in the scattering
+        Number of points :math:`n_\\mathrm{points}` in the scattering
         wavevector grid. Additional wavevectors can be introduced via
         `n_surfaces` and `n_surface_points` for more accurate structure
         factors at small wavenumbers. Alternatively, the desired
@@ -2160,7 +2160,7 @@ class IntermediateScatteringFunction(StructureFactor):
         **Reference unit**: :math:`\\mathrm{ps}`.
 
     n_points : `int`, keyword-only, default: :code:`32`
-        Number of points :math:`n_\mathrm{points}` in the scattering
+        Number of points :math:`n_\\mathrm{points}` in the scattering
         wavevector grid. Additional wavevectors can be introduced via
         `n_surfaces` and `n_surface_points` for more accurate structure
         factors at small wavenumbers. Alternatively, the desired
