@@ -778,7 +778,7 @@ class Onsager(SerialAnalysisBase):
 
         **Shape**: :math:`(N_\\mathrm{blocks},\\,N_\\mathrm{groups})`.
 
-        **Reference unit**: :math:`\\mathrm{Å^2\\cdotC/(kJ\\cdot ps)}`.
+        **Reference unit**: :math:`\\mathrm{Å^2\\cdot C/(kJ\\cdot ps)}`.
 
         **To SI unit**: :math:`1\\times10^{-11}\\,\\mathrm{m}^2/
         (\\mathrm{V}\\cdot\\mathrm{s})`.
@@ -1177,12 +1177,12 @@ class Onsager(SerialAnalysisBase):
         ----------
         charges : array-like, `openmm.unit.Quantity`, or \
         `pint.Quantity`, keyword-only, optional
-            Charge numbers :math:`z_i` of the groupings in the
-            :math:`N_\\mathrm{g}` groups. This argument is optional only
+            Charges :math:`q_i` shared by all atoms or centers of mass 
+            in each species :math:`i`. This argument is optional only
             if `charges` has previously been passed to a calculation
             method belonging to this class.
 
-            **Shape**: :math:`(N_\\mathrm{g},)`.
+            **Shape**: :math:`(N_\\mathrm{groups},)`.
 
             **Reference unit**: :math:`\\mathrm{e}`.
         """
@@ -1228,22 +1228,20 @@ class Onsager(SerialAnalysisBase):
         ----------
         charges : array-like, `openmm.unit.Quantity`, or \
         `pint.Quantity`, keyword-only, optional
-            Charge numbers :math:`z_i` of the groupings in the
-            :math:`N_\\mathrm{g}` groups. This argument is optional only
-            if charge information is present in the topology or
-            `charges` has previously been passed to a calculation
+            Charges :math:`q_i` shared by all atoms or centers of mass 
+            in each species :math:`i`. This argument is optional only
+            if `charges` has previously been passed to a calculation
             method belonging to this class.
 
-            **Shape**: :math:`(N_\\mathrm{g},)`.
+            **Shape**: :math:`(N_\\mathrm{groups},)`.
 
             **Reference unit**: :math:`\\mathrm{e}`.
 
-        rhos : array-like, `openmm.unit.Quantity`, or \
-        `pint.Quantity`, keyword-only, optional
-            Number densities :math:`n_i` of the groupings in the
-            :math:`N_\\mathrm{g}` groups.
+        rhos : array-like
+            Number densities :math:`n_i` of the atoms or centers of mass
+            in each species :math:`i`.
 
-            **Shape**: :math:`(N_\\mathrm{g},)`.
+            **Shape**: :math:`(N_\\mathrm{groups},)`.
 
             **Reference unit**: :math:`\\mathrm{Å}^{-3}`.
         """
@@ -1302,13 +1300,12 @@ class Onsager(SerialAnalysisBase):
         ----------
         charges : array-like, `openmm.unit.Quantity`, or \
         `pint.Quantity`, keyword-only, optional
-            Charge numbers :math:`z_i` of the groupings in the
-            :math:`N_\\mathrm{g}` groups. This argument is optional only
-            if charge information is present in the topology or
-            `charges` has previously been passed to a calculation
+            Charges :math:`q_i` shared by all atoms or centers of mass 
+            in each species :math:`i`. This argument is optional only
+            if `charges` has previously been passed to a calculation
             method belonging to this class.
 
-            **Shape**: :math:`(N_\\mathrm{g},)`.
+            **Shape**: :math:`(N_\\mathrm{groups},)`.
 
             **Reference unit**: :math:`\\mathrm{e}`.
         """
