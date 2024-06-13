@@ -13,20 +13,35 @@ from typing import Any, Union
 
 import numpy as np
 
-from ..algorithm import topology as topo
+from .. import FOUND_OPENMM, Q_, ureg
+from ..algorithm import topology as t
 
-def create_atoms(*args, **kwargs) -> Any:
+if FOUND_OPENMM:
+    from openmm import app, unit
+
+def create_atoms(
+        dimensions: Union[np.ndarray[float], "unit.Quantity", Q_,
+                          "app.Topology"],
+        N: int = None, N_p: int = 1, *, lattice: str = None,
+        length: Union[float, "unit.Quantity"] = 0.34,
+        flexible: bool = False, bonds: bool = False, angles: bool = False,
+        dihedrals: bool = False, randomize: bool = False,
+        length_unit: Union["unit.Unit", ureg.Unit] = None, wrap: bool = False
+    ) -> Any:
 
     """
     Generates initial particle positions for coarse-grained simulations.
 
     .. seealso::
 
-       This is an alias function. For more information, see
+       This function is an alias for
        :func:`mdcraft.algorithm.topology.create_atoms`.
     """
 
-    return topo.create_atoms(*args, **kwargs)
+    return t.create_atoms(dimensions, N, N_p, lattice=lattice, length=length,
+                          flexible=flexible, bonds=bonds, angles=angles,
+                          dihedrals=dihedrals, randomize=randomize,
+                          length_unit=length_unit, wrap=wrap)
 
 def write_data(
         file: Union[str, TextIOWrapper], positions: tuple[np.ndarray[float]],

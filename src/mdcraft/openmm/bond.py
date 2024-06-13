@@ -54,17 +54,17 @@ def fene(
 
     .. math::
 
-       u_\textrm{FENE}=-\frac{1}{2}k_{12}r_{0,12}^2
+       u_\mathrm{FENE}=-\frac{1}{2}k_{12}r_{0,12}^2
        \ln{\left[1-\left(\frac{r_{12}}{r_{0,12}}\right)^2\right]}
        +4\epsilon_{12}\left[\left(\frac{\sigma_{12}}{r_{12}}\right)^{12}
        -\left(\frac{\sigma_{12}}{r_{12}}\right)^6\right]+\epsilon_{12}
 
     where :math:`k_{12}` is the bond coefficient in
-    :math:`\textrm{kJ}/(\textrm{nm}^2\cdot\textrm{mol})`,
+    :math:`\mathrm{kJ}/(\mathrm{nm}^2\cdot\mathrm{mol})`,
     :math:`r_{0,12}` is the equilibrium bond length in
-    :math:`\textrm{nm}`, :math:`\sigma_{12}` is the average particle
-    size in :math:`\textrm{nm}`, and :math:`\epsilon_{12}` is the
-    dispersion energy in :math:`\textrm{kJ/mol}`. :math:`k_{12}`,
+    :math:`\mathrm{nm}`, :math:`\sigma_{12}` is the average particle
+    size in :math:`\mathrm{nm}`, and :math:`\epsilon_{12}` is the
+    dispersion energy in :math:`\mathrm{kJ/mol}`. :math:`k_{12}`,
     :math:`r_{0,12}`, :math:`\sigma_{12}` and :math:`\epsilon_{12}` are
     determined from per-bond and per-particle parameters `k`, `r0`,
     `sigma` and `epsilon`, respectively, which are set using

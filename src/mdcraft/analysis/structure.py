@@ -23,6 +23,7 @@ from .base import Hash, DynamicAnalysisBase, NumbaAnalysisBase
 from .. import FOUND_OPENMM, Q_, ureg
 from ..algorithm import accelerated
 from ..algorithm.molecule import center_of_mass
+from ..algorithm.topology import convert_cell_representation
 from ..algorithm.unit import is_unitless, strip_unit
 from ..algorithm.utility import get_closest_factors
 
@@ -30,7 +31,7 @@ if FOUND_OPENMM:
     from openmm import unit
 
 def radial_histogram(
-        positions_1: np.ndarray[float], positions_2: np.ndarray[float], /,
+        positions_a: np.ndarray[float], positions_b: np.ndarray[float], /,
         n_bins: int, range_: np.ndarray[float], dimensions: np.ndarray[float],
         bin_edges: np.ndarray[float] = None, *, exclusion: tuple[int] = None
     ) -> np.ndarray[float]:
@@ -42,7 +43,7 @@ def radial_histogram(
 
     Parameters
     ----------
-    positions_1 : `numpy.ndarray`, positional-only
+    positions_a : `numpy.ndarray`, positional-only
         Positions or centers of mass of entities belonging to species
         :math:`\alpha`.
 
@@ -50,7 +51,7 @@ def radial_histogram(
 
         **Reference unit**: :math:`\mathrm{Å}`.
 
-    positions_2 : `numpy.ndarray`, positional-only
+    positions_b : `numpy.ndarray`, positional-only
         Positions or centers of mass of entities belonging to species
         :math:`\beta`.
 
@@ -100,8 +101,8 @@ def radial_histogram(
 
     # Get pair separation distances of atom pairs within range
     pairs, distances = capped_distance(
-        positions_1,
-        positions_2,
+        positions_a,
+        positions_b,
         range_[1],
         range_[0] - np.finfo(np.float64).eps,
         box=dimensions
@@ -306,7 +307,7 @@ def calculate_coordination_numbers(
 
 def calculate_structure_factor(
         r: np.ndarray[float], g: np.ndarray[float], equal: bool, rho: float,
-        x_1: float = 1, x_2: float = None, q: np.ndarray[float] = None, *,
+        x_a: float = 1, x_b: float = None, q: np.ndarray[float] = None, *,
         q_lower: float = None, q_upper: float = None, n_q: int = 1_000,
         n_dims: int = 3, formalism: str = "FZ"
     ) -> tuple[np.ndarray[float], np.ndarray[float]]:
@@ -333,7 +334,7 @@ def calculate_structure_factor(
         Specifies whether `g` is between the same species
         (:math:`\alpha=\beta`). If :code:`False`, the number
         concentrations of species :math:`\alpha` and :math:`\beta` must
-        be specified in `x_1` and `x_2`.
+        be specified in `x_a` and `x_b`.
 
     rho : `float`
         Bulk number density :math:`\rho` or surface density
@@ -342,11 +343,11 @@ def calculate_structure_factor(
         **Reference unit**: :math:`\mathrm{Å}^{-3}` or
         :math:`\mathrm{Å}^{-2}`.
 
-    x_1 : `float`, default: :code:`1`
+    x_a : `float`, default: :code:`1`
         Number concentration of species :math:`\alpha`. Required if
         :code:`equal=False`.
 
-    x_2 : `float`, optional
+    x_b : `float`, optional
         Number concentration of species :math:`\beta`. Required if
         :code:`equal=False`.
 
@@ -459,9 +460,9 @@ def calculate_structure_factor(
         return q, 1 + rho_sft
     elif not equal:
         if formalism == "AL":
-            return q, (x_1 == x_2) + np.sqrt(x_1 * x_2) * rho_sft
+            return q, (x_a == x_b) + np.sqrt(x_a * x_b) * rho_sft
         elif formalism == "general":
-            return q, 1 + x_1 * x_2 * rho_sft
+            return q, 1 + x_a * x_b * rho_sft
     raise ValueError("Invalid formalism.")
 
 class RadialDistributionFunction(DynamicAnalysisBase):
@@ -542,12 +543,12 @@ class RadialDistributionFunction(DynamicAnalysisBase):
 
     Parameters
     ----------
-    group_1 : `MDAnalysis.AtomGroup`
+    group_a : `MDAnalysis.AtomGroup`
         Atom group containing species :math:`\\alpha`.
 
-    group_2 : `MDAnalysis.AtomGroup`
+    group_b : `MDAnalysis.AtomGroup`
         Atom group containing species :math:`\\beta`. If not specified,
-        `group_1` is used for both species.
+        `group_a` is used for both species.
 
     n_bins : `int`, default: :code:`201`
         Number of histogram bins :math:`N_\\mathrm{bins}`.
@@ -667,14 +668,14 @@ class RadialDistributionFunction(DynamicAnalysisBase):
 
         **Shape**: :math:`(N_\\mathrm{bins}+1,)`.
 
-        **Reference unit**: :math:`\\textrm{Å}`.
+        **Reference unit**: :math:`\\mathrm{Å}`.
 
     results.bins : `numpy.ndarray`
         Bin centers :math:`r`.
 
         **Shape**: :math:`(N_\\mathrm{bins},)`.
 
-        **Reference unit**: :math:`\\textrm{Å}`.
+        **Reference unit**: :math:`\\mathrm{Å}`.
 
     results.counts : `numpy.ndarray`
         Raw particle pair counts in the radial histogram bins.
@@ -711,7 +712,7 @@ class RadialDistributionFunction(DynamicAnalysisBase):
         Wavenumbers :math:`q`. Only available after running
         :meth:`calculate_structure_factor`.
 
-        **Reference unit**: :math:`\\textrm{Å}^{-1}`.
+        **Reference unit**: :math:`\\mathrm{Å}^{-1}`.
 
     results.ssf : `numpy.ndarray`
         Static or partial structure factor. Only available after running
@@ -721,7 +722,7 @@ class RadialDistributionFunction(DynamicAnalysisBase):
     """
 
     def __init__(
-            self, group_1: mda.AtomGroup, group_2: mda.AtomGroup = None,
+            self, group_a: mda.AtomGroup, group_b: mda.AtomGroup = None,
             n_bins: int = 201, range_: tuple[float] = (0.0, 15.0), *,
             exclusion: tuple[int] = None,
             groupings: Union[str, tuple[str]] = "atoms",
@@ -729,7 +730,7 @@ class RadialDistributionFunction(DynamicAnalysisBase):
             n_batches: int = None, reduced: bool = False,
             parallel: bool = False, verbose: bool = True, **kwargs) -> None:
 
-        self._groups = (group_1, group_1 if group_2 is None else group_2)
+        self._groups = (group_a, group_a if group_b is None else group_b)
         self.universe = self._groups[0].universe
         if self.universe.dimensions is None:
             raise ValueError("Trajectory does not contain system "
@@ -842,14 +843,14 @@ class RadialDistributionFunction(DynamicAnalysisBase):
     def _single_frame_parallel(self, index: int) -> np.ndarray[float]:
 
         # Set current trajectory frame
-        _ts = self._sliced_trajectory[index]
+        ts = self._sliced_trajectory[index]
 
         # Preallocate array to store entity counts followed by system
         # volume
         results = np.empty(1 + self._n_bins)
 
         # Get system dimensions and orthogonality
-        dimensions = _ts.dimensions
+        dimensions = ts.dimensions
 
         # Get positions or centers of mass of entities in the groups
         positions = [ag.positions if gr == "atoms" else center_of_mass(ag, gr)
@@ -857,7 +858,7 @@ class RadialDistributionFunction(DynamicAnalysisBase):
 
         # Store system volume or area analyzed in current frame
         if self._drop_axis is None:
-            results[self._n_bins] = _ts.volume
+            results[self._n_bins] = ts.volume
         else:
 
             # Apply corrections to avoid including periodic images in
@@ -914,11 +915,11 @@ class RadialDistributionFunction(DynamicAnalysisBase):
             else:
                 norm *= np.pi * np.diff(self.results.bin_edges ** 2)
             if self._norm == "rdf":
-                _N2 = getattr(self._groups[1], f"n_{self._groupings[1]}")
+                N_2 = getattr(self._groups[1], f"n_{self._groupings[1]}")
                 if self._exclusion:
-                    _N2 -= self._exclusion[1]
+                    N_2 -= self._exclusion[1]
                 norm *= (getattr(self._groups[0], f"n_{self._groupings[0]}")
-                         * _N2 * self.n_frames / self._area_or_volume)
+                         * N_2 * self.n_frames / self._area_or_volume)
 
         # Compute and store the radial distribution function, the single
         # particle density, or the raw radial pair counts
@@ -940,15 +941,15 @@ class RadialDistributionFunction(DynamicAnalysisBase):
         if self._norm == "rdf":
             return self.results.rdf
 
-        _N2 = getattr(self._groups[1], f"n_{self._groupings[1]}")
+        N_2 = getattr(self._groups[1], f"n_{self._groupings[1]}")
         if self._exclusion:
-            _N2 -= self._exclusion[1]
+            N_2 -= self._exclusion[1]
         if self._drop_axis is None:
             norm = 4 * np.diff(self.results.bin_edges ** 3) / 3
         else:
             norm = np.diff(self.results.bin_edges ** 2)
         return self._area_or_volume * self.results.counts / (
-            np.pi * self.n_frames ** 2 * _N2 * norm
+            np.pi * self.n_frames ** 2 * N_2 * norm
             * getattr(self._groups[0], f"n_{self._groupings[0]}")
         )
 
@@ -1023,7 +1024,7 @@ class RadialDistributionFunction(DynamicAnalysisBase):
         self.results.pmf = -kBT * np.log(self._get_rdf())
 
     def calculate_structure_factor(
-            self, rho: float, x_1: float = None, x_2: float = None,
+            self, rho: float, x_a: float = None, x_b: float = None,
             q: np.ndarray[float] = None, *, q_lower: float = None,
             q_upper: float = None, n_q: int = 1_000, formalism: str = "FZ"
         ) -> None:
@@ -1041,11 +1042,11 @@ class RadialDistributionFunction(DynamicAnalysisBase):
 
             **Reference unit**: :math:`\mathrm{Å}^{-3}`.
 
-        x_1 : `float`, default: :code:`1`
+        x_a : `float`, default: :code:`1`
             Number concentration of species :math:`\alpha`. Required if
             the two atom groups are not identical.
 
-        x_2 : `float`, optional
+        x_b : `float`, optional
             Number concentration of species :math:`\beta`. Required if
             the two atom groups are not identical.
 
@@ -1095,8 +1096,8 @@ class RadialDistributionFunction(DynamicAnalysisBase):
             self._get_rdf(),
             self._groups[0] == self._groups[1],
             rho,
-            x_1,
-            x_2,
+            x_a,
+            x_b,
             q=q,
             q_lower=q_lower,
             q_upper=q_upper,
@@ -1333,6 +1334,77 @@ def psf_trigonometric(
         ssf[i] = numba_cross_pythagorean_trigonometric_identity(qrs1[i],
                                                                 qrs2[i])
     return ssf
+
+def generate_spherical_wavevectors(
+        dimensions: np.ndarray[float], *, 
+        n_points: Union[int, tuple[int]] = 32, q_max: float = None,
+        wavenumbers: bool = False) -> np.ndarray[float]:
+
+    r"""
+    Generates spherical wavevectors :math:`\mathbf{q}` for a triclinic 
+    simulation box.
+
+    Parameters
+    ----------
+    dimensions : `np.ndarray`
+        Simulation box dimensions.
+
+        **Shape**: :math:`(3,\,3)`.
+
+    n_points : `int` or `tuple`, default: :code:`32`
+        Number of points along each axis. If an `int` is provided, the
+        same value is used for all axes.
+
+    q_max : `float`, optional
+        Maximum wavenumber :math:`q`.
+
+        **Reference unit**: :math:`\mathrm{Å}^{-1}`.
+
+    wavenumbers : `bool`, default: :code:`False`
+        Determines whether the wavenumbers are returned.
+
+    Returns
+    -------
+    wavevectors : `np.ndarray`
+        Wavevectors :math:`\mathbf{q}`.
+
+        **Shape**: :math:`(N_q,\,3)`.
+
+    wavenumbers : `np.ndarray`
+        Wavenumbers :math:`q`.
+
+        **Shape**: :math:`(N_q,\,)`.
+    """
+
+    dimensions = np.asarray(dimensions)
+    if dimensions.ndim == 1:
+        dimensions = convert_cell_representation(parameters=dimensions)
+    two_pi_over_Ls = 2 * np.pi * np.linalg.inv(dimensions.T)
+
+    if q_max is None:
+        if isinstance(n_points, int):
+            n_points = 3 * [n_points]
+        elif len(n_points) != 3:
+            emsg = "'n_points' must be an integer or a tuple with length 3."
+            raise ValueError(emsg)
+    else:
+        n_points = np.floor(
+            q_max * np.linalg.norm(np.linalg.inv(two_pi_over_Ls.T), axis=1)
+        ).astype(int)
+
+    wavevectors = np.stack(
+        np.meshgrid(*[np.arange(n) for n in n_points]),
+        axis=-1
+    ).reshape(-1, 3) @ two_pi_over_Ls
+    wavenumbers_ = np.linalg.norm(wavevectors, axis=1)
+    if q_max is not None:
+        keep_indices = wavenumbers_ <= q_max
+        wavevectors = wavevectors[keep_indices]
+        wavenumbers_ = wavenumbers_[keep_indices]
+
+    if wavenumbers:
+        return wavevectors, wavenumbers_
+    return wavevectors
 
 class StructureFactor(NumbaAnalysisBase):
 
@@ -1599,6 +1671,7 @@ class StructureFactor(NumbaAnalysisBase):
 
         if wavevectors is not None:
             self._wavevectors = wavevectors
+            self._wavenumbers = np.linalg.norm(wavevectors, axis=1)
         else:
             dimensions = strip_unit(
                 dimensions or self.universe.dimensions[:3], "Å"
@@ -1637,13 +1710,14 @@ class StructureFactor(NumbaAnalysisBase):
                             )
                         ).reshape((n_surfaces * n_surface_points, 3))
                     ))
+                self._wavenumbers = np.linalg.norm(self._wavevectors, axis=1)
             else:
                 self._wavevectors = np.stack(
                     np.meshgrid(*[2 * np.pi * np.arange(n_points) / L
                                 for L in dimensions]),
                     axis=-1
                 ).reshape(-1, 3)
-        self._wavenumbers = np.linalg.norm(self._wavevectors, axis=1)
+                self._wavenumbers = np.linalg.norm(self._wavevectors, axis=1)
 
         if q_max is not None:
             q_max = strip_unit(q_max, "Å^-1")[0]
@@ -2296,7 +2370,7 @@ class IntermediateScatteringFunction(StructureFactor):
             parallel=parallel, verbose=verbose, **kwargs
         )
 
-        self._dt = strip_unit(dt or self._trajectory.dt, "ps")[0]
+        self._dt = strip_unit(dt, "ps")[0] or self._trajectory.dt
 
         self._cosine_column_sum = self._njit(
             "f8[:](f8[:,:])"
@@ -2320,15 +2394,13 @@ class IntermediateScatteringFunction(StructureFactor):
 
         # Ensure frames are evenly spaced and proceed forward in time
         if hasattr(self._sliced_trajectory, "frames"):
-            df = np.diff(self._sliced_trajectory.frames)
-            if df[0] <= 0 or not np.allclose(df, df[0]):
+            dfs = np.diff(self._sliced_trajectory.frames)
+            if (df := dfs[0]) <= 0 or not np.allclose(dfs, df):
                 emsg = ("The selected frames must be evenly spaced and "
                         "proceed forward in time.")
                 raise ValueError(emsg)
-            df = df[0]
-        else:
-            if (df := self.step) <= 0:
-                raise ValueError("The analysis must proceed forward in time.")
+        elif (df := self.step) <= 0:
+            raise ValueError("The analysis must proceed forward in time.")
 
         # Determine all unique pairs
         self.results.pairs = (

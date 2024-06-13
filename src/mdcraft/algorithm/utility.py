@@ -208,3 +208,21 @@ def find_connected_nodes(graph: dict[Any, list[Any]]) -> list[list[Any]]:
             depth_first_search(graph, start, visited, group)
             results.append(group)
     return results
+
+def is_lower_triangular(matrix: np.ndarray[float]) -> bool:
+
+    """
+    Checks if a matrix is lower triangular.
+
+    Parameters
+    ----------
+    matrix : `numpy.ndarray`
+        Matrix to check.
+
+    Returns
+    -------
+    is_lower_triangular : `bool`
+        Whether the matrix is lower triangular.
+    """
+
+    return np.allclose(matrix, np.tril(matrix))

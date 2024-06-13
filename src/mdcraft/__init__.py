@@ -7,7 +7,7 @@ from importlib.util import find_spec
 
 from pint import Quantity, UnitRegistry
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 FOUND_OPENMM = find_spec("openmm") is not None
 
 Q_ = Quantity

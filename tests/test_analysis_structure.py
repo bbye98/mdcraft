@@ -33,7 +33,7 @@ def test_func_radial_histogram():
                                                 keepdims=True)
     neighbors += dimensions[:3] / 2
 
-    # TEST CASE 1: Correct radial histogram for randomly placed particles
+    # TEST CASE 1: Radial histogram for randomly placed particles
     assert np.array_equal(
         counts,
         structure.radial_histogram(

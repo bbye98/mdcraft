@@ -571,7 +571,7 @@ class DensityProfile(DynamicAnalysisBase):
 
     charges : array-like, `openmm.unit.Quantity`, or `pint.Quantity`, \
     keyword-only, optional
-        Charge numbers :math:`z_i` for the entities in the
+        Charges :math:`q_i` for the entities in the 
         :math:`N_\\mathrm{groups}` atom groups in `groups`. If not
         provided, they will be retrieved from the main
         :class:`MDAnalysis.core.universe.Universe` object only if it
@@ -1221,9 +1221,10 @@ class DensityProfile(DynamicAnalysisBase):
 
         # Ensure charge density profiles have already been calculated
         if not hasattr(self.results, "charge_densities"):
-            emsg = ("Either call run() before calculate_potential_profiles() "
-                    "or provide charge information when initializing "
-                    "the DensityProfile object.")
+            emsg = ("Either call DensityProfile.run() before "
+                    "DensityProfile.calculate_potential_profiles() or "
+                    "provide charge information when initializing the "
+                    "DensityProfile object.")
             raise RuntimeError(emsg)
 
         # Validate inputs
@@ -1372,9 +1373,10 @@ class DensityProfile(DynamicAnalysisBase):
 
         # Ensure charge density profiles have already been calculated
         if not hasattr(self.results, "charge_densities"):
-            emsg = ("Either call run() before calculate_potential_profiles() "
-                    "or provide charge information when initializing "
-                    "the DensityProfile object.")
+            emsg = ("Either call DensityProfile.run() before "
+                    "DensityProfile.calculate_potential_profiles() or "
+                    "provide charge information when initializing the "
+                    "DensityProfile object.")
             raise RuntimeError(emsg)
 
         # Preallocate dictionary to hold potential profiles

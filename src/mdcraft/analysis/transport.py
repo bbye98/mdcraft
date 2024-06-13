@@ -13,16 +13,15 @@ import warnings
 
 import MDAnalysis as mda
 from MDAnalysis.lib.log import ProgressBar
-from MDAnalysis.lib.mdamath import make_whole
 import numpy as np
 from scipy import optimize
 
-from .base import SerialAnalysisBase
+from .base import Hash, SerialAnalysisBase
 from .. import FOUND_OPENMM, Q_, ureg
 from ..algorithm import correlation
 from ..algorithm.molecule import center_of_mass
 from ..algorithm.topology import unwrap, wrap
-from ..algorithm.unit import strip_unit
+from ..algorithm.unit import is_unitless, strip_unit
 from ..fit.polynomial import poly1
 
 if FOUND_OPENMM:
@@ -63,7 +62,7 @@ def msd_shift(
     return correlation.msd_shift(r_i, r_j, axis, average=average)
 
 def calculate_transport_coefficients(
-        time: np.ndarray[float], msd_cross: np.ndarray[float],
+        times: np.ndarray[float], msd_cross: np.ndarray[float],
         msd_self: np.ndarray[float], Ns: np.ndarray[int],
         dimensions: np.ndarray[float], kBT: float, start: int = 1,
         stop: int = None, scale: str = "log", *, start_self: int = None,
@@ -79,7 +78,7 @@ def calculate_transport_coefficients(
 
     Parameters
     ----------
-    time : `numpy.ndarray`
+    times : `numpy.ndarray`
         Changes in time :math:`t-t_0`.
 
         **Shape**: :math:`(N_t,)`.
@@ -87,28 +86,23 @@ def calculate_transport_coefficients(
         **Reference unit**: :math:`\mathrm{ps}`.
 
     msd_cross : `numpy.ndarray`
-        MSDs/CDs for the :math:`N_\mathrm{g}` groups over
-        :math:`N_\mathrm{b}` blocks of :math:`N_t` trajectory frames
-        each. Includes the dimensionality scaling factor.
+        MSDs and CDs that include the dimensionality scaling factor.
 
-        **Shape**: :math:`(C(N_\mathrm{g}+1,\,2),\,N_t)` or
-        :math:`(C(N_\mathrm{g}+1,\,2),\,N_\mathrm{b},\,N_t)`.
+        **Shape**: :math:`(C(N_\mathrm{groups}+1,\,2),\,N_t)` or
+        :math:`(C(N_\mathrm{groups}+1,\,2),\,N_\mathrm{blocks},\,N_t)`.
 
         **Reference unit**: :math:`\mathrm{Å}^2`.
 
     msd_self : `numpy.ndarray`
-        Self MSDs for the :math:`N_\mathrm{g}` groups over
-        :math:`N_\mathrm{b}` blocks of :math:`N_t` trajectory frames
-        each. Includes the dimensionality scaling factor.
+        Self MSDs that include the dimensionality scaling factor.
 
-        **Shape**: :math:`(N_\mathrm{g},\,N_t)` or
-        :math:`(N_\mathrm{g},\,N_\mathrm{b},\,N_t)`.
+        **Shape**: :math:`(N_\mathrm{groups},\,N_t)` or
+        :math:`(N_\mathrm{groups},\,N_\mathrm{blocks},\,N_t)`.
 
         **Reference unit**: :math:`\mathrm{Å}^2`.
 
     Ns : `numpy.ndarray`
-        Number of particles or centers of masses :math:`N` in each
-        group.
+        Number of atoms or centers of mass :math:`N_i` in each group.
 
     dimensions : `numpy.ndarray`
         System dimensions.
@@ -142,11 +136,13 @@ def calculate_transport_coefficients(
            * :code:`"log"`: Logarithmic :math:`x`- and :math:`y`-axes.
 
     start_self : `int`, keyword-only, optional
-        Starting frame for fitting the self MSDs. If not provided,
+        Starting frame with respect to the interval used in
+        :meth:`Onsager.run` for fitting the self MSDs. If not provided,
         `start_self` shares a value with `start`.
 
     stop_self : `int`, keyword-only, optional
-        Ending frame for fitting the self MSDs. If not provided,
+        Ending frame with respect to the interval used in
+        :meth:`Onsager.run` for fitting the self MSDs. If not provided,
         `stop_self` shares a value with `stop`.
 
     scale_self : `str`, keyword-only, optional
@@ -169,33 +165,32 @@ def calculate_transport_coefficients(
            \log(\mathrm{MSD})=\log(t)+b
 
     verbose : `bool`, keyword-only, default: :code:`False`
-        Determines if detailed progress is shown.
+        Determines whether detailed progress is shown.
 
     Returns
     -------
     L_ij : `numpy.ndarray`
         Onsager transport coefficients :math:`L_{ij}`.
 
-        **Shape**: :math:`(N_\mathrm{b},\,N_\mathrm{g},\,N_\mathrm{g})`.
+        **Shape**: :math:`(N_\mathrm{blocks},\,N_\mathrm{groups},\,
+        N_\mathrm{groups})`.
 
-        **Reference unit**:
-        :math:`\mathrm{mol/(kJ\cdotÅ\cdot\mathrm ps)}`.
+        **Reference unit**: :math:`\mathrm{mol/(kJ\cdotÅ\cdot ps)}`.
 
     L_ii_self : `numpy.ndarray`
-        Self Onsager transport coefficient terms
-        :math:`L_{ii}^\mathrm{self}`.
+        Self-diffusion contribution to the single-species Onsager 
+        transport coefficients :math:`L_{ii}^\mathrm{self}`.
 
-        **Shape**: :math:`(N_\mathrm{b},\,N_\mathrm{g})`.
+        **Shape**: :math:`(N_\mathrm{blocks},\,N_\mathrm{groups})`.
 
-        **Reference unit**:
-        :math:`\mathrm{mol/(kJ\cdotÅ\cdot\mathrm ps)}`.
+        **Reference unit**: :math:`\mathrm{mol/(kJ\cdotÅ\cdot ps)}`.
 
     D_i : `numpy.ndarray`
         Self-diffusion coefficients :math:`D_i`.
 
-        **Shape**: :math:`(N_\mathrm{b},\,N_\mathrm{g})`.
+        **Shape**: :math:`(N_\mathrm{blocks},\,N_\mathrm{groups})`.
 
-        **Reference unit**: :math:`\mathrm{Å}/\mathrm{ps)}`.
+        **Reference unit**: :math:`\mathrm{Å/ps}`.
     """
 
     # Set default settings for fitting self MSDs
@@ -209,7 +204,7 @@ def calculate_transport_coefficients(
     # Preallocate arrays to hold Onsager transport coefficients and
     # self-diffusion coefficients
     ndim = msd_self.ndim
-    if ndim not in (2, 3):
+    if ndim not in {2, 3}:
         emsg = ("The arrays containing the cross- and self-MSDs have "
                 "invalid shapes.")
         raise ValueError(emsg)
@@ -230,12 +225,13 @@ def calculate_transport_coefficients(
 
     # Iterate through all blocks
     for b in ProgressBar(range(n_blocks), verbose=verbose):
+
         # Iterate through all unique group pairings
         for i, msd in enumerate(msd_cross[:, b] / denom):
             y = msd[start:stop]
             valid = np.isfinite(y) & (y > 0)
             y = y[valid]
-            x = time[start:stop][valid]
+            x = times[start:stop][valid]
 
             if len(x) > 1:
 
@@ -251,8 +247,10 @@ def calculate_transport_coefficients(
                     else:
                         fit = np.polyfit(np.log(x), np.log(y), 1)
                         if abs(1 - fit[0]) >= 0.01:
-                            wmsg = ("The slope for log(MSDc) vs. log(t) fit "
-                                    f"is {fit[0]:.6f}.")
+                            wmsg = (
+                                f"The slope for the log(msd_cross[{i}]) "
+                                f"vs. log(times) fit is {fit[0]:.6f}."
+                            )
                             warnings.warn(wmsg)
                         L_ij[b, r_ud[i], c_ud[i]] = np.exp(fit[1])
             else:
@@ -266,7 +264,7 @@ def calculate_transport_coefficients(
             y = msd[start_self:stop_self]
             valid = np.isfinite(y) & (y > 0)
             y = y[valid]
-            x = time[start_self:stop_self][valid]
+            x = times[start_self:stop_self][valid]
 
             if len(x) > 1:
 
@@ -282,8 +280,10 @@ def calculate_transport_coefficients(
                     else:
                         fit = np.polyfit(np.log(x), np.log(y), 1)
                         if abs(1 - fit[0]) >= 0.01:
-                            wmsg = ("The slope for log(MSD) vs. log(t) fit is "
-                                    f"{fit[0]:.6f}!")
+                            wmsg = (
+                                f"The slope for the log(msd_self[{i}]) "
+                                f"vs. log(times) fit is {fit[0]:.6f}."
+                            )
                             warnings.warn(wmsg)
                         D_i[b, i] = np.exp(fit[1])
             else:
@@ -292,8 +292,8 @@ def calculate_transport_coefficients(
     return L_ij, Ns * D_i / denom, D_i
 
 def calculate_conductivity(
-        L_ij: np.ndarray[float], z: np.ndarray[float], *, reduced: bool = False
-    ) -> np.ndarray[float]:
+        L_ij: np.ndarray[float], charges: np.ndarray[float], *, 
+        reduced: bool = False) -> np.ndarray[float]:
 
     r"""
     Calculates the ionic conductivity :math:`\kappa` using the
@@ -302,48 +302,47 @@ def calculate_conductivity(
     Parameters
     ----------
     L_ij : `numpy.ndarray`
-        Onsager transport coefficients :math:`L_{ij}` for the atoms or
-        residues in the :math:`N_\mathrm{g}` groups and
-        :math:`N_\mathrm{b}` trajectory blocks.
+        Onsager transport coefficients :math:`L_{ij}`.
 
-        **Shape**: :math:`(N_\mathrm{b},\,N_\mathrm{g},\,N_\mathrm{g})`.
+        **Shape**: :math:`(N_\mathrm{blocks},\,N_\mathrm{groups},\,
+        N_\mathrm{groups})`.
 
-        **Reference unit**:
-        :math:`\mathrm{mol/(kJ}\cdot\mathrm{Å}\cdot\mathrm{ps)}`.
+        **Reference unit**: :math:`\mathrm{mol/(kJ\cdotÅ\cdot ps)}`.
 
-    z : array-like
-        Charge numbers :math:`z_i` of the atoms or residues in the
-        :math:`N_\mathrm{g}` groups.
+    charges : array-like
+        Charges :math:`q_i` shared by all atoms or centers of mass in 
+        each species :math:`i`.
 
-        **Shape**: :math:`(N_\mathrm{g},)`.
+        **Shape**: :math:`(N_\mathrm{groups},)`.
+
+        **Reference unit**: :math:`\mathrm{e}`.
 
     reduced : `bool`, keyword-only, default: :code:`False`
         Specifies whether the data is in reduced units.
 
     Returns
     -------
-    kappas : `numpy.ndarray`
-        Conductivities :math:`\kappa` for the :math:`N_\mathrm{b}`
-        trajectory blocks.
+    kappa : `numpy.ndarray`
+        Conductivity :math:`\kappa`.
 
-        **Shape**: :math:`(N_\mathrm{b},\,)`.
+        **Shape**: :math:`(N_\mathrm{blocks},\,)`.
 
-        **Reference unit**: :math:`\mathrm{C}^2/(\mathrm{kJ}\cdot
-        \mathrm{Å}\cdot\mathrm{ps})`.
+        **Reference unit**: :math:`\mathrm{C^2/(kJ\cdotÅ\cdot ps)`.
 
-        **To SI unit**: :math:`1\times10^{19}\,\mathrm{S}/\mathrm{m}`.
+        **To SI unit**: :math:`1\times10^{19}\,\mathrm{S/m}`.
     """
 
-    kappas = np.einsum("bij,ij->b", L_ij, z * z[:, None])
+    kappas = np.einsum("bij,ij->b", L_ij, charges * charges[:, None])
     if not reduced:
         kappas = (kappas * ureg.avogadro_constant
                   * ureg.elementary_charge ** 2 * ureg.mole
-                  / ureg.coulomb ** 2).to_reduced_units().magnitude
+                  / ureg.coulomb ** 2).to("").magnitude
     return kappas
 
-def calculate_electrophoretic_mobility(
-        L_ij: np.ndarray[float], z: np.ndarray[float], rho: np.ndarray[float],
-        *, reduced: bool = False) -> np.ndarray[float]:
+def calculate_electrophoretic_mobilities(
+        L_ij: np.ndarray[float], charges: np.ndarray[float], 
+        rhos: np.ndarray[float], *, reduced: bool = False
+    ) -> np.ndarray[float]:
 
     r"""
     Calculates the electrophoretic mobility :math:`\mu_i` of each
@@ -352,26 +351,26 @@ def calculate_electrophoretic_mobility(
     Parameters
     ----------
     L_ij : `numpy.ndarray`
-        Onsager transport coefficients :math:`L_{ij}` for the atoms or
-        residues in the :math:`N_\mathrm{g}` groups and
-        :math:`N_\mathrm{b}` trajectory blocks.
+        Onsager transport coefficients :math:`L_{ij}`.
 
-        **Shape**: :math:`(N_\mathrm{b},\,N_\mathrm{g},\,N_\mathrm{g})`.
+        **Shape**: :math:`(N_\mathrm{blocks},\,N_\mathrm{groups},\,
+        N_\mathrm{groups})`.
 
-        **Reference unit**:
-        :math:`\mathrm{mol/(kJ}\cdot\mathrm{Å}\cdot\mathrm{ps)}`.
+        **Reference unit**: :math:`\mathrm{mol/(kJ\cdotÅ\cdot ps)}`.
 
-    z : array-like
-        Charge numbers :math:`z_i` of the atoms or residues in the
-        :math:`N_\mathrm{g}` groups.
+    charges : array-like
+        Charges :math:`q_i` shared by all atoms or centers of mass in 
+        each species :math:`i`.
 
-        **Shape**: :math:`(N_\mathrm{g},)`.
+        **Shape**: :math:`(N_\mathrm{groups},)`.
 
-    rho : array-like
-        Number densities :math:`n_i` of the atoms or residues in the
-        :math:`N_\mathrm{g}` groups.
+        **Reference unit**: :math:`\mathrm{e}`.
 
-        **Shape**: :math:`(N_\mathrm{g},)`.
+    rhos : array-like
+        Number densities :math:`n_i` of the atoms or centers of mass in 
+        each species :math:`i`.
+
+        **Shape**: :math:`(N_\mathrm{groups},)`.
 
         **Reference unit**: :math:`\mathrm{Å}^{-3}`.
 
@@ -381,27 +380,24 @@ def calculate_electrophoretic_mobility(
     Returns
     -------
     mus : `numpy.ndarray`
-        Electrophoretic mobilities :math:`\mu_i` for the atoms or
-        residues in the :math:`N_\mathrm{g}` groups and
-        :math:`N_\mathrm{b}` trajectory blocks.
+        Electrophoretic mobilities :math:`\mu_i` of the atoms or centers
+        of mass in each species :math:`i`.
 
-        **Shape**: :math:`(N_\mathrm{b},\,N_\mathrm{g})`.
+        **Shape**: :math:`(N_\mathrm{blocks},\,N_\mathrm{groups})`.
 
-        **Reference unit**:
-        :math:`\mathrm{Å}^2\cdot\mathrm{C/(kJ}\cdot\mathrm{ps)}`.
+        **Reference unit**: :math:`\mathrm{Å^2\cdot C/(kJ\cdot ps)}`.
 
-        **To SI unit**: :math:`1\times 10^{-11}\,\mathrm{m}^2 /
-        (\mathrm{V}\cdot\mathrm{s})`.
+        **To SI unit**: :math:`1\times 10^{-11}\,\mathrm{m^2/(V\cdot s)`.
     """
 
-    mus = (L_ij * z / rho[:, None]).sum(axis=-1)
+    mus = (L_ij * charges / rhos[:, None]).sum(axis=-1)
     if not reduced:
         mus = (mus * ureg.avogadro_constant * ureg.elementary_charge
                * ureg.mole / ureg.coulomb).to_reduced_units().magnitude
     return mus
 
-def calculate_transference_number(
-        L_ij: np.ndarray[float], z: np.ndarray[float]) -> np.ndarray[float]:
+def calculate_transference_numbers(
+        L_ij: np.ndarray[float], charges: np.ndarray[float]) -> np.ndarray[float]:
 
     r"""
     Calculates the transference number :math:`t_i` of each species using
@@ -410,32 +406,31 @@ def calculate_transference_number(
     Parameters
     ----------
     L_ij : `numpy.ndarray`
-        Onsager transport coefficients :math:`L_{ij}` for the atoms or
-        residues in the :math:`N_\mathrm{g}` groups and
-        :math:`N_\mathrm{b}` trajectory blocks.
+        Onsager transport coefficients :math:`L_{ij}`.
 
-        **Shape**: :math:`(N_\mathrm{b},\,N_\mathrm{g},\,N_\mathrm{g})`.
+        **Shape**: :math:`(N_\mathrm{blocks},\,N_\mathrm{groups},\,
+        N_\mathrm{groups})`.
 
-        **Reference unit**:
-        :math:`\mathrm{mol/(kJ}\cdot\mathrm{Å}\cdot\mathrm{ps)}`.
+        **Reference unit**: :math:`\mathrm{mol/(kJ\cdotÅ\cdot ps)}`.
 
-    z : array-like
-        Charge numbers :math:`z_i` of the atoms or residues in the
-        :math:`N_\mathrm{g}` groups.
+    charges : array-like
+        Charges :math:`q_i` shared by all atoms or centers of mass in 
+        each species :math:`i`.
 
-        **Shape**: :math:`(N_\mathrm{g},)`.
+        **Shape**: :math:`(N_\mathrm{groups},)`.
+
+        **Reference unit**: :math:`\mathrm{e}`.
 
     Returns
     -------
     ts : `numpy.ndarray`
-        Transference numbers :math:`t_i` for the atoms or residues in
-        the :math:`N_\mathrm{g}` groups and :math:`N_\mathrm{b}`
-        trajectory blocks.
+        Transference numbers :math:`t_i` of the atoms or centers of mass
+        in each species :math:`i`.
 
-        **Shape**: :math:`(N_\mathrm{b},\,N_\mathrm{g})`.
+        **Shape**: :math:`(N_\mathrm{blocks},\,N_\mathrm{groups})`.
     """
 
-    s = z * (L_ij * z).sum(axis=-1)
+    s = charges * (L_ij * charges).sum(axis=-1)
     return s / s.sum(axis=-1)
 
 class Onsager(SerialAnalysisBase):
@@ -453,17 +448,15 @@ class Onsager(SerialAnalysisBase):
 
     The Onsager transport framework [1]_ can be used to analyze
     transport properties in bulk constant-volume fluids and
-    electrolytic systems, such as those in the canonical
-    (:math:`NVT`), microcanonical (:math:`NVE`), and grand
-    canonical (:math:`\\mu VT`) ensembles.
+    electrolytic systems.
 
     The Onsager transport equation
 
     .. math::
 
-       \\pmb{J}_i=-\\sum_j L_{ij}\\nabla\\bar{\\mu}_j
+       \\mathbf{J}_i=-\\sum_j L_{ij}\\nabla\\bar{\\mu}_j
 
-    relates the flux :math:`\\pmb{J}_i` of species :math:`i` to the
+    relates the flux :math:`\\mathbf{J}_i` of species :math:`i` to the
     Onsager transport coefficients :math:`L_{ij}` and the
     electrochemical potential :math:`\\bar{\\mu}_j` of species
     :math:`j`. There is an Onsager transport coefficient for each pair
@@ -475,15 +468,15 @@ class Onsager(SerialAnalysisBase):
 
     .. math::
 
-       L_{ij}=\\frac{1}{6k_\\mathrm{B}TV}
-       \\lim_{t\\rightarrow\\infty}\\frac{d}{dt}\\left\\langle\\sum_\\alpha
-       \\left[\\pmb{r}_{i,\\alpha}(t)-\\pmb{r}_{i,\\alpha}(0)\\right]
-       \\cdot\\sum_\\beta\\left[\\pmb{r}_{j,\\beta}(t)
-       -\\pmb{r}_{j,\\beta}(0)\\right]\\right\\rangle
+       L_{ij}=\\frac{1}{6k_\\mathrm{B}TV}\\lim_{t\\rightarrow\\infty}
+       \\frac{d}{dt}\\left\\langle\\sum_\\alpha\\left[
+       \\mathbf{r}_{i,\\alpha}(t)-\\mathbf{r}_{i,\\alpha}(0)\\right]
+       \\cdot\\sum_\\beta\\left[\\mathbf{r}_{j,\\beta}(t)
+       -\\mathbf{r}_{j,\\beta}(0)\\right]\\right\\rangle
 
     where :math:`k_\\mathrm{B}` is the Boltzmann constant, :math:`T` is
     the system temperature, :math:`V` is the system volume, :math:`t` is
-    time, and :math:`\\pmb{r}_\\alpha` and :math:`\\pmb{r}_\\beta` are
+    time, and :math:`\\mathbf{r}_\\alpha` and :math:`\\mathbf{r}_\\beta` are
     the positions of particles :math:`\\alpha` and :math:`\\beta`
     belonging to species :math:`i` and :math:`j`, respectively. The
     angular brackets denote the ensemble average. It is evident that
@@ -505,7 +498,7 @@ class Onsager(SerialAnalysisBase):
        L_{ii}^\\mathrm{self}=\\frac{1}{6k_\\mathrm{B}TV}
        \\lim_{t\\rightarrow\\infty}\\frac{d}{dt}
        \\sum_\\alpha\\left\\langle\\left[
-       \\pmb{r}_{i,\\alpha}(t)-\\pmb{r}_{i,\\alpha}(0)
+       \\mathbf{r}_{i,\\alpha}(t)-\\mathbf{r}_{i,\\alpha}(0)
        \\right]^2\\right\\rangle
 
     is given by the autocorrelation function of the flux of a single
@@ -514,11 +507,11 @@ class Onsager(SerialAnalysisBase):
 
     .. math::
 
-       L_{ii}^\\mathrm{self}=\\frac{1}{6k_\\mathrm{B}TV}
+       L_{ii}^\\mathrm{distinct}=\\frac{1}{6k_\\mathrm{B}TV}
        \\lim_{t\\rightarrow\\infty}\\frac{d}{dt}
        \\sum_\\alpha\\sum_{\\beta\\neq\\alpha}\\left\\langle\\left[
-       \\pmb{r}_{i,\\alpha}(t)-\\pmb{r}_{i,\\alpha}(0)\\right]\\cdot
-       \\left[\\pmb{r}_{i,\\beta}(t)-\\pmb{r}_{i,\\beta}(0)\\right]
+       \\mathbf{r}_{i,\\alpha}(t)-\\mathbf{r}_{i,\\alpha}(0)\\right]\\cdot
+       \\left[\\mathbf{r}_{i,\\beta}(t)-\\mathbf{r}_{i,\\beta}(0)\\right]
        \\right\\rangle
 
     is given by the cross-correlation between two distinct particles
@@ -557,7 +550,7 @@ class Onsager(SerialAnalysisBase):
     Parameters
     ----------
     groups : `MDAnalysis.AtomGroup` or array-like
-        Group(s) of atoms for which the mean squared displacements (or
+        Group of atoms for which the mean squared displacements (or
         analogs) are calculated.
 
     groupings : `str` or array-like, default: :code:`"atoms"`
@@ -567,17 +560,23 @@ class Onsager(SerialAnalysisBase):
 
         .. note::
 
-           In a standard trajectory file, segments (or chains) contain
-           residues (or molecules), and residues contain atoms. This
-           heirarchy must be adhered to for this analysis module to
-           function correctly, unless your selected grouping is always
-           :code:`"atoms"`.
+           If the desired grouping is not :code:`"atoms"`,
+
+           * the trajectory file should have segments (or chains)
+             containing residues (or molecules) and residues containing
+             atoms, and
+
+           * residues and segments should be locally unwrapped at the
+             simulation box edges, if not already, using
+             :class:`MDAnalysis.transformations.wrap.unwrap`,
+             :meth:`MDAnalysis.core.groups.AtomGroup.unwrap`, or
+             :func:`MDAnalysis.lib.mdamath.make_whole`.
 
         .. container::
 
            **Valid values**:
 
-           * :code:`"atoms"`: Atom positions (generally for
+           * :code:`"atoms"`: Atom positions (generally or for
              coarse-grained simulations).
            * :code:`"residues"`: Residues' centers of mass (for
              atomistic simulations).
@@ -592,24 +591,34 @@ class Onsager(SerialAnalysisBase):
 
            If :code:`reduced=True`, `temperature` should be equal to the
            energy scale. When the Lennard-Jones potential is used, it
-           generally means that :math:`T^* = 1`, or `temperature=1`.
+           generally means that :math:`T^*=1`, or `temperature=1`.
 
         **Reference unit**: :math:`\\mathrm{K}`.
 
     charges : array-like, `openmm.unit.Quantity`, or `pint.Quantity`, \
     keyword-only, optional
-        Charge numbers :math:`z_i` for the specified `groupings` in the
-        :math:`N_\\mathrm{g}` `groups`. If not provided, it will be
-        retrieved from the topology or trajectory.
+        Charges :math:`q_i` for the entities in the 
+        :math:`N_\\mathrm{groups}` atom groups in `groups`. If not
+        provided, they will be retrieved from the main
+        :class:`MDAnalysis.core.universe.Universe` object only if it
+        contains charge information.
 
-        **Shape**: :math:`(N_\\mathrm{g},)`.
+        .. note::
+
+           Depending on the grouping for a specific atom group, all
+           entities (atoms, residues, or segments) should carry the same
+           charge.
+
+        **Shape**: :math:`(N_\\mathrm{groups},)`.
 
         **Reference unit**: :math:`\\mathrm{e}`.
 
     dimensions : array-like, `openmm.unit.Quantity`, or \
     `pint.Quantity`, keyword-only, optional
-        System dimensions. If not provided, they are retrieved from the
-        topology or trajectory.
+        System dimensions :math:`(L_x,\\,L_y,\\,L_z)`. If the
+        :class:`MDAnalysis.core.universe.Universe` object that the
+        atom groups in `groups` belong to does not contain
+        dimensionality information, provide it here.
 
         .. tip::
 
@@ -638,8 +647,8 @@ class Onsager(SerialAnalysisBase):
         **Reference unit**: :math:`\\mathrm{ps}`.
 
     n_blocks : `int`, keyword-only, default: :code:`1`
-        Number of blocks :math:`N_\\mathrm{b}` to split the trajectory
-        into.
+        Number of blocks :math:`N_\\mathrm{blocks}` to split the 
+        trajectory into.
 
     center : `bool`, keyword-only, default: :code:`False`
         Determines whether the system center of mass is subtracted from
@@ -661,7 +670,7 @@ class Onsager(SerialAnalysisBase):
 
     reduced : `bool`, keyword-only, default: :code:`False`
         Specifies whether the data is in reduced units. Affects
-        `temperature`, `results.times`, etc.
+        `results.times`, etc.
 
     unwrap : `bool`, keyword-only, default: :code:`False`
         Determines if atom positions are unwrapped. Ensure that
@@ -686,12 +695,11 @@ class Onsager(SerialAnalysisBase):
     results.units : `dict`
         Reference units for the results. For example, to get the
         reference units for :code:`results.times`, call
-        :code:`results.units["results.times"]`.
+        :code:`results.units["times"]`.
 
     results.pairs : `tuple`
         All unique pairs of indices of the groups of atoms in `groups`.
-        The ordering coincides with the column indices in
-        `results.msd`.
+        The ordering aligns with the column indices in `results.msd`.
 
     results.times : `numpy.ndarray`
         Changes in time :math:`t-t_0`.
@@ -701,24 +709,21 @@ class Onsager(SerialAnalysisBase):
         **Reference unit**: :math:`\\mathrm{ps}`.
 
     results.msd_cross : `numpy.ndarray`
-        MSDs (or analogs) for the :math:`N_\\mathrm{g}` groups over
-        :math:`N_\\mathrm{b}` blocks of :math:`N_t` trajectory frames
-        each. Includes the dimensionality scaling factor. See Notes
-        about what this value actually means.
+        MSDs (or analogs) that includes the dimensionality scaling 
+        factor. See Notes to understand what this value actually is.
 
-        **Shape**:
-        :math:`(_{N_\\mathrm{g}+1}\\mathrm{C}_{2},\\,N_\\mathrm{b},\\,
+        **Shape**: :math:`(C(N_\\mathrm{groups}+1,\\,2),\\,N_t)` or
+        :math:`(C(N_\\mathrm{groups}+1,\\,2),\\,N_\\mathrm{blocks},\\,
         N_t)`.
 
         **Reference unit**: :math:`\\mathrm{Å}^2`.
 
     results.msd_self : `numpy.ndarray`
-        Self MSDs (or analogs) for the :math:`N_\\mathrm{g}` groups over
-        :math:`N_\\mathrm{b}` blocks of :math:`N_t` trajectory frames
-        each. Includes the dimensionality scaling factor. See Notes
-        about what this value actually means.
+        Self MSDs that include the dimensionality scaling factor. See
+        Notes to understand what this value actually is.
 
-        **Shape**: :math:`(N_\\mathrm{g},\\,N_\\mathrm{b},\\,N_t)`.
+        **Shape**: :math:`(N_\\mathrm{groups},\\,N_t)` or
+        :math:`(N_\\mathrm{groups},\\,N_\\mathrm{blocks},\\,N_t)`.
 
         **Reference unit**: :math:`\\mathrm{Å}^2`.
 
@@ -727,14 +732,15 @@ class Onsager(SerialAnalysisBase):
         after running :meth:`calculate_transport_coefficients`.
 
         **Shape**:
-        :math:`(N_\\mathrm{b},\\,N_\\mathrm{g},\\,N_\\mathrm{g})`.
+        :math:`(N_\\mathrm{blocks},\\,N_\\mathrm{groups},\\,
+        N_\\mathrm{groups})`.
 
         **Reference unit**:
         :math:`\\mathrm{mol/(kJ}\\cdot\\mathrm{Å}\\cdot\\mathrm{ps)}`.
 
     results.L_ii_self : `numpy.ndarray`
-        Self Onsager transport coefficient terms
-        :math:`L_{ii}^\\mathrm{self}`. Note that
+        Self-diffusion contribution to the single-species Onsager 
+        transport coefficients :math:`L_{ii}^\\mathrm{self}`. Note that
         :math:`L_{ii}^\\mathrm{self}` is related to :math:`D_i` via
 
         .. math::
@@ -744,47 +750,44 @@ class Onsager(SerialAnalysisBase):
         Only available after running
         :meth:`calculate_transport_coefficients`.
 
-        **Shape**: :math:`(N_\\mathrm{b},\\,N_\\mathrm{g})`.
+        **Shape**: :math:`(N_\\mathrm{blocks},\\,N_\\mathrm{groups})`.
 
-        **Reference unit**:
-        :math:`\\mathrm{mol/(kJ}\\cdot\\mathrm{Å}\\cdot\\mathrm{ps)}`.
+        **Reference unit**: :math:`\\mathrm{mol/(kJ\\cdotÅ\\cdot ps)}`.
 
     results.D_i : `numpy.ndarray`
         Self-diffusion coefficients :math:`D_i`. Only available after
         running :meth:`calculate_transport_coefficients`.
 
-        **Shape**: :math:`(N_\\mathrm{b},\\,N_\\mathrm{g})`.
+        **Shape**: :math:`(N_\\mathrm{blocks},\\,N_\\mathrm{groups})`.
 
-        **Reference unit**: :math:`\\mathrm{Å}^2/\\mathrm{ps)}`.
+        **Reference unit**: :math:`\\mathrm{Å^2/ps}`.
 
-    results.conductivities : `numpy.ndarray`
-        Conductivities :math:`\\kappa`. Only available after running
+    results.conductivity : `numpy.ndarray`
+        Conductivity :math:`\\kappa`. Only available after running
         :meth:`calculate_conductivity`.
 
-        **Shape**: :math:`(N_\\mathrm{b},\\,N_\\mathrm{g})`.
+        **Shape**: :math:`(N_\\mathrm{blocks},\\,N_\\mathrm{groups})`.
 
-        **Reference unit**: :math:`\\mathrm{C}^2/(\\mathrm{kJ}\\cdot
-        \\mathrm{Å}\\cdot\\mathrm{ps})`.
+        **Reference unit**: :math:`\\mathrm{C^2/(kJ\\cdotÅ\\cdot ps)`.
 
-        **To SI unit**: :math:`1\times10^{19}\\,\\mathrm{S}/\\mathrm{m}`.
+        **To SI unit**: :math:`1\\times10^{19}\\,\\mathrm{S}/\\mathrm{m}`.
 
     results.electrophoretic_mobilities : `numpy.ndarray`
         Electrophoretic mobilities :math:`\\mu_i`. Only available after
-        running :meth:`calculate_electrophoretic_mobility`.
+        running :meth:`calculate_electrophoretic_mobilities`.
 
-        **Shape**: :math:`(N_\\mathrm{b},\\,N_\\mathrm{g})`.
+        **Shape**: :math:`(N_\\mathrm{blocks},\\,N_\\mathrm{groups})`.
 
-        **Reference unit**:
-        :math:`\\mathrm{Å}^2\\cdot\\mathrm{C/(kJ}\\cdot\\mathrm{ps)}`.
+        **Reference unit**: :math:`\\mathrm{Å^2\\cdotC/(kJ\\cdot ps)}`.
 
-        **To SI unit**: :math:`1\times10^{-11}\\,\\mathrm{m}^2/
+        **To SI unit**: :math:`1\\times10^{-11}\\,\\mathrm{m}^2/
         (\\mathrm{V}\\cdot\\mathrm{s})`.
 
     results.transference_numbers : `numpy.ndarray`
         Transference numbers :math:`t_i`. Only available after running
-        :meth:`calculate_transference_number`.
+        :meth:`calculate_transference_numbers`.
 
-        **Shape**: :math:`(N_\\mathrm{b},\\,N_\\mathrm{g})`.
+        **Shape**: :math:`(N_\\mathrm{blocks},\\,N_\\mathrm{groups})`.
 
     Notes
     -----
@@ -795,8 +798,8 @@ class Onsager(SerialAnalysisBase):
       `results.msd_cross` will be used other than to calculate the
       Onsager transport coefficients. On the other hand,
       `results.msd_self` is averaged over all particles. Therefore, it
-      can be plotted against `results.times` to get the self-diffusion
-      coefficients.
+      can be plotted against `results.times` to directly get the 
+      self-diffusion coefficients.
 
     References
     ----------
@@ -822,81 +825,91 @@ class Onsager(SerialAnalysisBase):
         self.universe = self._groups[0].universe
         super().__init__(self.universe.trajectory, verbose=verbose, **kwargs)
 
+        GROUPINGS = {"atoms", "residues", "segments"}
         self._n_groups = len(self._groups)
         if isinstance(groupings, str):
-            if groupings not in (GROUPINGS := {"atoms", "residues",
-                                               "segments"}):
+            if groupings not in GROUPINGS:
                 emsg = (f"Invalid grouping '{groupings}'. Valid values: "
-                        f"{', '.join(GROUPINGS)}.")
+                        "'" + "', '".join(GROUPINGS) + "'.")
                 raise ValueError(emsg)
             self._groupings = self._n_groups * [groupings]
         else:
             if self._n_groups != len(groupings):
-                emsg = ("The number of grouping values is not equal to the "
-                        "number of groups.")
+                emsg = ("The shape of 'groupings' is incompatible with "
+                        "that of 'groups'.")
                 raise ValueError(emsg)
-            for g in groupings:
-                if g not in GROUPINGS:
-                    emsg = (f"Invalid grouping '{g}'. Valid values: "
-                            f"{', '.join(GROUPINGS)}.")
+            for gr in groupings:
+                if gr not in GROUPINGS:
+                    emsg = (f"Invalid grouping '{gr}'. Valid values: "
+                            "'" + "', '".join(GROUPINGS) + "'.")
                     raise ValueError(emsg)
             self._groupings = groupings
 
-        temperature, unit_ = strip_unit(temperature, "temperature")
-        if reduced:
-            if not isinstance(unit_, str):
-                emsg = "'temperature' cannot have units when reduced=True."
-                raise TypeError(emsg)
-            self._kBT = temperature
-        else:
+        if reduced and not is_unitless(temperature):
+            emsg = "'temperature' cannot have units when reduced=True."
+            raise TypeError(emsg)
+        self._kBT = strip_unit(temperature, "K")[0]
+        if not reduced:
             self._kBT = (
-                ureg.avogadro_constant * ureg.boltzmann_constant
-                * temperature * ureg.kelvin
-            ).m_as(self.results.units["_kBT"])
+                self._kBT * ureg.avogadro_constant 
+                * ureg.boltzmann_constant * ureg.kelvin
+            ).m_as(ureg.kilojoule / ureg.mole)
 
         if dimensions is not None:
             if len(dimensions) != 3:
                 raise ValueError("'dimensions' must have length 3.")
-            self._dimensions = np.asarray(strip_unit(dimensions, "angstrom")[0])
+            if reduced and not is_unitless(dimensions):
+                emsg = "'dimensions' cannot have units when 'reduced=True'."
+                raise TypeError(emsg)
+            self._dimensions = np.asarray(strip_unit(dimensions, "Å")[0])
         elif self.universe.dimensions is not None:
             self._dimensions = self.universe.dimensions[:3].copy()
         else:
             raise ValueError("No system dimensions found or provided.")
 
-        self._dt, unit_ = strip_unit(dt or self._trajectory.dt, "picosecond")
-        if reduced and not isinstance(unit_,  str):
-            raise TypeError("'dt' cannot have units when reduced=True.")
+        if dt is not None:
+            if reduced and not is_unitless(dt):
+                raise TypeError("'dt' cannot have units when reduced=True.")
+            self._dt = strip_unit(dt, "ps")[0]
+        else:
+            self._dt = self._trajectory.dt
 
         if charges is not None:
             if len(charges) != self._n_groups:
-                emsg = ("The number of group charges is not equal to "
-                        "the number of groups.")
+                emsg = ("The shape of 'charges' is incompatible with "
+                        "that of 'groups'.")
                 raise ValueError(emsg)
-            charges, unit_ = strip_unit(charges, "elementary_charge")
-            if reduced and not isinstance(unit_, str):
-                emsg = "'charges' cannot have units when reduced=True."
+            if reduced and not is_unitless(charges):
+                emsg = "'charges' cannot have units when 'reduced=True'."
                 raise TypeError(emsg)
-            self._charges = np.asarray(charges)
+            self._charges = np.asarray(strip_unit(charges, "e")[0])
         elif hasattr(self.universe.atoms, "charges"):
-            self._charges = np.fromiter(
-                (getattr(g, gr).charges[0]
-                 for g, gr in zip(self._groups, self._groupings)),
-                count=self._n_groups,
-                dtype=int
-            )
+            self._charges = np.empty(self._n_groups)
+            for i, (ag, gr) in enumerate(zip(self._groups, self._groupings)):
+                qs = getattr(ag, gr).charges
+                if not np.allclose(qs, q := qs[0]):
+                    self._charges = None
+                    wmsg = (f"Not all {gr} in `groups[{i}]` share the "
+                            "same charge. Charge information will not "
+                            "be stored.")
+                    warnings.warn(wmsg)
+                    break
+                self._charges[i] = q
         else:
             self._charges = None
 
-        # Determine the number of particles in each group and their
-        # corresponding indices
-        self._Ns = tuple(getattr(a, f"n_{g}")
-                         for (a, g) in zip(self._groups, self._groupings))
-        self._N = sum(self._Ns)
+        self._Ns = np.fromiter(
+            (getattr(ag, f"n_{gr}")
+             for (ag, gr) in zip(self._groups, self._groupings)),
+            dtype=int,
+            count=self._n_groups
+        )
+        self._N = self._Ns.sum()
         self._slices = []
-        index = 0
+        _ = 0
         for N in self._Ns:
-            self._slices.append(slice(index, index + N))
-            index += N
+            self._slices.append(slice(_, _ + N))
+            _ += N
 
         if np.all(~np.isclose(self._dimensions, 0)):
             self._rhos = np.fromiter(
@@ -919,36 +932,19 @@ class Onsager(SerialAnalysisBase):
 
         # Ensure frames are evenly spaced and proceed forward in time
         if hasattr(self._sliced_trajectory, "frames"):
-            df = np.diff(self._sliced_trajectory.frames)
-            if df[0] <= 0 or not np.allclose(df, df[0]):
+            dfs = np.diff(self._sliced_trajectory.frames)
+            if (df := dfs[0]) <= 0 or not np.allclose(dfs, df):
                 emsg = ("The selected frames must be evenly spaced and "
                         "proceed forward in time.")
                 raise ValueError(emsg)
-        elif self.step <= 0:
+        elif (df := self.step) <= 0:
             raise ValueError("The analysis must proceed forward in time.")
-
-        # Find all unique AtomGroup combinations
-        self.results.pairs = tuple(
-            itertools.combinations_with_replacement(range(self._n_groups), 2)
-        )
-
-        # Preallocate arrays to store positions and number of boundary
-        # crossings
-        self._positions = np.empty((self.n_frames, self._N, 3))
-        if self._unwrap:
-            self._sliced_trajectory[0]
-            for f in self.universe.atoms.fragments:
-                make_whole(f)
-            self._positions_old = self.universe.atoms.positions
-            self._images = np.zeros((self.universe.atoms.n_atoms, 3), dtype=int)
-            self._thresholds = self._dimensions / 2
-
+        
         # Determine number of frames used when the trajectory is split
         # into blocks
         self._n_frames_block = self.n_frames // self._n_blocks
         self._n_frames = self._n_blocks * self._n_frames_block
-        extra_frames = self.n_frames - self._n_frames
-        if extra_frames > 0:
+        if (extra_frames := self.n_frames - self._n_frames) > 0:
             wmsg = (f"The trajectory is not divisible into {self._n_blocks:,} "
                     f"blocks, so the last {extra_frames:,} frame(s) will be "
                     "discarded. To maximize performance, set appropriate "
@@ -957,9 +953,12 @@ class Onsager(SerialAnalysisBase):
                     "blocks.")
             warnings.warn(wmsg)
 
-        # Preallocate arrays to store results
-        self.results.times = self.step * self._dt * np.arange(self._n_frames //
-                                                              self._n_blocks)
+        # Find all unique AtomGroup combinations
+        self.results.pairs = tuple(
+            itertools.combinations_with_replacement(range(self._n_groups), 2)
+        )
+
+        # Preallocate arrays to store MSDs and CDs
         self.results.msd_cross = np.empty(
             (len(self.results.pairs), self._n_blocks, self._n_frames_block),
             dtype=float
@@ -969,30 +968,46 @@ class Onsager(SerialAnalysisBase):
             dtype=float
         )
 
+        # Preallocate arrays to store positions and number of boundary
+        # crossings
+        self._positions = np.empty((self.n_frames, self._N, 3))
+        if self._unwrap:
+            self._sliced_trajectory[0]
+            self._positions_old = self.universe.atoms.unwrap()
+            self._images = np.zeros((self.universe.atoms.n_atoms, 3), dtype=int)
+            self._thresholds = self._dimensions / 2
+
+        # Store time changes
+        self.results.times = df * self._dt * np.arange(self._n_frames_block)
+
         # Store reference units
-        self.results.units = {"results.times": ureg.picosecond}
-        self.results.units["results.msd_cross"] = \
-            self.results.units["results.msd_self"] = ureg.angstrom ** 2
+        self.results.units = Hash({"times": ureg.picosecond})
+        self.results.units["msd_cross"] = \
+            self.results.units["msd_self"] = ureg.angstrom ** 2
 
     def _single_frame(self) -> None:
 
+        # Get and store unwrapped positions
         positions = self.universe.atoms.positions.copy()
         if self._unwrap:
-            unwrap(positions, self._positions_old, self._dimensions,
-                   thresholds=self._thresholds, images=self._images)
+            unwrap(
+                positions, 
+                self._positions_old, 
+                self._dimensions,
+                thresholds=self._thresholds, 
+                images=self._images
+            )
 
-        for g, gr, s in zip(self._groups, self._groupings, self._slices):
+        for ag, gr, s in zip(self._groups, self._groupings, self._slices):
             self._positions[self._frame_index, s] = (
-                positions[g.indices] if gr == "atoms"
+                positions[ag.indices] if gr == "atoms"
                 else center_of_mass(
-                    g, gr,
-                    images=self._images[g.indices] if hasattr(self, "_images")
-                           else None
+                    ag, gr,
+                    images=self._images[ag.indices] if self._unwrap else None
                 )
             )
 
-        # Subtract system center-of-mass from particle or molecule
-        # center-of-mass positions
+        # Subtract system center of mass from entity positions
         if self._center:
             if self._center_atom:
                 if self._center_wrap:
@@ -1144,13 +1159,10 @@ class Onsager(SerialAnalysisBase):
             )
 
         # Store reference units
-        if not self._reduced:
-            self.results.units["results.D_i"] = (ureg.angstrom ** 2
-                                                 / ureg.picosecond)
-            self.results.units["results.L_ii_self"] \
-                = self.results.units["results.L_ij"] \
-                = 1 / (ureg.kilojoule * ureg.angstrom * ureg.picosecond
-                       / ureg.mole)
+        self.results.units["D_i"] = ureg.angstrom ** 2 / ureg.picosecond
+        self.results.units["L_ii_self"] = self.results.units["L_ij"] \
+            = 1 / (ureg.kilojoule * ureg.angstrom * ureg.picosecond
+                   / ureg.mole)
 
     def calculate_conductivity(
             self, *,
@@ -1182,27 +1194,27 @@ class Onsager(SerialAnalysisBase):
 
         if charges is not None:
             if len(charges) != self._n_groups:
-                emsg = ("The number of group charges is not equal to "
-                        "the number of groups.")
+                emsg = ("The shape of 'charges' is incompatible with "
+                        "that of 'groups'.")
                 raise ValueError(emsg)
-            charges, unit_ = strip_unit(charges, "elementary_charge")
-            if self._reduced and not isinstance(unit_, str):
-                emsg = "'charges' cannot have units when reduced=True."
+            if self._reduced and not is_unitless(charges):
+                emsg = "'charges' cannot have units when 'reduced=True'."
                 raise TypeError(emsg)
-            self._charges = np.asarray(charges)
+            self._charges = np.asarray(strip_unit(charges, "e")[0])
         if self._charges is None:
             raise ValueError("No charge number information available.")
 
-        self.results.conductivities = calculate_conductivity(
-            self.results.L_ij, self._charges,
+        self.results.conductivity = calculate_conductivity(
+            self.results.L_ij, 
+            self._charges,
             reduced=self._reduced
         )
 
-        self.results.units["results.conductivities"] = \
+        self.results.units["conductivity"] = \
             ureg.coulomb ** 2 / (ureg.kilojoule * ureg.angstrom
                                  * ureg.picosecond)
 
-    def calculate_electrophoretic_mobility(
+    def calculate_electrophoretic_mobilities(
             self, *,
             charges: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
             rhos: Union[np.ndarray[float], "unit.Quantity", Q_] = None
@@ -1238,45 +1250,46 @@ class Onsager(SerialAnalysisBase):
 
         if not hasattr(self.results, "L_ij"):
             emsg = ("Call Onsager.calculate_transport_coefficients() before "
-                    "Onsager.calculate_electrophoretic_mobility().")
+                    "Onsager.calculate_electrophoretic_mobilities().")
             raise RuntimeError(emsg)
 
         if charges is not None:
             if len(charges) != self._n_groups:
-                emsg = ("The number of group charges is not equal to "
-                        "the number of groups.")
+                emsg = ("The shape of 'charges' is incompatible with "
+                        "that of 'groups'.")
                 raise ValueError(emsg)
-            charges, unit_ = strip_unit(charges, "elementary_charge")
-            if self._reduced and not isinstance(unit_, str):
-                emsg = "'charges' cannot have units when reduced=True."
+            if self._reduced and not is_unitless(charges):
+                emsg = "'charges' cannot have units when 'reduced=True'."
                 raise TypeError(emsg)
-            self._charges = np.asarray(charges)
+            self._charges = np.asarray(strip_unit(charges, "e")[0])
         if self._charges is None:
             raise ValueError("No charge number information available.")
 
         if rhos is not None:
             if len(rhos) != self._n_groups:
-                emsg = ("The number of group number densities is not "
-                        "equal to the number of groups.")
+                emsg = ("The shape of 'rhos' is incompatible with "
+                        "that of 'groups'.")
                 raise ValueError(emsg)
-            rhos, unit_ = strip_unit(rhos, "angstrom**-3")
-            if self._reduced and not isinstance(unit_, str):
-                emsg = "'rhos' cannot have units when reduced=True."
+            if self._reduced and not is_unitless(rhos):
+                emsg = "'rhos' cannot have units when 'reduced=True'."
                 raise TypeError(emsg)
-            self._rhos = np.asarray(rhos)
+            self.rhos = np.asarray(strip_unit(rhos, "Å^-3")[0])
         if self._rhos is None:
             raise ValueError("No number density information available.")
 
-        self.results.electrophoretic_mobilities = calculate_electrophoretic_mobility(
-            self.results.L_ij, self._charges, self._rhos,
-            reduced=self._reduced
-        )
+        self.results.electrophoretic_mobilities \
+            = calculate_electrophoretic_mobilities(
+                self.results.L_ij, 
+                self._charges, 
+                self._rhos,
+                reduced=self._reduced
+            )
 
-        self.results.units["results.electrophoretic_mobilities"] = \
+        self.results.units["electrophoretic_mobilities"] = \
             ureg.angstrom ** 2 * ureg.coulomb / (ureg.kilojoule
                                                  * ureg.picosecond)
 
-    def calculate_transference_number(
+    def calculate_transference_numbers(
             self, *,
             charges: Union[np.ndarray[float], "unit.Quantity", Q_] = None
         ) -> None:
@@ -1302,22 +1315,22 @@ class Onsager(SerialAnalysisBase):
 
         if not hasattr(self.results, "L_ij"):
             emsg = ("Call Onsager.calculate_transport_coefficients() before "
-                    "Onsager.calculate_transference_number().")
+                    "Onsager.calculate_transference_numbers().")
             raise RuntimeError(emsg)
 
         if charges is not None:
             if len(charges) != self._n_groups:
-                emsg = ("The number of group charges is not equal to "
-                        "the number of groups.")
+                emsg = ("The shape of 'charges' is incompatible with "
+                        "that of 'groups'.")
                 raise ValueError(emsg)
-            charges, unit_ = strip_unit(charges, "elementary_charge")
-            if self._reduced and not isinstance(unit_, str):
-                emsg = "'charges' cannot have units when reduced=True."
+            if self._reduced and not is_unitless(charges):
+                emsg = "'charges' cannot have units when 'reduced=True'."
                 raise TypeError(emsg)
-            self._charges = np.asarray(charges)
+            self._charges = np.asarray(strip_unit(charges, "e")[0])
         if self._charges is None:
             raise ValueError("No charge number information available.")
 
-        self.results.transference_numbers = calculate_transference_number(
-            self.results.L_ij, self._charges
+        self.results.transference_numbers = calculate_transference_numbers(
+            self.results.L_ij, 
+            self._charges
         )

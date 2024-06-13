@@ -12,11 +12,11 @@ import warnings
 
 import MDAnalysis as mda
 from MDAnalysis.lib.distances import minimize_vectors
-from MDAnalysis.lib.mdamath import make_whole
 import numpy as np
 from .. import FOUND_OPENMM, Q_, ureg
 from .molecule import center_of_mass
-from .utility import get_closest_factors, replicate, find_connected_nodes
+from .utility import (is_lower_triangular, get_closest_factors, replicate, 
+                      find_connected_nodes)
 from .unit import strip_unit
 
 if FOUND_OPENMM:
@@ -447,23 +447,7 @@ def unwrap_edge(
     """
 
     if group is not None:
-        positions = group.positions
-        for fragment in group.fragments:
-
-            # Get locally unwrapped atom positions for fragment
-            fragment_positions = make_whole(fragment)
-
-            # Find fragment atoms that are actually in the AtomGroup
-            fragment_mask = np.in1d(fragment.ix, group.ix, assume_unique=True)
-
-            # Get corresponding indices for the AtomGroup positions array
-            mask = np.in1d(group.ix, fragment.ix[fragment_mask],
-                           assume_unique=True)
-
-            # Update the AtomGroup positions
-            positions[mask] = fragment_positions[fragment_mask]
-
-        return positions
+        return group.unwrap()
 
     elif positions is not None:
         if bonds is None:
@@ -577,3 +561,121 @@ def wrap(
             np.floor(positions / dimensions) * dimensions
         )[wrap_indices]
         return positions
+
+def reduce_box_vectors(vectors: np.ndarray[float]) -> np.ndarray[float]:
+
+    """
+    Performs lattice reduction on box vectors.
+
+    Parameters
+    ----------
+    vectors : `numpy.ndarray`
+        Box vectors :math:`\mathbf{a}`, :math:`\mathbf{b}`, and
+        :math:`\mathbf{c}`, provided as rows in a matrix.
+
+        **Shape**: :math:`(3,\,3)`.
+
+        **Reference unit**: :math:`\mathrm{nm}`.
+
+    Returns
+    -------
+    reduced_vectors : `numpy.ndarray`
+        Reduced box vectors.
+
+        **Shape**: :math:`(3,\,3)`.
+
+        **Reference unit**: :math:`\mathrm{nm}`.
+    """
+
+    vectors = np.asarray(vectors)
+    if is_lower_triangular(vectors):
+        return vectors
+    a, b, c = vectors
+    c -= b * np.round(c[1] / b[1])
+    c -= a * np.round(c[0] / a[0])
+    b -= a * np.round(b[0] / a[0])
+    return np.vstack((a, b, c))
+
+def convert_cell_representation(
+        *, parameters: np.ndarray[float] = None,
+        vectors: np.ndarray[float] = None) -> np.ndarray[float]:
+    
+    r"""
+    Converts between crystallographic lattice parameters and triclinic
+    box vectors.
+
+    Parameters
+    ----------
+    parameters : array-like, optional
+        Lattice parameters :math:`(a,\,b,\,c,\,\alpha,\,\beta,\,\gamma)`.
+
+        **Shape**: :math:`(6,)`.
+
+        **Reference unit**: :math:`\mathrm{nm}` (lengths) and
+        :math:`^\circ` (angles).
+
+    vectors : array-like, optional
+        Box vectors :math:`\mathbf{a}`, :math:`\mathbf{b}`, and
+        :math:`\mathbf{c}`, provided as rows in a matrix, in their
+        reduced forms:
+
+        .. math::
+
+           \begin{align*}
+             \mathbf{a} &= (a_x,\,0,\,0) \\
+             \mathbf{b} &= (b_x,\,b_y,\,0) \\
+             \mathbf{c} &= (c_x,\,c_y,\,c_z)
+           \end{align*}
+
+        **Shape**: :math:`(3,\,3)`.
+
+        **Reference unit**: :math:`\mathrm{nm}`.
+
+    Returns
+    -------
+    representation : `numpy.ndarray`
+        Lattice parameters or box vectors.
+    """
+    
+    if parameters is None and vectors is None:
+        emsg = "Either 'parameters' or 'vectors' must be specified."
+        raise ValueError(emsg)
+    elif parameters is not None and vectors is not None:
+        emsg = "Only one of 'parameters' or 'vectors' can be specified."
+        raise ValueError(emsg)
+
+    if parameters is not None:
+        if len(parameters) == 3:
+            warnings.warn("Only cell lengths are specified. Assuming cubic cell.")
+            parameters = np.concatenate((parameters, (90, 90, 90)))
+        elif len(parameters) != 6:
+            emsg = "Invalid number of lattice parameters in 'parameters'."
+            raise ValueError(emsg)
+        else:
+            parameters = parameters.copy()
+
+        alpha, beta, gamma = np.radians(parameters[3:])
+        vectors = np.zeros((3, 3))
+        vectors[0, 0] = parameters[0]
+        vectors[1, 0] = parameters[1] * np.cos(gamma)
+        vectors[1, 1] = parameters[1] * np.sin(gamma)
+        vectors[2, 0] = parameters[2] * np.cos(beta)
+        vectors[2, 1] = (parameters[2] * (np.cos(alpha) - np.cos(beta) * np.cos(gamma)) 
+                         / np.sin(gamma))
+        vectors[2, 2] = np.sqrt(parameters[2] ** 2 - vectors[2, 0] ** 2 
+                                - vectors[2, 1] ** 2)
+        vectors[np.isclose(vectors, 0, atol=5e-6)] = 0
+        return vectors
+    
+    else:
+        if not is_lower_triangular(vectors):
+            vectors = reduce_box_vectors(vectors)
+        parameters = np.zeros(6)
+        parameters[:3] = np.linalg.norm(vectors, axis=1)
+        parameters[3] = np.degrees(np.arccos(np.dot(vectors[1], vectors[2]) 
+                                             / (parameters[1] * parameters[2])))
+        parameters[4] = np.degrees(np.arccos(np.dot(vectors[0], vectors[2]) 
+                                             / (parameters[0] * parameters[2])))
+        parameters[5] = np.degrees(np.arccos(np.dot(vectors[0], vectors[1]) 
+                                             / (parameters[0] * parameters[1])))
+        return parameters

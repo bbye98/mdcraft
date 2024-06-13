@@ -128,3 +128,68 @@ def test_func_wrap():
     # TEST CASE 2: Wrap in-place
     topology.wrap(pos, dims)
     assert np.allclose(pos[0], (9, 10, 1))
+
+def test_func_convert_cell_representation():
+
+    # TEST CASE 1: Cubic box
+    parameters = np.array((1, 1, 1, 90, 90, 90))
+    vectors = np.eye(3)
+    assert np.allclose(
+        topology.convert_cell_representation(vectors=vectors),
+        parameters
+    )
+    assert np.allclose(
+        topology.convert_cell_representation(parameters=parameters),
+        vectors
+    )
+
+    # TEST CASE 2: Rhombic docecahedron (xy-square)
+    parameters = np.array((1, 1, 1, 60, 60, 90))
+    vectors = np.array((
+        (1, 0, 0),
+        (0, 1, 0),
+        (1 / 2, 1 / 2, 1 / np.sqrt(2))
+    ))
+    assert np.allclose(
+        topology.convert_cell_representation(vectors=vectors),
+        parameters
+    )
+    assert np.allclose(
+        topology.convert_cell_representation(parameters=parameters),
+        vectors
+    )
+
+    # TEST CASE 3: Rhombic docecahedron (xy-hexagon)
+    parameters = np.array((1, 1, 1, 60, 60, 60))
+    vectors = np.array((
+        (1, 0, 0),
+        (1 / 2, np.sqrt(3) / 2, 0),
+        (1 / 2, np.sqrt(3) / 6, np.sqrt(6) / 3)
+    ))
+    assert np.allclose(
+        topology.convert_cell_representation(vectors=vectors),
+        parameters
+    )
+    assert np.allclose(
+        topology.convert_cell_representation(parameters=parameters),
+        vectors
+    )
+
+    # TEST CASE 4: Truncated octahedron
+    parameters = np.array((1, 1, 1, 
+                           np.degrees(np.arccos(1 / 3)), 
+                           np.degrees(np.arccos(-1 / 3)), 
+                           np.degrees(np.arccos(1 / 3))))
+    vectors = np.array((
+        (1, 0, 0),
+        (1 / 3, 2 * np.sqrt(2) / 3, 0),
+        (-1 / 3, np.sqrt(2) / 3, np.sqrt(6) / 3)
+    ))
+    assert np.allclose(
+        topology.convert_cell_representation(vectors=vectors),
+        parameters
+    )
+    assert np.allclose(
+        topology.convert_cell_representation(parameters=parameters),
+        vectors
+    )

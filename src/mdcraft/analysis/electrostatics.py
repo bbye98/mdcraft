@@ -16,7 +16,7 @@ import numpy as np
 from .base import DynamicAnalysisBase
 from .. import FOUND_OPENMM, Q_, ureg
 from ..algorithm.topology import unwrap
-from ..algorithm.unit import strip_unit
+from ..algorithm.unit import is_unitless, strip_unit
 
 if FOUND_OPENMM:
     from openmm import unit
@@ -487,10 +487,10 @@ class DipoleMoment(DynamicAnalysisBase):
                     "mass of each molecule carrying a net charge.")
             raise RuntimeError(emsg)
 
-        temperature, unit_ = strip_unit(temperature, "kelvin")
-        if self._reduced and not isinstance(unit_, str):
+        if self._reduced and not is_unitless(temperature):
             emsg = ("'temperature' cannot have units when reduced=True.")
             raise ValueError(emsg)
+        temperature = strip_unit(temperature, "K")[0]
 
         dipoles = self.results.dipoles
         if self._n_groups > 1:

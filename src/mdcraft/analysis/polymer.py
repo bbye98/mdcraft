@@ -73,7 +73,7 @@ class _PolymerAnalysisBase(DynamicAnalysisBase):
         container heirarchy. If an `int` is provided, the same value is
         used for all groups.
 
-        **Shape**: :math:`(N_\textrm{groups},)`.
+        **Shape**: :math:`(N_\mathrm{groups},)`.
 
     n_monomers : `int` or array-like, optional
         Number of monomers :math:`N` in each chain in each polymer
@@ -81,7 +81,7 @@ class _PolymerAnalysisBase(DynamicAnalysisBase):
         standard container heirarchy. If an `int` is provided, the same
         value is used for all groups.
 
-        **Shape**: :math:`(N_\textrm{groups},)`.
+        **Shape**: :math:`(N_\mathrm{groups},)`.
 
     unwrap : `bool`, keyword-only, default: :code:`False`
         Determines whether atom positions are unwrapped.
@@ -225,7 +225,7 @@ class Gyradius(_PolymerAnalysisBase):
         container heirarchy. If an `int` is provided, the same value is
         used for all groups.
 
-        **Shape**: :math:`(N_\\textrm{groups},)`.
+        **Shape**: :math:`(N_\\mathrm{groups},)`.
 
     n_monomers : `int` or array-like, optional
         Number of monomers :math:`N` in each chain in each polymer
@@ -233,7 +233,7 @@ class Gyradius(_PolymerAnalysisBase):
         standard container heirarchy. If an `int` is provided, the same
         value is used for all groups.
 
-        **Shape**: :math:`(N_\\textrm{groups},)`.
+        **Shape**: :math:`(N_\\mathrm{groups},)`.
 
     components : `bool`, keyword-only, default: :code:`False`
         Specifies whether the components of the radii of gyration are
@@ -266,10 +266,10 @@ class Gyradius(_PolymerAnalysisBase):
     results.gyradii : `numpy.ndarray`
         Radii of gyration.
 
-        **Shape**: :math:`(N_\\textrm{groups},\,N_\\textrm{frames})` or
-        :math:`(N_\\textrm{groups},\\,N_\\mathrm{frames},\\,3)`.
+        **Shape**: :math:`(N_\\mathrm{groups},\\,N_\\mathrm{frames})` or
+        :math:`(N_\\mathrm{groups},\\,N_\\mathrm{frames},\\,3)`.
 
-        **Reference unit**: :math:`\\textrm{Å}`.
+        **Reference unit**: :math:`\\mathrm{Å}`.
     """
 
     def __init__(
@@ -470,7 +470,12 @@ class Gyradius(_PolymerAnalysisBase):
         if self._unwrap:
             del self._positions_old, self._images
 
-def correlation_fft(*args, **kwargs) -> np.ndarray[float]:
+def correlation_fft(
+        x: np.ndarray[Union[float, complex]],
+        y: np.ndarray[Union[float, complex]] = None, /, axis: int = None, *,
+        average: bool = False, double: bool = False, vector: bool = False
+    ) -> np.ndarray[Union[float, complex]]:
+
 
     r"""
     Evaluates the autocorrelation functions (ACF)
@@ -485,9 +490,14 @@ def correlation_fft(*args, **kwargs) -> np.ndarray[float]:
        :func:`mdcraft.algorithm.correlation.correlation_fft`.
     """
 
-    return correlation.correlation_fft(*args, **kwargs)
+    return correlation.correlation_fft(x, y, axis, average=average, 
+                                       double=double, vector=vector)
 
-def correlation_shift(*args, **kwargs) -> np.ndarray[float]:
+def correlation_shift(
+        x: np.ndarray[Union[float, complex]],
+        y: np.ndarray[Union[float, complex]] = None, /, axis: int = None, *,
+        average: bool = False, double: bool = False, vector: bool = False
+    ) -> np.ndarray[Union[float, complex]]:
 
     r"""
     Evaluates the autocorrelation functions (ACF)
@@ -502,7 +512,8 @@ def correlation_shift(*args, **kwargs) -> np.ndarray[float]:
        :func:`mdcraft.algorithm.correlation.correlation_shift`.
     """
 
-    return correlation.correlation_shift(*args, **kwargs)
+    return correlation.correlation_shift(x, y, axis, average=average,
+                                         double=double, vector=vector)
 
 def calculate_relaxation_time(
         times: np.ndarray[float], acf: np.ndarray[float]) -> float:
@@ -536,20 +547,20 @@ def calculate_relaxation_time(
 
         **Shape**: :math:`(N_\mathrm{frames},)`.
 
-        **Reference unit**: :math:`\textrm{ps}`.
+        **Reference unit**: :math:`\mathrm{ps}`.
 
     acf : `numpy.ndarray`
         End-to-end vector ACF :math:`C_\mathrm{ee}(t)`.
 
         **Shape**:
-        :math:`(N_\textrm{groups},\,N_\textrm{bins},\,N_\mathrm{frames})`.
+        :math:`(N_\mathrm{groups},\,N_\mathrm{bins},\,N_\mathrm{frames})`.
 
     Returns
     -------
     relaxation_time : `float`
         Average orientational relaxation time :math:`\tau_\mathrm{r}`.
 
-        **Reference unit**: :math:`\textrm{ps}`.
+        **Reference unit**: :math:`\mathrm{ps}`.
     """
 
     tau_r, beta = optimize.curve_fit(stretched_exp, times / times[1], acf,
@@ -628,7 +639,7 @@ class EndToEndVector(_PolymerAnalysisBase):
         container heirarchy. If an `int` is provided, the same value is
         used for all groups.
 
-        **Shape**: :math:`(N_\\textrm{groups},)`.
+        **Shape**: :math:`(N_\\mathrm{groups},)`.
 
     n_monomers : `int` or array-like, optional
         Number of monomers :math:`N` in each chain in each polymer
@@ -636,7 +647,7 @@ class EndToEndVector(_PolymerAnalysisBase):
         standard container heirarchy. If an `int` is provided, the same
         value is used for all groups.
 
-        **Shape**: :math:`(N_\\textrm{groups},)`.
+        **Shape**: :math:`(N_\\mathrm{groups},)`.
 
     n_blocks : `int`, keyword-only, default: :code:`1`
         Number of blocks to split the trajectory into.
@@ -682,20 +693,20 @@ class EndToEndVector(_PolymerAnalysisBase):
 
         **Shape**: :math:`(N_\\mathrm{frames},)`.
 
-        **Reference unit**: :math:`\\textrm{ps}`.
+        **Reference unit**: :math:`\\mathrm{ps}`.
 
     results.acf : `numpy.ndarray`
-        End-to-end vector ACFs :math:`C_\mathrm{ee}(t)`.
+        End-to-end vector ACFs :math:`C_\\mathrm{ee}(t)`.
 
         **Shape**:
-        :math:`(N_\\textrm{groups},\\,N_\\textrm{blocks},\\,N_\\mathrm{frames})`.
+        :math:`(N_\\mathrm{groups},\\,N_\\mathrm{blocks},\\,N_\\mathrm{frames})`.
 
     results.relaxation_times : `numpy.ndarray`
         Average orientational relaxation times :math:`\\tau_\\mathrm{r}`.
 
-        **Shape**: :math:`(N_\\textrm{groups},\\,N_\\textrm{blocks})`.
+        **Shape**: :math:`(N_\\mathrm{groups},\\,N_\\mathrm{blocks})`.
 
-        **Reference units**: :math:`\\textrm{ps}`.
+        **Reference units**: :math:`\\mathrm{ps}`.
     """
 
     def __init__(
@@ -724,11 +735,21 @@ class EndToEndVector(_PolymerAnalysisBase):
             _ += M
 
         self._n_blocks = n_blocks
-        self._dt = strip_unit(dt or self._trajectory.dt, "ps")[0]
+        self._dt = strip_unit(dt, "ps")[0] or self._trajectory.dt
         self._fft = fft
 
     def _prepare(self) -> None:
 
+        # Ensure frames are evenly spaced and proceed forward in time
+        if hasattr(self._sliced_trajectory, "frames"):
+            dfs = np.diff(self._sliced_trajectory.frames)
+            if (df := dfs[0]) <= 0 or not np.allclose(dfs, df):
+                emsg = ("The selected frames must be evenly spaced and "
+                        "proceed forward in time.")
+                raise ValueError(emsg)
+        elif (df := self.step) <= 0:
+            raise ValueError("The analysis must proceed forward in time.")
+        
         # Determine number of frames used when the trajectory is split
         # into blocks
         self._n_frames_block = self.n_frames // self._n_blocks
@@ -741,7 +762,7 @@ class EndToEndVector(_PolymerAnalysisBase):
                     "of frames to be analyzed is divisible by the number of "
                     "blocks.")
             warnings.warn(wmsg)
-
+            
         # Preallocate arrays to store end-to-end vectors
         self._e2e = np.empty((self.n_frames, self._M, 3))
 
@@ -781,14 +802,13 @@ class EndToEndVector(_PolymerAnalysisBase):
             self._images = np.zeros((self._M, 2, 3), dtype=int)
             self._thresholds = self._dimensions / 2
 
-        # Store time information
-        self.results.times \
-            = self.step * self._dt * np.arange(self._n_frames_block)
-
         # Preallocate array to store end-to-end vector ACFs
         self.results.acf = np.empty(
             (self._n_groups, self._n_blocks, self._n_frames_block)
         )
+
+        # Store time changes
+        self.results.times = df * self._dt * np.arange(self._n_frames_block)
 
         # Store reference units
         self.results.units = {"times": ureg.picosecond}
@@ -856,7 +876,8 @@ class EndToEndVector(_PolymerAnalysisBase):
         """
 
         if not hasattr(self.results, "acf"):
-            emsg = "Call run() before calculate_relaxation_times()."
+            emsg = ("Call EndToEndVector.run() before "
+                    "EndToEndVector.calculate_relaxation_times().")
             raise RuntimeError(emsg)
 
         self.results.relaxation_times = np.empty((self._n_groups,
@@ -881,8 +902,8 @@ class SingleChainStructureFactor(NumbaAnalysisBase, _PolymerAnalysisBase):
     .. math::
 
        S_{\\mathrm{sc}}(q)=\\frac{1}{MN}\\left\\langle
-       \\sum_{m=1}^M\\sum_{i=1}^{N}\\sum_{j=1}^{N}\\exp{
-       [i\\mathbf{q}\\cdot(\\mathbf{r}_i-\\mathbf{r}_j)]}\\right\\rangle
+       \\sum_{m=1}^M\\sum_{j=1}^{N}\\sum_{k=1}^{N}\\exp{
+       [i\\mathbf{q}\\cdot(\\mathbf{r}_j-\\mathbf{r}_k)]}\\right\\rangle
 
     where :math:`M` is the number of chains, :math:`N` is the chain
     length, :math:`\\mathbf{q}` and :math:`q` are the scattering
@@ -943,7 +964,7 @@ class SingleChainStructureFactor(NumbaAnalysisBase, _PolymerAnalysisBase):
         container heirarchy. If an `int` is provided, the same value is
         used for all groups.
 
-        **Shape**: :math:`(N_\\textrm{groups},)`.
+        **Shape**: :math:`(N_\\mathrm{groups},)`.
 
     n_monomers : `int` or array-like, optional
         Number of monomers :math:`N` in each chain in each polymer
@@ -951,7 +972,7 @@ class SingleChainStructureFactor(NumbaAnalysisBase, _PolymerAnalysisBase):
         standard container heirarchy. If an `int` is provided, the same
         value is used for all groups.
 
-        **Shape**: :math:`(N_\\textrm{groups},)`.
+        **Shape**: :math:`(N_\\mathrm{groups},)`.
 
     form : `str`, keyword-only, default: :code:`"exp"`
         Expression used to evaluate the single-chain structure factors.
@@ -976,7 +997,7 @@ class SingleChainStructureFactor(NumbaAnalysisBase, _PolymerAnalysisBase):
         **Reference unit**: :math:`\\mathrm{Å}`.
 
     n_points : `int`, keyword-only, default: :code:`32`
-        Number of points :math:`n_\mathrm{points}` in the scattering
+        Number of points :math:`n_\\mathrm{points}` in the scattering
         wavevector grid. Additional wavevectors can be introduced via
         `n_surfaces` and `n_surface_points` for more accurate structure
         factors at small wavenumbers. Alternatively, the desired
@@ -1049,7 +1070,7 @@ class SingleChainStructureFactor(NumbaAnalysisBase, _PolymerAnalysisBase):
 
         **Shape**: :math:`(N_q,)`.
 
-        **Reference unit**: :math:`\\textrm{Å}^{-1}`.
+        **Reference unit**: :math:`\\mathrm{Å}^{-1}`.
 
     results.scsf : `numpy.ndarray`
         Single-chain structure factors :math:`S_\\mathrm{sc}(q)`.
