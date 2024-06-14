@@ -22,7 +22,7 @@ def get_scale_factors(
 
     .. seealso::
 
-       This is an alias function. For more information, see
+       This function is an alias for
        :func:`mdcraft.algorithm.unit.get_scale_factors`.
     """
 
@@ -37,7 +37,7 @@ def get_lj_scale_factors(
 
     .. seealso::
 
-       This is an alias function. For more information, see
+       This function is an alias for
        :func:`mdcraft.algorithm.unit.get_lj_scale_factors`.
     """
 

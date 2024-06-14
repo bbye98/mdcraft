@@ -24,6 +24,7 @@ version = release = VERSION
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
+    "myst_nb",
     "numpydoc",
     "sphinx_copybutton",
     "sphinx.ext.autodoc",
@@ -50,6 +51,7 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None)
 }
+nb_execution_timeout = -1
 numpydoc_show_class_members = False
 toc_object_entries_show_parents = "hide"
 

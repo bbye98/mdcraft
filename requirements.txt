@@ -19,6 +19,7 @@ openmm
 
 # DOCUMENTATION DEPENDENCIES
 furo
+myst-nb
 numpydoc
 sphinx
 sphinx-copybutton

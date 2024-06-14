@@ -25,8 +25,8 @@ across one or would like to request new features, please
 ## Features
 
 * [`algorithm`](https://github.com/bbye98/mdcraft/tree/main/src/mdcraft/algorithm):
-Efficient NumPy and SciPy algorithms for data wrangling and evaluating
-structural and dynamical properties.
+Efficient Numba, NumPy, and SciPy algorithms for data wrangling and 
+evaluating structural and dynamical properties.
 * [`analysis`](https://github.com/bbye98/mdcraft/tree/main/src/mdcraft/analysis):
 Serial and parallel data analysis tools built on top of the MDAnalysis
 framework.
@@ -70,7 +70,7 @@ install the package using pip:
 
 Alternatively, MDCraft is available on Conda:
 
-    conda install -c bbye98 mdcraft
+    conda install bbye98::mdcraft
 
 and PyPI:
 

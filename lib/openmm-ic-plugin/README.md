@@ -69,9 +69,9 @@ A simple example is provided below:
     pbv = system.getDefaultPeriodicBoxVectors()
     pbv[2] *= 2
     system.setDefaultPeriodicBoxVectors(*pbv)
-    dims = topology.getUnitCellDimensions()
-    dims[2] *= 2
-    topology.setUnitCellDimensions(dims)
+    dimensions = topology.getUnitCellDimensions()
+    dimensions[2] *= 2
+    topology.setUnitCellDimensions(dimensions)
     positions = np.concatenate(
         (positions, positions * np.array((1, 1, -1), dtype=int))
     )
