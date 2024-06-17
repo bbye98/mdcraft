@@ -71,22 +71,22 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
 
         **Valid values:**
 
-        =================================  ===================================================  ======================
-        Keyword (`Reader.data` key)        LAMMPS dump attribute(s)                             Type
-        =================================  ===================================================  ======================
-        :code:`"dipole_moment"`            (:code:`mux`, :code:`muy`, :code:`muz`)              `numpy.ndarray[float]`
-        :code:`"dipole_moment_magnitude"`  :code:`mu`                                           `float`     
-        :code:`"angular_velocity"`         (:code:`omegax`, :code:`omegay`, :code:`omegaz`)     `numpy.ndarray[float]`
-        :code:`"angular_momentum"`         (:code:`angmomx`, :code:`angmomy`, :code:`angmomz`)  `numpy.ndarray[float]`
-        :code:`"torque"`                   (:code:`tqx`, :code:`tqy`, :code:`tqz`)              `numpy.ndarray[float]`
-        :code:`"c_{compute_id}"`           (:code:`c_{compute_id}[i]`, ...)                     `numpy.ndarray[float]`
-        :code:`"d_{name}"`                 (:code:`d_{name}[i]`, ...)                           `numpy.ndarray[float]`
-        :code:`"d2_{name}[i]"`             (:code:`d2_{name}[i][j]`, ...)                       `numpy.ndarray[float]`
-        :code:`"f_{fix_id}"`               (:code:`f_{fix_id}[i]`, ...)                         `numpy.ndarray[float]`
-        :code:`"i_{name}"`                 (:code:`i_{name}[i]`, ...)                           `numpy.ndarray[int]`
-        :code:`"i2_{name}[i]"`             (:code:`i2_{name}[i][j]`, ...)                       `numpy.ndarray[int]`
-        :code:`"v_{name}"`                 (:code:`v_{name}[i]`, ...)                           `numpy.ndarray[float]`
-        =================================  ===================================================  ======================
+        ==================================  ===================================================  ======================
+        Keyword (`Reader.data` key)         LAMMPS dump attribute(s)                             Type
+        ==================================  ===================================================  ======================
+        :code:`"dipole_moments"`            (:code:`mux`, :code:`muy`, :code:`muz`)              `numpy.ndarray[float]`
+        :code:`"dipole_moment_magnitudes"`  :code:`mu`                                           `float`     
+        :code:`"angular_velocities"`        (:code:`omegax`, :code:`omegay`, :code:`omegaz`)     `numpy.ndarray[float]`
+        :code:`"angular_momentums"`         (:code:`angmomx`, :code:`angmomy`, :code:`angmomz`)  `numpy.ndarray[float]`
+        :code:`"torques"`                   (:code:`tqx`, :code:`tqy`, :code:`tqz`)              `numpy.ndarray[float]`
+        :code:`"c_{compute_id}"`            (:code:`c_{compute_id}[i]`, ...)                     `numpy.ndarray[float]`
+        :code:`"d_{name}"`                  (:code:`d_{name}[i]`, ...)                           `numpy.ndarray[float]`
+        :code:`"d2_{name}[i]"`              (:code:`d2_{name}[i][j]`, ...)                       `numpy.ndarray[float]`
+        :code:`"f_{fix_id}"`                (:code:`f_{fix_id}[i]`, ...)                         `numpy.ndarray[float]`
+        :code:`"i_{name}"`                  (:code:`i_{name}[i]`, ...)                           `numpy.ndarray[int]`
+        :code:`"i2_{name}[i]"`              (:code:`i2_{name}[i][j]`, ...)                       `numpy.ndarray[int]`
+        :code:`"v_{name}"`                  (:code:`v_{name}[i]`, ...)                           `numpy.ndarray[float]`
+        ==================================  ===================================================  ======================
     
     Examples
     --------
@@ -105,12 +105,12 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
     If the dump file contains extra information, like the per-atom 
     dipole moments, it can be specified in the :code:`extras` argument:
 
-    >>> universe = mda.Universe("simulation.lammpsdump", extras=["dipole_moment"])
+    >>> universe = mda.Universe("simulation.lammpsdump", extras=["dipole_moments"])
 
     The extra information will be stored in the :code:`data` attribute of
     the trajectory object:
 
-    >>> dipole_moments = universe.trajectory.data["dipole_moment"]
+    >>> dipole_moments = universe.trajectory.data["dipole_moments"]
 
     If the dump file does not have the :code:`.lammpsdump` extension,
     the format can be specified in the :code:`format` argument:
