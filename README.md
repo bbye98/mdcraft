@@ -78,7 +78,7 @@ and PyPI:
 
 ### Postrequisites
 
-To use the image of method charges
+To use the method of image charges
 (`mdcraft.openmm.system.add_image_charges()`) in your OpenMM
 simulations, you must compile and install [`constvplugin`](
 https://github.com/scychon/openmm_constV) or [`openmm-ic-plugin`](

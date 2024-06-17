@@ -64,7 +64,7 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
            provided to `extras` and the dump file contains the 
            instances :code:`c_custom[2]`, :code:`c_custom[4]`, and
            :code:`c_custom[1]`, in that order, the array will have shape
-           :code:`(N,\,3)`. The instances are always sorted, such that
+           :math:`(N,\,3)`. The instances are always sorted, such that
            the columns in the example array correspond to 
            :code:`c_custom[1]`, :code:`c_custom[2]`, and 
            :code:`c_custom[4]`, respectively.
@@ -356,9 +356,10 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
             self._extras_indices = {}
             for attr in self._extras:
                 if attr.startswith(self._CUSTOM_ATTRIBUTE_PREFIXES):
+                    l = len(attr)
                     self._extras_indices[attr] = [
                         j for _, j in sorted(
-                            (int(a[a.find("[") + 1:a.find("]")]), i) 
+                            (int(a[a.find("[", l) + 1:a.find("]", l)]), i) 
                             for a, i in attributes.items() 
                             if a.startswith(attr)
                         )
