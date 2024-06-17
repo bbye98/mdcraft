@@ -121,11 +121,11 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
     _CONVENTIONS = ["u", "su", "", "s"]
     _CUSTOM_ATTRIBUTE_PREFIXES = ("c_", "d_", "d2_", "f_", "i_", "i2_", "v_")
     _EXTRA_ATTRIBUTES = {
-        "dipole_moment": ("mux", "muy", "muz"),
-        "dipole_moment_magnitude": ("mu",), 
-        "angular_velocity": ("omegax", "omegay", "omegaz"),
-        "angular_momentum": ("angmomx", "angmomy", "angmomz"),
-        "torque": ("tqx", "tqy", "tqz")
+        "dipole_moments": ("mux", "muy", "muz"),
+        "dipole_moment_magnitudes": ("mu",), 
+        "angular_velocities": ("omegax", "omegay", "omegaz"),
+        "angular_momentums": ("angmomx", "angmomy", "angmomz"),
+        "torques": ("tqx", "tqy", "tqz")
     }
 
     format = "LAMMPSDUMP"
