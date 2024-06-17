@@ -51,7 +51,10 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None)
 }
+myst_heading_anchors = 6
+napoleon_numpy_docstring = True
 nb_execution_timeout = -1
+nb_merge_streams = True
 numpydoc_show_class_members = False
 toc_object_entries_show_parents = "hide"
 

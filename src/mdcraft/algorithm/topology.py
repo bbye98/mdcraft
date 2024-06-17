@@ -670,7 +670,7 @@ def convert_cell_representation(
     else:
         if not is_lower_triangular(vectors):
             vectors = reduce_box_vectors(vectors)
-        parameters = np.zeros(6)
+        parameters = np.empty(6)
         parameters[:3] = np.linalg.norm(vectors, axis=1)
         parameters[3] = np.degrees(np.arccos(np.dot(vectors[1], vectors[2]) 
                                              / (parameters[1] * parameters[2])))

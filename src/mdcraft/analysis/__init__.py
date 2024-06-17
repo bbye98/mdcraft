@@ -7,8 +7,8 @@ This module provides a variety of classes for analyzing simulation
 trajectories.
 """
 
-from . import (base, electrostatics, polymer, profile, structure,
+from . import (base, electrostatics, polymer, profile, reader, structure,
                thermodynamics, transport)
 
-__all__ = ["base", "electrostatics", "polymer", "profile", "structure",
-           "thermodynamics", "transport"]
+__all__ = ["base", "electrostatics", "polymer", "profile", "reader", 
+           "structure", "thermodynamics", "transport"]
