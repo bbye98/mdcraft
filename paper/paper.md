@@ -7,17 +7,20 @@ tags:
 authors:
   - name: Benjamin B. Ye
     orcid: 0000-0003-0253-6311
+    corresponding: true
     affiliation: 1
   - name: Pierre J. Walker
     orcid: 0000-0001-8628-6561
-    affiliation: 1
+    affiliation: "1, 2"
   - name: Zhen-Gang Wang
-    corresponding: true
     orcid: 0000-0002-3361-6114
     affiliation: 1
 affiliations:
- - name: California Institute of Technology, U.S.A.
+ - name: Division of Chemistry and Chemical Engineering, California Institute of Technology, Pasadena, California 91125, United States
    index: 1
+ - name: Department of Chemical Engineering, Imperial College, London SW7 2AZ, United Kingdom
+   index: 2
+  
 date:
 bibliography: paper.bib
 ---
@@ -35,13 +38,11 @@ Finally, the `fit` and `plot` modules facilitate post-processing of the results 
 These three aspect provide both entry-level and experienced users of MD simulations all the tools they need to perform their experiments, both simple and complex, within one succinct package.
 
 # Statement of need
-While well-established molecular dynamics analysis packages such as `MDAnalysis` [@michaud-agrawalMDAnalysisToolkitAnalysis2011] and `MDTraj` [@McGibbon2015MDTraj] have existed for a long time, their primary focus has been on the analysis
-What distinguishes MDCraft from other analysis tools is its remarkable flexibility. General users have unprecedented control over what aspects of the properties to calculate and which method to use through a plethora of well-documented built-in options in each analysis class, without having to be concerned about the underlying implementations. More advanced users, on the other hand, have the option to work directly with the algorithms for further customization.
+While well-established molecular dynamics analysis packages such as `MDAnalysis` [@michaud-agrawalMDAnalysisToolkitAnalysis2011] and `MDTraj` [@McGibbon2015MDTraj] have existed for a long time, their primary focus has been on the analysis of simulations, whereas `MDCraft` aims to provide the tools needed throughout the simulation process, from initialization to post-processing. In particular, the youngest of the standardized simulation packages, OpenMM, offers little in the way of an easy-to-use interface and analysis tools, with `MDCraft` filling-in these gaps. Furthermore, leveraging the modularity of OpenMM, `MDCraft` provides brand new simulation potentials (GCMe) and methods (image charges) not typically available in other simulation packages.
 
-
-
-
+In addition, what distinguishes `MDCraft` with regards to its analysis toolkit is its remarkable flexibility. General users have unprecedented control over what aspects of the properties to calculate and which method to use through a plethora of well-documented built-in options in each analysis class, without having to be concerned about the underlying implementations. More advanced users, on the other hand, have the option to work directly with the algorithms for further customization. These tools have proven to be vital in a number of recent publications [@glismanMultivalentIonMediatedPolyelectrolyte2024;@manthaAdsorptionIsothermMechanism2024;@Lee2024].
 
 # Acknowledgements
+We acknowledge contributions from Alec Glisman in the development of this package. Z-G.W. acknowledges funding from Hong Kong Quantum AI Lab, AIR\@InnoHK of the Hong Kong Government.
 
 # References
