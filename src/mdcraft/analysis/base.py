@@ -40,6 +40,15 @@ from tqdm import tqdm
 @contextlib.contextmanager
 def _tqdm_joblib(tqdm_obj: tqdm) -> Generator:
 
+    """
+    A context manager for displaying a progress bar with Joblib.
+
+    Parameters
+    ----------
+    tqdm_obj : `tqdm.tqdm`
+        tqdm progress bar object.
+    """
+
     class TqdmBatchCompletionCallback(joblib.parallel.BatchCompletionCallBack):
         def __call__(self, *args, **kwargs) -> None:
             tqdm_obj.update(n=self.batch_size)

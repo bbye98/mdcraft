@@ -1,4 +1,4 @@
-{% set no_inherited_members = [
+{% set no_inheritance_classes = [
    'mdcraft.analysis.base.Hash',
    'mdcraft.analysis.reader.LAMMPSDumpTrajectoryReader'
 ] %}
@@ -10,7 +10,7 @@
 .. autoclass:: {{ objname }}
    :members:
    :show-inheritance:
-   {% if fullname not in no_inherited_members -%}
+   {% if fullname not in no_inheritance_classes -%}
    :inherited-members:
    {% endif -%}
 
@@ -22,7 +22,7 @@
       :nosignatures:
    {% for item in methods %}
       {%- if not item.startswith('_') and (
-         fullname not in no_inherited_members or item not in inherited_members
+         fullname not in no_inheritance_classes or item not in inherited_members
       ) %}
          ~{{ name }}.{{ item }}
       {%- endif -%}
