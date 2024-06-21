@@ -1,10 +1,10 @@
 ---
-title: 'MDCraft: A Python assistant for performing and analysing molecular dynamics simulations of soft matter systems'
+title: 'MDCraft: A Python assistant for performing and analyzing molecular dynamics simulations of soft matter systems'
 tags:
   - Python
-  - Molecular Dynamics
-  - Trajectory Analysis
-  - Soft Matter
+  - molecular dynamics
+  - trajectory analysis
+  - soft matter
 authors:
   - name: Benjamin B. Ye
     orcid: 0000-0003-0253-6311
@@ -21,31 +21,34 @@ affiliations:
    index: 1
  - name: Department of Chemical Engineering, Imperial College, London SW7 2AZ, United Kingdom
    index: 2
-  
-date:
+date: June __, 2024
 bibliography: paper.bib
 ---
 
 # Summary
 
-`MDCraft` is a comprehensive Python package designed to enhance research workflows involving molecular dynamics (MD) simulations. It streamlines the entire process, from the setup and execution of simulations, to the analysis of trajectories using sophisticated algorithms, and post-processing tools for visualizing results, thereby making computational chemistry more accessible to a broader audience. At its core, MDCraft comprises three principal components.
+MDCraft is a comprehensive Python package designed to enhance research workflows involving molecular dynamics (MD) simulations. It streamlines the entire process—from setting up and executing simulations to analyzing trajectories using sophisticated algorithms and visualizing results—making computational chemistry more accessible to a broader audience. At its core, MDCraft comprises three principal components.
 
-First, for the analysis and optimization of MD simulations, the `lammps` and `openmm` modules provide user-friendly tools enabling the exploration of a wide variety of large soft matter systems over a range of timescales in the LAMMPS [@thompson:2022] and OpenMM [@eastman:2017] simulation packages, respectively. These modules extend the functionality of popular MD simulation toolkits by introducing custom force fields, such as the efficient and intuitive Gaussian core model with smeared electrostatics (GCMe) [@ye:2024], incorporating advanced techniques like slab correction [@yeh:1999;@ballenegger:2009] and the method of image charges [@hautman:1989] for charged systems with a slab geometry, facilitating coarse-grained MD simulations by scaling physical values by fundamental quantities (mass $m$, length $d$, energy $\epsilon$, and Boltzmann constant $k_\mathrm{B}T$), and offering feature-rich readers and writers for topologies and trajectories stored in memory-efficient formats.
+First, the `lammps` and `openmm` modules provide user-friendly tools to initialize, optimize, and run simulations, enabling the exploration of various large soft matter systems across different timescales. These modules extend the functionality of the LAMMPS [@thompson:2022] and OpenMM [@eastman:2017] simulation packages by introducing custom force fields, such as the efficient and intuitive Gaussian core model with smeared electrostatics (GCMe) [@ye:2024]; incorporating advanced techniques like the slab correction [@yeh:1999;@ballenegger:2009] and the method of image charges [@hautman:1989] for charged systems with slab geometries; facilitating coarse-grained MD simulations by scaling physical values by the fundamental quantities (mass $m$, length $d$, energy $\epsilon$, and Boltzmann constant $k_\mathrm{B}T$); and offering feature-rich readers and writers for topologies and trajectories stored in memory-efficient formats.
 
-Second, for the analysis of simulation trajectories, the `algorithm` and `analysis` modules offer optimized serial and multithreaded algorithms and analysis classes, respectively, for evaluating structural, thermodynamic, and dynamic properties using the generated thermodynamic state and trajectory data. The properties that can be computed include, but are not limited to, structure factors, density and potential profiles, end-to-end vector autocorrelation functions for polymers, and Onsager transport coefficients [@fong:2020]. 
+Second, the `algorithm` and `analysis` modules offer optimized serial and multithreaded algorithms and analysis classes for evaluating structural, thermodynamic, and dynamic properties using thermodynamic state and trajectory data. These properties include, but are not limited to, static and dynamic structure factors, density and potential profiles, end-to-end vector autocorrelation functions for polymers, and Onsager transport coefficients [@fong:2020].
 
-Finally, the `fit` and `plot` modules facilitate the post-processing of results ensuring they are suitable for scientific publications. These modules include curve fitting and helper functions that interface seamlessly with commonly used libraries such as SciPy [@2020SciPy-NMeth] and Matplotlib [@Hunter:2007] libraries are also provided.
+Finally, the `fit` and `plot` modules simplify the post-processing and visualization of data, aiding in the creation of aesthetically pleasing figures for scientific publications. These modules consist of models for curve fitting and helper functions that interface seamlessly with the commonly used SciPy [@virtanen:2020] and Matplotlib [@hunter:2007] libraries.
 
-These three components collectively provide both novice and experienced MD simulation users with a comprehensive set of tools required to conduct experiments, ranging from simple to complex, within a single succinct package.
+Together, these modules provide both novice and experienced MD simulation users with a comprehensive set of tools necessary to conduct experiments ranging from simple to complex, all within a single, succinct package.
 
 # Statement of need
-While well-established molecular dynamics analysis packages such as `MDAnalysis` [@michaud-agrawalMDAnalysisToolkitAnalysis2011] and `MDTraj` [@McGibbon2015MDTraj] have existed for some time, their primary focus has been on the post-simulation analysis. In contrast, MDCraft aims to provide tools for the entire simulation process, from initialization to post-processing. In particular, the youngest of the standardized simulation packages, OpenMM, offers little in the way of an easy-to-use interface and analysis tools, with `MDCraft` filling-in these gaps. Notably, the relatively new OpenMM simulation package lacks an intuitive interface and comprehensive analysis tools, a gap that MDCraft aims to fill. By leveraging the modularity of OpenMM, MDCraft introduces novel simulation potentials (GCMe) and methods (image charges) not typically available in other simulation packages.
 
-Additionally, MDCraft stands out due to its remarkable flexibility within its analysis toolkit. General users have unprecedented control over what aspects of the properties to calculate and which method to employed, through a plethora of well-documented built-in options in each analysis class, without having to be concerned about the underlying implementations. Conversely, advanced users have the option to work directly with the algorithms for further customization. These tools have proven indispensable in several recent publications [@glismanMultivalentIonMediatedPolyelectrolyte2024;@manthaAdsorptionIsothermMechanism2024;@Lee2024].
+Although established MD analysis packages such as MDAnalysis [@michaudagrawal:2011] and MDTraj [@mcgibbon:2015] have been around for a considerable time, they primarily focus on the post-simulation analysis. In contrast, MDCraft is designed to provide comprehensive support throughout the entire simulation process, from initialization to post-processing. 
 
-The application of MDCraft extends across various domains within computational chemistry and materials science. Researchers can utilize it to study the low-level mechanisms involved in supercapacitors, polymer gels and XX, thus highlighting its versatility and broad applicability in cutting-edge scientific research.
+MDCraft is tightly integrated with OpenMM, a relatively new simulation toolkit that has seen a surge in popularity in recent years due to its class-leading performance and flexibility through support for custom intermolecular forces and integrators for equations of motion. Due to its age and design philosophy, OpenMM offers comparatively fewer choices of pair potentials and external forces, and no on-the-fly analysis support. MDCraft fills this gap in two ways. First, the `openmm` module leverages the modularity of OpenMM to provide a suite of custom force fields, problem-solving tools, trajectory readers and writers, and utility functions for unit reduction, topology transformations, and performance optimizations that are not typically available in other simulation packages. Then, the classes in the `analysis` module enable computing common structural, thermodynamic, and dynamic properties using the topology, trajectory, and state data generated by OpenMM (or other simulation packages).
+
+The `analysis` module also stands out due to the remarkable flexibility it affords its end users. General users have unprecedented control over what aspects of the properties to calculate and which method to employ through a plethora of well-documented built-in options in each analysis class, without having to be concerned about the underlying implementations. More advanced users, on the other hand, have the option to work directly with the algorithms in the `algorithms` module for further customization. These analysis functions and classes have proven indispensable in several recent publications [@glisman:2024;@mantha:2024;@lee:2024].
+
+The application of MDCraft extends across various domains within computational chemistry and materials science. Researchers can utilize it to study the low-level mechanisms involved in supercapacitors, polymer gels, drug delivery systems, and nanomaterial synthesis, thus highlighting its versatility and broad applicability in cutting-edge scientific research.
 
 # Acknowledgements
-We acknowledge contributions from Alec Glisman in the development of this package. Z-G.W. acknowledges funding from Hong Kong Quantum AI Lab, AIR\@InnoHK of the Hong Kong Government.
+
+We acknowledge contributions from Alec Glisman in the development of this package. Zhen-Gang Wang acknowledges funding from Hong Kong Quantum AI Lab, AIR\@InnoHK of the Hong Kong Government.
 
 # References
