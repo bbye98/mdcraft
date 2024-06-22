@@ -83,3 +83,9 @@ To use the method of image charges
 simulations, you must compile and install [`constvplugin`](
 https://github.com/scychon/openmm_constV) or [`openmm-ic-plugin`](
 https://github.com/bbye98/mdcraft/tree/main/lib/openmm-ic-plugin).
+
+### Contributing
+If you'd like to make a contribution to MDCraft, you can:
+* Report an issue: If you encounter an error in any of the tools provided, please feel free to raise an Issue on GitHub. If you've found the source of the error and fixed it yourself, feel free to also open a Pull Request so that it can be reviewed and pushed to the main branch.
+* Implement your own tools: We are always open to making changes to the source code and documentation! If you'd like to add your own functionalities or improvements to MDCraft, feel free to open a Pull Request and one of the developers will review the changes.
+* General support: If you have questions regarding the usage of this package or are having difficulties getting started, feel free to open a Discussion on GitHub!
