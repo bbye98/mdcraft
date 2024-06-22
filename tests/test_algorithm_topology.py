@@ -23,11 +23,11 @@ def test_func_create_atoms():
 
     # TEST CASE 3: Invalid N_p
     with pytest.raises(ValueError):
-        topology.create_atoms(dims, N=9000, N_p=9001)
+        topology.create_atoms(dims, 9000, 9001)
 
     # TEST CASE 4: N not divisible by N_p
     with pytest.raises(ValueError):
-        topology.create_atoms(dims, N=10, N_p=3)
+        topology.create_atoms(dims, 10, 3)
 
     # TEST CASE 5: Random melt in reduced units
     N = rng.integers(1, 1000)

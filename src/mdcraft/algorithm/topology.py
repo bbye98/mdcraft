@@ -39,14 +39,17 @@ def create_atoms(
     ----------
     dimensions : `numpy.ndarray`, `openmm.unit.Quantity`, \
     `pint.Quantity`, or `openmm.app.Topology`
-        System dimensions, provided as an array or obtained from an
-        OpenMM topology.
+        System dimensions, box vectors, or lattice parameters provided
+        as an array, or an OpenMM topology with system dimension 
+        information.
+
+        **Shape**: :math:`(3,)`.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
     N : `int`, optional
-        Total number of particles. Must be provided for random melts or
-        polymers.
+        Total number of particles :math:`N`. Must be provided for random
+        melts or polymers.
 
     N_p : `int`, default: :code:`1`
         Number of atoms (monomers) :math:`N_\\mathrm{p}` in each
@@ -163,8 +166,13 @@ def create_atoms(
 
     # Get raw numerical dimensions and length
     if isinstance(dimensions, app.Topology):
-        dimensions = dimensions.getUnitCellDimensions()
-    dimensions, length_unit = strip_unit(dimensions, length_unit)
+        pbv, length_unit = strip_unit(dimensions.getPeriodicBoxVectors(), 
+                                      length_unit)
+        pbv = np.asarray(pbv)
+    else:
+        dimensions, length_unit = strip_unit(dimensions, length_unit)
+        pbv = get_cell_representation(np.asarray(dimensions), "vectors")
+    dimensions = np.diag(pbv)
     length, length_unit = strip_unit(length, length_unit)
     length_unit = length_unit or 1
 
@@ -186,7 +194,7 @@ def create_atoms(
 
         # Generate particle positions for a random melt
         if N_p == 1:
-            return np.random.rand(N, 3) * dimensions * length_unit
+            return (np.random.rand(N, 3) @ pbv.T) * length_unit
         else:
             topo = []
 
@@ -215,7 +223,7 @@ def create_atoms(
                     pos[pos[:, i] < 0, i] += dimensions[i]
                     pos[pos[:, i] > dimensions[i], i] -= dimensions[i]
 
-            topo.append(pos * length_unit)
+            topo.append((pos / dimensions @ pbv.T) * length_unit)
 
             # Determine all bonds
             if bonds:
@@ -241,9 +249,9 @@ def create_atoms(
 
         # Set unit cell information
         if lattice == "cubic":
-            _dims = np.array(dimensions)
-            _dims[dimensions == 0] = 1
-            n_cells = around(_dims / length).astype(int)
+            dims = dimensions.copy()
+            dims[np.isclose(dims, 0)] = 1
+            n_cells = around(dims / length).astype(int)
             cell_dims = length * np.array((1, 1, 1))
             x, y, z = (length * np.arange(n) for n in n_cells)
             pos = np.stack(np.meshgrid(x, y, z), axis=-1).reshape(-1, 3)
@@ -285,12 +293,13 @@ def create_atoms(
 
         # Remove particles outside of system boundaries
         if flexible:
-            n_cells[dimensions == 0] = 0
-            pos = pos[~np.any(pos[:, dimensions == 0] > 0, axis=1)]
+            n_cells[np.isclose(dimensions, 0)] = 0
+            pos = pos[~np.any(pos[:, np.isclose(dimensions, 0)] > 0, axis=1)]
         else:
             pos = pos[~np.any(pos > dimensions, axis=1)]
 
-        return pos * length_unit, n_cells * cell_dims * length_unit
+        return ((pos / dimensions @ pbv.T) * length_unit, 
+                n_cells * cell_dims * length_unit)
 
 def unwrap(
         positions: np.ndarray[float], positions_old: np.ndarray[float],
@@ -564,7 +573,7 @@ def wrap(
 
 def reduce_box_vectors(vectors: np.ndarray[float]) -> np.ndarray[float]:
 
-    """
+    r"""
     Performs lattice reduction on box vectors.
 
     Parameters
@@ -626,6 +635,9 @@ def convert_cell_representation(
              \mathbf{b} &= (b_x,\,b_y,\,0) \\
              \mathbf{c} &= (c_x,\,c_y,\,c_z)
            \end{align*}
+           \quad\mathrm{where}\quad 
+           a_x>0,\,b_y>0,\,c_z>0,\,
+           a_x\geq2|b_x|,\,a_x\geq2|c_x|,\,b_y\geq2|c_y|
 
         **Shape**: :math:`(3,\,3)`.
 
@@ -679,3 +691,74 @@ def convert_cell_representation(
         parameters[5] = np.degrees(np.arccos(np.dot(vectors[0], vectors[1]) 
                                              / (parameters[0] * parameters[1])))
         return parameters
+    
+def get_cell_representation(
+        rep: np.ndarray[float], output: str, /
+    ) -> np.ndarray[float]:
+
+    r"""
+    Gets the desired cell representation given a starting cell 
+    representation.
+
+    Parameters
+    ----------
+    rep : `numpy.ndarray`, positional-only
+        Starting cell representation. Can be system dimensions,
+        lattice parameters, or box vectors.
+
+        **Shape**: :math:`(3,)`, :math:`(6,)`, or :math:`(3,\,3)`.
+
+    output : `str`, positional-only
+        Desired cell representation format.
+
+        **Valid values**: :code:`"dimensions"`, :code:`"parameters"`,
+        and :code:`"vectors"`.
+
+    Returns
+    -------
+    representation : `numpy.ndarray`
+        Desired cell representation.
+
+        **Shape**: :math:`(3,)`, :math:`(6,)`, or :math:`(3,\,3)`.
+    """
+
+    rep = np.asarray(rep)
+    if rep.ndim == 1:
+        if rep.shape[0] == 3:
+            input_ = "dimensions"
+        elif rep.shape[0] == 6:
+            input_ = "parameters"
+        else:
+            emsg = ("Invalid shape for 'rep'. Dimensions or lattice "
+                    "parameters must be provided as a 3- or 6-element "
+                    "array, respectively.")
+            raise ValueError(emsg)
+    elif rep.ndim == 2:
+        if rep.shape != (3, 3):
+            emsg = ("Invalid shape for 'rep'. Box vectors must be "
+                    "provided as rows in a 3-by-3 matrix.")
+            raise ValueError(emsg)
+        input_ = "vectors"
+    else:
+        emsg = ("Invalid shape for 'rep'. Must be a 3- or 6-element "
+                "array, or a 3-by-3 matrix.")
+        raise ValueError(emsg)
+
+    if input_ == output:
+        return rep
+
+    if output == "dimensions":
+        if input_ == "parameters":
+            return np.diag(convert_cell_representation(parameters=rep))
+        elif input_ == "vectors":
+            return np.diag(rep)
+    elif output == "parameters":
+        if input_ == "dimensions":
+            return np.concatenate((rep, (90, 90, 90)))
+        elif input_ == "vectors":
+            return convert_cell_representation(vectors=rep)
+    elif output == "vectors":
+        if input_ == "dimensions":
+            return np.diag(rep)
+        elif input_ == "parameters":
+            return convert_cell_representation(parameters=rep)
