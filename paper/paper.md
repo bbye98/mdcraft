@@ -35,7 +35,7 @@ Second, the `algorithm` and `analysis` modules offer optimized serial and multit
 
 Finally, the `fit` and `plot` modules simplify the post-processing and visualization of data, aiding in the creation of aesthetically pleasing figures for scientific publications. These modules consist of models for curve fitting and helper functions that interface seamlessly with the commonly used SciPy [@virtanen_scipy_2020] and Matplotlib [@hunter_matplotlib_2007] libraries.
 
-Together, these modules provide both novice and experienced MD simulation users with a comprehensive set of tools necessary to conduct experiments ranging from simple to complex, all within a single, succinct package.
+Together, these modules provide both novice and experienced MD simulation users with a comprehensive set of tools necessary to conduct computer experiments ranging from simple to complex, all within a single, succinct package.
 
 # Statement of need
 
@@ -49,6 +49,6 @@ The application of MDCraft extends across various domains within computational c
 
 # Acknowledgements
 
-We acknowledge contributions from Alec Glisman in the development of this package. Zhen-Gang Wang acknowledges funding from Hong Kong Quantum AI Lab, AIR\@InnoHK of the Hong Kong Government.
+We acknowledge contributions from Alec Glisman in the development of this package and financial support from Hong Kong Quantum AI Lab, AIR\@InnoHK of the Hong Kong Government.
 
 # References
