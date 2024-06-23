@@ -1,5 +1,5 @@
-User Guide
-==========
+Getting Started
+===============
 
 .. toctree::
    :glob:

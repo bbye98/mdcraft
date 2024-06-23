@@ -23,6 +23,7 @@ myst-nb
 numpydoc
 sphinx
 sphinx-copybutton
+sphinx-design
 
 # TEST DEPENDENCIES
 ase

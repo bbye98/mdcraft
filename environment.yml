@@ -21,6 +21,7 @@ dependencies:
   - numpydoc
   - sphinx
   - sphinx-copybutton
+  - sphinx-design
   # TEST DEPENDENCIES
   - ase
   - coverage

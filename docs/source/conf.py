@@ -27,6 +27,7 @@ extensions = [
     "myst_nb",
     "numpydoc",
     "sphinx_copybutton",
+    "sphinx_design",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.duration",
@@ -61,6 +62,7 @@ toc_object_entries_show_parents = "hide"
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
+html_css_files = ["custom.css"]
 html_favicon = "../../assets/favicon.ico"
 html_logo = "../../assets/logo.png"
 html_show_sourcelink = False
