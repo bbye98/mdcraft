@@ -1,8 +1,12 @@
-name: Journal of Open Source Software paper PDF generator
-on: [push]
+name: Journal of Open Source Software PDF generator
+on:
+  push:
+    paths:
+      - .github/workflows/joss.yml
+      - paper/**
 jobs:
   paper:
-    name: joss-paper-pdf-generator
+    name: joss-pdf-generator
     runs-on: ubuntu-latest
     steps:
       - name: checkout
