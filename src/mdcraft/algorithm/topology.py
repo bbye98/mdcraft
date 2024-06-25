@@ -252,8 +252,8 @@ def create_atoms(
             dims = dimensions.copy()
             dims[np.isclose(dims, 0)] = 1
             n_cells = around(dims / length).astype(int)
-            cell_dims = length * np.array((1, 1, 1))
-            x, y, z = (length * np.arange(n) for n in n_cells)
+            cell_dims = length * np.ones(3, dtype=float)
+            x, y, z = (length * np.arange(n, dtype=float) for n in n_cells)
             pos = np.stack(np.meshgrid(x, y, z), axis=-1).reshape(-1, 3)
         else:
             if lattice == "fcc":
@@ -298,8 +298,12 @@ def create_atoms(
         else:
             pos = pos[~np.any(pos > dimensions, axis=1)]
 
-        return ((pos / dimensions @ pbv.T) * length_unit, 
-                n_cells * cell_dims * length_unit)
+        return (
+            (np.divide(pos, dimensions, 
+                       out=np.zeros_like(pos),
+                       where=dimensions != 0) @ pbv.T) * length_unit, 
+            n_cells * cell_dims * length_unit
+        )
 
 def unwrap(
         positions: np.ndarray[float], positions_old: np.ndarray[float],

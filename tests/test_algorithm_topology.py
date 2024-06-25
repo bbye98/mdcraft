@@ -98,6 +98,10 @@ def test_func_create_atoms():
     pos, new_dims = topology.create_atoms(dims, lattice="cubic", length=1)
     assert np.allclose(pos[-1], dims - 1)
 
+    # TEST CASE 16: HCP wall
+    pos, new_dims = topology.create_atoms([10, 10, 0], lattice="hcp", length=1, flexible=True)
+    assert np.allclose(pos[:, 2], 0) and new_dims[2] == 0
+
 def test_func_unwrap():
 
     pos_old = np.array(((2.0, 2.0, 2.0),))
