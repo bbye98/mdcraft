@@ -1,6 +1,9 @@
+{% set name = "mdcraft" %}
+{% set version = "1.1.0" %}
+
 package:
-  name: mdcraft
-  version: "1.1.0"
+  name: {{ name | lower }}
+  version: {{ version }}
 
 source:
   path: ..
@@ -8,7 +11,7 @@ source:
 build:
   noarch: python
   number: 0
-  script: python -m pip install . -vv
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
   host:
@@ -38,8 +41,8 @@ about:
   home: https://github.com/bbye98/mdcraft
   license: GPL-3.0
   license_file: LICENSE
-  summary: Analysis classes and helper functions for molecular dynamics simulations
-  doc_url: https://bbye98.github.io/mdcraft/
+  summary: A Python assistant for performing and analyzing molecular dynamics simulations of soft matter systems
+  doc_url: https://mdcraft.readthedocs.io/
   dev_url: https://github.com/bbye98/mdcraft
 
 extra:

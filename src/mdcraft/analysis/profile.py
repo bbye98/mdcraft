@@ -1210,8 +1210,7 @@ class DensityProfile(DynamicAnalysisBase):
             Potential differences :math:`\\Delta\\Psi` across the system
             dimensions specified in `axes`. Can be retrieved if
             previously provided to another calculation method in this
-            class. Has no effect if `sigmas_q` is provided since this
-            value is used solely to calculate `sigmas_q`.
+            class.
 
             **Shapes**: :math:`(N_\\mathrm{axes},)` or
             :math:`(N_\\mathrm{axes},\\,N_\\mathrm{frames})`.

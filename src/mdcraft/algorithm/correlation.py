@@ -64,10 +64,10 @@ def correlation_fft(
 
            **Shape**:
 
-           * Scalar: :math:`(N_t,)`, :math:`(N_t,\,N)`,
+           * Scalar data: :math:`(N_t,)`, :math:`(N_t,\,N)`,
              :math:`(N_\mathrm{b},\,N_t)`, or
              :math:`(N_\mathrm{b},\,N_t,\,N)`.
-           * Vector: :math:`(N_t,\,d)`, :math:`(N_t,\,N,\,d)`,
+           * Vector data: :math:`(N_t,\,d)`, :math:`(N_t,\,N,\,d)`,
              :math:`(N_\mathrm{b},\,N_t,\,d)`, or
              :math:`(N_\mathrm{b},\,N_t,\,N,\,d)`.
 
@@ -108,16 +108,16 @@ def correlation_fft(
            For ACF, the shape is that of `x` but with the following
            modifications:
 
-           * If :code:`average=True`, the axis containing the :math:`N`
+           * If :code:`average=True`, the axis indexing the :math:`N`
              entities is removed.
            * If :code:`vector=True`, the last axis is removed.
 
            For CCF, the shape is that of `x` but with the following
            modifications:
 
-           * If :code:`average=True`, the axis containing the :math:`N`
+           * If :code:`average=True`, the axis indexing the :math:`N`
              entities is removed.
-           * If :code:`double=False`, the axis containing the
+           * If :code:`double=False`, the axis indexing the
              :math:`N_t` times now has a length of :math:`2N_t-1` to
              accomodate negative and positive time lags.
            * If :code:`vector=True`, the last axis is removed.
@@ -279,10 +279,10 @@ def correlation_shift(
 
            **Shape**:
 
-           * Scalar: :math:`(N_t,)`, :math:`(N_t,\,N)`,
+           * Scalar data: :math:`(N_t,)`, :math:`(N_t,\,N)`,
              :math:`(N_\mathrm{b},\,N_t)`, or
              :math:`(N_\mathrm{b},\,N_t,\,N)`.
-           * Vector: :math:`(N_t,\,d)`, :math:`(N_t,\,N,\,d)`,
+           * Vector data: :math:`(N_t,\,d)`, :math:`(N_t,\,N,\,d)`,
              :math:`(N_\mathrm{b},\,N_t,\,d)`, or
              :math:`(N_\mathrm{b},\,N_t,\,N,\,d)`.
 
@@ -323,16 +323,16 @@ def correlation_shift(
            For ACF, the shape is that of `x` but with the following
            modifications:
 
-           * If :code:`average=True`, the axis containing the :math:`N`
+           * If :code:`average=True`, the axis indexing the :math:`N`
              entities is removed.
            * If :code:`vector=True`, the last axis is removed.
 
            For CCF, the shape is that of `x` but with the following
            modifications:
 
-           * If :code:`average=True`, the axis containing the :math:`N`
+           * If :code:`average=True`, the axis indexing the :math:`N`
              entities is removed.
-           * If :code:`double=False`, the axis containing the
+           * If :code:`double=False`, the axis indexing the
              :math:`N_t` times now has a length of :math:`2N_t-1` to
              accomodate negative and positive time lags.
            * If :code:`vector=True`, the last axis is removed.
@@ -559,7 +559,7 @@ def msd_fft(
         MSD or CD.
 
         **Shape**: Same as the shape of `r_i`, except with the last axis
-        removed. If :code:`average=True`, the axis containing the
+        removed. If :code:`average=True`, the axis indexing the 
         :math:`N` entities is also removed.
 
         **Reference unit**: :math:`\text{Å}^2`.
@@ -765,7 +765,7 @@ def msd_shift(
         MSD or CD.
 
         **Shape**: Same as the shape of `r_i`, except with the last axis
-        removed. If :code:`average=True`, the axis containing the
+        removed. If :code:`average=True`, the axis indexing the
         :math:`N` entities is also removed.
 
         **Reference unit**: :math:`\text{Å}^2`.

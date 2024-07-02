@@ -144,7 +144,7 @@ def coul_gauss(
         **Reference unit**: :math:`\mathrm{nm}^{-1}`.
 
     dims : `array_like` or `openmm.unit.Quantity`, keyword-only, optional
-        Simulation system dimensions. Must be provided with `g_ewald` to
+        System dimensions. Must be provided with `g_ewald` to
         calculate the number of mesh nodes :math:`n_\mathrm{mesh}`.
         Both `dims` and `g_ewald` must either have units or be unitless.
 
@@ -619,7 +619,7 @@ def lj_coul(
         **Reference unit**: :math:`\mathrm{nm}^{-1}`.
 
     dims : `float` or `openmm.unit.Quantity`, keyword-only, optional
-        Simulation system dimensions. Must be provided with `g_ewald` to
+        System dimensions. Must be provided with `g_ewald` to
         calculate the number of mesh nodes :math:`n_\mathrm{mesh}`.
         Both `dims` and `g_ewald` must either have units or be unitless.
 

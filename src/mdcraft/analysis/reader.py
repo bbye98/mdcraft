@@ -357,10 +357,10 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
             self._extras_indices = {}
             for attr in self._extras:
                 if attr.startswith(self._CUSTOM_ATTRIBUTE_PREFIXES):
-                    l = len(attr)
+                    la = len(attr)
                     self._extras_indices[attr] = [
                         j for _, j in sorted(
-                            (int(a[a.find("[", l) + 1:a.find("]", l)]), i) 
+                            (int(a[a.find("[", la) + 1:a.find("]", la)]), i) 
                             for a, i in attributes.items() 
                             if a.startswith(attr)
                         )

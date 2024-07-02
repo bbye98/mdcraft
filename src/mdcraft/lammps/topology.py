@@ -14,7 +14,7 @@ from typing import Any, Union
 import numpy as np
 
 from .. import FOUND_OPENMM, Q_, ureg
-from ..algorithm import topology as t
+from ..algorithm import topology as topo
 
 if FOUND_OPENMM:
     from openmm import app, unit
@@ -38,10 +38,20 @@ def create_atoms(
        :func:`mdcraft.algorithm.topology.create_atoms`.
     """
 
-    return t.create_atoms(dimensions, N, N_p, lattice=lattice, length=length,
-                          flexible=flexible, bonds=bonds, angles=angles,
-                          dihedrals=dihedrals, randomize=randomize,
-                          length_unit=length_unit, wrap=wrap)
+    return topo.create_atoms(
+        dimensions, 
+        N, 
+        N_p, 
+        lattice=lattice, 
+        length=length,
+        flexible=flexible, 
+        bonds=bonds, 
+        angles=angles,
+        dihedrals=dihedrals, 
+        randomize=randomize,
+        length_unit=length_unit, 
+        wrap=wrap
+    )
 
 def write_data(
         file: Union[str, TextIOWrapper], positions: tuple[np.ndarray[float]],

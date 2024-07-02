@@ -23,11 +23,11 @@ def test_func_create_atoms():
 
     # TEST CASE 3: Invalid N_p
     with pytest.raises(ValueError):
-        topology.create_atoms(dims, N=9000, N_p=9001)
+        topology.create_atoms(dims, 9000, 9001)
 
     # TEST CASE 4: N not divisible by N_p
     with pytest.raises(ValueError):
-        topology.create_atoms(dims, N=10, N_p=3)
+        topology.create_atoms(dims, 10, 3)
 
     # TEST CASE 5: Random melt in reduced units
     N = rng.integers(1, 1000)
@@ -97,6 +97,10 @@ def test_func_create_atoms():
     # TEST CASE 15: Cubic crystal lattice
     pos, new_dims = topology.create_atoms(dims, lattice="cubic", length=1)
     assert np.allclose(pos[-1], dims - 1)
+
+    # TEST CASE 16: HCP wall
+    pos, new_dims = topology.create_atoms([10, 10, 0], lattice="hcp", length=1, flexible=True)
+    assert np.allclose(pos[:, 2], 0) and new_dims[2] == 0
 
 def test_func_unwrap():
 
