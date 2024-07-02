@@ -213,7 +213,7 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
 
         Returns
         -------
-        ts : `ReaderBase._Timestep`
+        timestep : `ReaderBase._Timestep`
             Timestep object with all information from a frame in the
             trajectory.
         """
@@ -222,14 +222,20 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
         self.ts.frame = frame - 1
         return self._read_next_timestep()
 
-    def _read_next_timestep(self, ts=None) -> ReaderBase._Timestep:
+    def _read_next_timestep(self, ts: int = None) -> ReaderBase._Timestep:
 
         """
         Reads the next timestep from the LAMMPS dump file.
 
+        Parameters
+        ----------
+        ts : `int`, optional
+            Timestep number to read. If not provided, the next timestep
+            is read.
+
         Returns
         -------
-        ts : `ReaderBase._Timestep`
+        timestep : `ReaderBase._Timestep`
             Timestep object with all information from a frame in the
             trajectory.
         """
