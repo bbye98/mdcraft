@@ -1,6 +1,6 @@
 """
-Bulk structural analysis
-========================
+Bulk structural properties
+==========================
 .. moduleauthor:: Benjamin Ye <GitHub: @bbye98>
 
 This module contains classes to analyze the structure of bulk fluid and
@@ -1336,12 +1336,12 @@ def psf_trigonometric(
     return ssf
 
 def generate_spherical_wavevectors(
-        dimensions: np.ndarray[float], *, 
+        dimensions: np.ndarray[float], *,
         n_points: Union[int, tuple[int]] = 32, q_max: float = None,
         wavenumbers: bool = False) -> np.ndarray[float]:
 
     r"""
-    Generates spherical wavevectors :math:`\mathbf{q}` for a triclinic 
+    Generates spherical wavevectors :math:`\mathbf{q}` for a triclinic
     simulation box.
 
     Parameters
@@ -1535,18 +1535,18 @@ class StructureFactor(NumbaAnalysisBase):
     n_points : `int`, keyword-only, default: :code:`32`
         Number of points :math:`n_\\mathrm{points}` in the scattering
         wavevector grid to generate
-        
+
         .. math::
 
            \\mathbf{q}=2\\pi\\left(\\frac{a}{L_x},\\,\\frac{b}{L_y},\\,
            \\frac{c}{L_z}\\right)
 
-        where :math:`a`, :math:`b`, and :math:`c` are integers from 
-        :math:`0` up to :math:`n_\\mathrm{points}-1`. 
-        
-        Additional wavevectors can be introduced via `n_surfaces` and 
+        where :math:`a`, :math:`b`, and :math:`c` are integers from
+        :math:`0` up to :math:`n_\\mathrm{points}-1`.
+
+        Additional wavevectors can be introduced via `n_surfaces` and
         `n_surface_points` for more accurate structure factors at small
-        wavenumbers. Alternatively, the desired wavevectors can be 
+        wavenumbers. Alternatively, the desired wavevectors can be
         specified directly in `wavevectors`.
 
     n_surfaces : `int`, keyword-only, optional
@@ -1567,8 +1567,8 @@ class StructureFactor(NumbaAnalysisBase):
 
     wavevectors : array-like, `openmm.unit.Quantity`, or `pint.Quantity`, \
     keyword-only, optional
-        Scattering wavevectors for which to compute structure factors. 
-        Has precedence over `n_points`, `n_surfaces`, and 
+        Scattering wavevectors for which to compute structure factors.
+        Has precedence over `n_points`, `n_surfaces`, and
         `n_surface_points` if specified.
 
         **Shape**: :math:`(N_q,\\,3)`.
@@ -2238,18 +2238,18 @@ class IntermediateScatteringFunction(StructureFactor):
     n_points : `int`, keyword-only, default: :code:`32`
         Number of points :math:`n_\\mathrm{points}` in the scattering
         wavevector grid to generate
-        
+
         .. math::
 
            \\mathbf{q}=2\\pi\\left(\\frac{a}{L_x},\\,\\frac{b}{L_y},\\,
            \\frac{c}{L_z}\\right)
 
-        where :math:`a`, :math:`b`, and :math:`c` are integers from 
-        :math:`0` up to :math:`n_\\mathrm{points}-1`. 
-        
-        Additional wavevectors can be introduced via `n_surfaces` and 
+        where :math:`a`, :math:`b`, and :math:`c` are integers from
+        :math:`0` up to :math:`n_\\mathrm{points}-1`.
+
+        Additional wavevectors can be introduced via `n_surfaces` and
         `n_surface_points` for more accurate structure factors at small
-        wavenumbers. Alternatively, the desired wavevectors can be 
+        wavenumbers. Alternatively, the desired wavevectors can be
         specified directly in `wavevectors`.
 
     n_surfaces : `int`, keyword-only, optional
@@ -2270,8 +2270,8 @@ class IntermediateScatteringFunction(StructureFactor):
 
     wavevectors : array-like, `openmm.unit.Quantity`, or `pint.Quantity`, \
     keyword-only, optional
-        Scattering wavevectors for which to compute structure factors. 
-        Has precedence over `n_points`, `n_surfaces`, and 
+        Scattering wavevectors for which to compute structure factors.
+        Has precedence over `n_points`, `n_surfaces`, and
         `n_surface_points` if specified.
 
         **Shape**: :math:`(N_q,\\,3)`.

@@ -1,6 +1,6 @@
 """
-Curve fitting
-=============
+Curve fitting models
+====================
 .. moduleauthor:: Benjamin Ye <GitHub: @bbye98>
 
 This module provides a library of curve fitting models, such as

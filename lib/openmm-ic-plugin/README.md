@@ -9,7 +9,7 @@ confined between two parallel perfectly conducting electrodes.
 
 Currently, only the CUDA platform is supported.
 
-Building The Plugin
+Building the plugin
 ===================
 
 This project uses [CMake](http://www.cmake.org) for its build system.
@@ -107,11 +107,11 @@ A simple example is provided below:
     dt = 1 * unit.femtosecond
     integrator = ICLangevinIntegrator(temp, fric, dt)
 
-Alternatively, if you have [MDHelper](https://github.com/bbye98/mdhelper)
-installed, you can use the `mdhelper.openmm.system.image_charges()` 
+Alternatively, if you have [MDCraft](https://github.com/bbye98/mdcraft)
+installed, you can use the `mdcraft.openmm.system.add_image_charges()` 
 function to achieve the same result as the code snippet above.
 
-Citing This Work
+Citing this work
 ================
 Any work that uses this plugin should cite the following publication:
 

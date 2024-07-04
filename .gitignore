@@ -9,4 +9,3 @@ docs/source/api/
 src/mdcraft.egg-info
 tests/data/
 .coverage
-notes.txt

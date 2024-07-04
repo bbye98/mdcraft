@@ -1,7 +1,7 @@
+# MDCraft
+
 <img src="https://raw.githubusercontent.com/bbye98/mdcraft/main/assets/logo.png"
  align="right" width="256"/>
-
-# MDCraft
 
 [![continuous-integration](
 https://github.com/bbye98/mdcraft/actions/workflows/ci.yml/badge.svg)](
@@ -19,7 +19,7 @@ molecular dynamics (MD) simulations.
 ## Features
 
 * [`algorithm`](https://github.com/bbye98/mdcraft/tree/main/src/mdcraft/algorithm):
-Efficient Numba, NumPy, and SciPy algorithms for data wrangling and 
+Efficient Numba, NumPy, and SciPy algorithms for data wrangling and
 evaluating structural and dynamical properties.
 * [`analysis`](https://github.com/bbye98/mdcraft/tree/main/src/mdcraft/analysis):
 Serial and parallel data analysis tools built on top of the MDAnalysis
