@@ -189,14 +189,6 @@ class SerialAnalysisBase(AnalysisBase):
             depending on the values of `archive` and `compress`.
         """
 
-        results = {}
-        for data in self.results:
-            if isinstance(self.results[data], dict):
-                for key in self.results[data]:
-                    results[f"{data}_{key}"] = self.results[data][key]
-            else:
-                results[data] = self.results[data]
-
         if archive and compress:
             np.savez_compressed(file, **self.results, **kwargs)
         elif archive:
