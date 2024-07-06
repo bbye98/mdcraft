@@ -82,6 +82,8 @@ class Hash(dict):
                 self[k] = v
 
     def __getattr__(self, attr):
+        if attr.beginswith("__array"):
+            return super().__getattr__(attr)
         return self.get(attr)
 
     def __setattr__(self, key, value):
@@ -186,6 +188,14 @@ class SerialAnalysisBase(AnalysisBase):
             :func:`numpy.savez`, or :func:`numpy.savez_compressed`,
             depending on the values of `archive` and `compress`.
         """
+
+        results = {}
+        for data in self.results:
+            if isinstance(self.results[data], dict):
+                for key in self.results[data]:
+                    results[f"{data}_{key}"] = self.results[data][key]
+            else:
+                results[data] = self.results[data]
 
         if archive and compress:
             np.savez_compressed(file, **self.results, **kwargs)
