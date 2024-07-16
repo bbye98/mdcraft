@@ -1008,7 +1008,7 @@ def solvation(
                     "must be less than the shared cutoff distance.")
             raise ValueError(emsg)
 
-    root = "-S12*((sigma12/r)^4-(sigma12/cut)^4)"
+    root = f"-S12*((sigma12/r)^4-(sigma12/{cutoff_solvation})^4)"
     if mix == "arithmetic":
         mix = "sigma12=(sigma1+sigma2)/2;S12=sqrt(S1*S2);"
         per_params = ["sigma", "S"]
