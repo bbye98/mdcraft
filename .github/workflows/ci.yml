@@ -23,7 +23,7 @@ jobs:
       - name: install-dependencies
         run: |
           conda activate test
-          conda env update --file environment.yml --verbose
+          conda env update --name test --file environment.yml --verbose
       - name: lint
         run: ruff check --target-version=py39 .
         continue-on-error: true
