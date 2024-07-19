@@ -28,7 +28,7 @@ sphinx-design
 # TEST DEPENDENCIES
 ase
 coverage
-dynasor
+dynasor >= 2
 mdanalysistests
 pytest
 ruff
