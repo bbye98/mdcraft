@@ -1,6 +1,6 @@
 """
-Polymeric analysis
-==================
+Polymeric properties
+====================
 .. moduleauthor:: Benjamin Ye <GitHub: @bbye98>
 
 This module contains classes to determine the structural
@@ -490,7 +490,7 @@ def correlation_fft(
        :func:`mdcraft.algorithm.correlation.correlation_fft`.
     """
 
-    return correlation.correlation_fft(x, y, axis, average=average, 
+    return correlation.correlation_fft(x, y, axis, average=average,
                                        double=double, vector=vector)
 
 def correlation_shift(
@@ -749,7 +749,7 @@ class EndToEndVector(_PolymerAnalysisBase):
                 raise ValueError(emsg)
         elif (df := self.step) <= 0:
             raise ValueError("The analysis must proceed forward in time.")
-        
+
         # Determine number of frames used when the trajectory is split
         # into blocks
         self._n_frames_block = self.n_frames // self._n_blocks
@@ -762,7 +762,7 @@ class EndToEndVector(_PolymerAnalysisBase):
                     "of frames to be analyzed is divisible by the number of "
                     "blocks.")
             warnings.warn(wmsg)
-            
+
         # Preallocate arrays to store end-to-end vectors
         self._e2e = np.empty((self.n_frames, self._M, 3))
 

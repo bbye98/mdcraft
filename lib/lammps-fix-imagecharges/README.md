@@ -36,6 +36,14 @@ fix imagecharges command
         scale value = f
           f = charge scale factor (default = 1.0)
 
-### Examples
+### Example
 
     fix 1 all imagecharges 0.0 0.0 0.0 0.0 0.0 1.0 4
+
+Citing this work
+================
+Any work that uses this fix should cite the following publication:
+
+K. A. Dwelle and A. P. Willard, Constant Potential, Electrochemically Active 
+Boundary Conditions for Electrochemical Simulation, J. Phys. Chem. C 123, 24095
+(2019). https://doi.org/10.1021/acs.jpcc.9b06635

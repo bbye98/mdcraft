@@ -1,6 +1,6 @@
 """
-Electrostatics
-==============
+Electrostatic properties
+========================
 .. moduleauthor:: Benjamin Ye <GitHub: @bbye98>
 
 This module contains classes to quantify electrostatic properties, such
@@ -140,7 +140,8 @@ class DipoleMoment(DynamicAnalysisBase):
         .. note::
 
            If :code:`neutralize=True` or :code:`unwrap=True`, all atoms
-           of any particular must belong to the same atom group.
+           of any particular molecule must belong to the same atom
+           group.
 
     charges : array-like, `openmm.unit.Quantity`, or \
     `pint.Quantity`, keyword-only,optional

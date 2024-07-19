@@ -49,6 +49,6 @@ The application of MDCraft extends across various domains within computational c
 
 # Acknowledgements
 
-We acknowledge contributions from Alec Glisman in the development of this package and financial support from Hong Kong Quantum AI Lab, AIR\@InnoHK of the Hong Kong Government.
+We acknowledge contributions from Alec Glisman and Dorian Bruch in the development of this package and financial support from Hong Kong Quantum AI Lab, AIR\@InnoHK of the Hong Kong Government.
 
 # References

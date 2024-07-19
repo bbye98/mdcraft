@@ -82,6 +82,8 @@ class Hash(dict):
                 self[k] = v
 
     def __getattr__(self, attr):
+        if attr.beginswith("__array"):
+            return super().__getattr__(attr)
         return self.get(attr)
 
     def __setattr__(self, key, value):
