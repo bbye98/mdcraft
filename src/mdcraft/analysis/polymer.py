@@ -998,10 +998,20 @@ class SingleChainStructureFactor(NumbaAnalysisBase, _PolymerAnalysisBase):
 
     n_points : `int`, keyword-only, default: :code:`32`
         Number of points :math:`n_\\mathrm{points}` in the scattering
-        wavevector grid. Additional wavevectors can be introduced via
-        `n_surfaces` and `n_surface_points` for more accurate structure
-        factors at small wavenumbers. Alternatively, the desired
-        wavevectors can be specified directly in `wavevectors`.
+        wavevector grid to generate
+
+        .. math::
+
+           \\mathbf{q}=2\\pi\\left(\\frac{a}{L_x},\\,\\frac{b}{L_y},\\,
+           \\frac{c}{L_z}\\right)
+
+        where :math:`a`, :math:`b`, and :math:`c` are integers from
+        :math:`0` up to :math:`n_\\mathrm{points}-1`.
+
+        Additional wavevectors can be introduced via `n_surfaces` and
+        `n_surface_points` for more accurate structure factors at small
+        wavenumbers. Alternatively, the desired wavevectors can be
+        specified directly in `wavevectors`.
 
     n_surfaces : `int`, keyword-only, optional
         Number of spherical surfaces in the first octant that intersect
@@ -1021,17 +1031,9 @@ class SingleChainStructureFactor(NumbaAnalysisBase, _PolymerAnalysisBase):
 
     wavevectors : array-like, `openmm.unit.Quantity`, or `pint.Quantity`, \
     keyword-only, optional
-        Scattering wavevectors
-
-        .. math::
-
-           \\mathbf{q}=2\\pi\\left(\\frac{a}{L_x},\\,\\frac{b}{L_y},\\,
-           \\frac{c}{L_z}\\right)
-
-        for which to compute structure factors. :math:`a`, :math:`b`, and
-        :math:`c` are integers from :math:`0` up to
-        :math:`n_\\mathrm{points}-1`. Has precedence over `n_points`,
-        `n_surfaces`, and `n_surface_points` if specified.
+        Scattering wavevectors for which to compute structure factors.
+        Has precedence over `n_points`, `n_surfaces`, and
+        `n_surface_points` if specified.
 
         **Shape**: :math:`(N_q,\\,3)`.
 
