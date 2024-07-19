@@ -191,19 +191,23 @@
 	date = {2024-01-11},
 }
 
-@misc{ye_gcme_2024,
-	title = {{GCMe}: Efficient implementation of the Gaussian core model with smeared electrostatic interactions for molecular dynamics simulations of soft matter systems},
-	rights = {Creative Commons Attribution 4.0 International},
-	url = {https://arxiv.org/abs/2403.08148},
-	doi = {10.48550/ARXIV.2403.08148},
+
+@article{yeGCMeEfficientImplementation2024,
+	title = {{GCMe}: {Efficient} {Implementation} of the {Gaussian} {Core} {Model} with {Smeared} {Electrostatic} {Interactions} for {Molecular} {Dynamics} {Simulations} of {Soft} {Matter} {Systems}},
+	issn = {1549-9618},
 	shorttitle = {{GCMe}},
-	publisher = {{arXiv}},
+	url = {https://doi.org/10.1021/acs.jctc.4c00603},
+	doi = {10.1021/acs.jctc.4c00603},
+	abstract = {In recent years, molecular dynamics (MD) simulations have emerged as an essential tool for understanding the structure, dynamics, and phase behavior of charged soft matter systems. To explore phenomena across greater length and time scales in MD simulations, molecules are often coarse-grained for better computational performance. However, commonly used force fields represent particles as hard-core interaction centers with point charges, which often overemphasizes the packing effect and short-range electrostatics, especially in systems with bulky deformable organic molecules and systems with strong coarse-graining. This underscores the need for an efficient soft-core model to physically capture the effective interactions between coarse-grained particles. To this end, we implement a soft-core model uniting the Gaussian core model with smeared electrostatic interactions that is phenomenologically equivalent to recent theoretical models. We first parametrize it generically using water as the model solvent. Then, we benchmark its performance in the OpenMM toolkit for different boundary conditions to highlight a computational speedup of up to 34 × compared to commonly used force fields and existing implementations. Finally, we demonstrate its utility by investigating how boundary polarizability affects the adsorption behavior of a polyelectrolyte solution on perfectly conducting and nonmetal boundaries.},
+	urldate = {2024-07-19},
+	journal = {Journal of Chemical Theory and Computation},
 	author = {Ye, Benjamin Bobin and Chen, Shensheng and Wang, Zhen-Gang},
-	urldate = {2024-06-21},
-	date = {2024},
-	note = {Version Number: 2},
-	keywords = {Computational Physics (physics.comp-ph), {FOS}: Physical sciences, Soft Condensed Matter (cond-mat.soft)},
+	month = jul,
+	year = {2024},
+	note = {Publisher: American Chemical Society},
+	file = {Full Text PDF:/Users/pierrewalker/Zotero/storage/YV4UG4FS/Ye et al. - 2024 - GCMe Efficient Implementation of the Gaussian Cor.pdf:application/pdf},
 }
+
 
 @article{virtanen_scipy_2020,
 	title = {{SciPy} 1.0: fundamental algorithms for scientific computing in Python},
