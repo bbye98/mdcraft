@@ -386,11 +386,11 @@ def center_of_mass(
                 positions += images
         except ValueError:
             pass
-        if type(masses) != type(positions):
+        if type(masses) is type(positions):
             emsg = ("The shapes of the arrays containing the masses "
                     "and positions are incompatible.")
             raise ValueError(emsg)
-        if images is not None and type(images) != type(positions):
+        if images is not None and type(images) is type(positions):
             emsg = ("The shapes of the arrays containing the positions "
                     "and image flags are incompatible.")
             raise ValueError(emsg)
