@@ -8,7 +8,8 @@ This module contains topology and trajectory readers for use with MDAnalysis.
 
 import concurrent.futures
 import os
-from typing import Union
+from pathlib import Path
+from typing import TextIO, Union
 import warnings
 
 import psutil
@@ -135,7 +136,7 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
 
     @staticmethod
     def _get_offsets(
-        file: str | Path | TextIO, start: int, end: int, grid: bool, parallel: bool
+        file: Union[str, TextIO], start: int, end: int, grid: bool, parallel: bool
     ) -> list[int]:
         if close := isinstance(file, (str, Path)):
             file = open(file, "r")
