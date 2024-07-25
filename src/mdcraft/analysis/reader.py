@@ -134,20 +134,56 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
     format = "LAMMPSDUMP"
 
     @staticmethod
-    def _get_offsets(filename: str, start: int, end: int) -> list[int]:
+    def _get_offsets(
+        file: str | Path | TextIO, start: int, end: int, grid: bool, parallel: bool
+    ) -> list[int]:
+        if close := isinstance(file, (str, Path)):
+            file = open(file, "r")
+        byte_counter = file.seek(start)
+
         offsets = []
-        with open(filename, "r") as file:
-            file.seek(start)
-            while file.tell() < end:
+        if parallel:
+            while byte_counter < end:
                 line = file.readline()
+                byte_counter += len(line)
                 if (line_index := line.find("ITEM: TIMESTEP")) != -1:
-                    offsets.append(file.tell() - len(line) + line_index)
+                    offsets.append(byte_counter - len(line) + line_index)
+                    break
+            while byte_counter < end:
+                byte_counter += len(file.readline())  # <timestep>
+                byte_counter += len(file.readline())  # ITEM: NUMBER OF ATOMS
+                n_atoms = file.readline()
+                byte_counter += len(n_atoms)
+                for _ in range(5 + 4 * grid + int(n_atoms)):
+                    byte_counter += len(file.readline())
+                    if byte_counter >= end:
+                        break
+                else:
+                    offsets.append(byte_counter)
+                byte_counter += len(file.readline())  # ITEM: TIMESTEP
+        else:
+            line_counter = 0
+            lines_per_frame = 9 + 4 * grid
+            line = True
+            while line:
+                if (relative_line := line_counter % lines_per_frame) == 0 and (
+                    offset := file.tell()
+                ) < end:
+                    offsets.append(offset)
+                elif relative_line == 4:
+                    lines_per_frame = 9 + 4 * grid + int(line)
+                line = file.readline()
+                line_counter += 1
+
+        if close:
+            file.close()
+
         return offsets
 
     @store_init_arguments
     def __init__(
             self, filename: str, conventions: Union[str, tuple[str]] = None,
-            unwrap: bool = False, *, extras: list[str] = None, 
+            unwrap: bool = False, *, extras: list[str] = None,
             parallel: bool = False, n_workers: int = None, **kwargs) -> None:
 
         super().__init__(filename, **kwargs)
@@ -172,6 +208,15 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
         else:
             self._conventions = []
 
+        with anyopen(self.filename) as f:
+            for _ in range(3):
+                f.readline()
+            self.n_atoms = int(f.readline())
+
+            for _ in range(4):
+                f.readline()
+            self.is_style_grid = f.readline().rstrip() == "ITEM: DIMENSION"
+
         file_size = os.path.getsize(filename)
         if parallel:
             n_workers = n_workers or psutil.cpu_count()
@@ -186,22 +231,17 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
                         filename,
                         i * chunk_size,
                         min((i + 1) * chunk_size, file_size),
+                        self.is_style_grid,
+                        True
                     )
                     for i in range(n_workers)
                 ):
                     self._offsets.extend(future.result())
             self._offsets.sort()
         else:
-            self._offsets = self._get_offsets(filename, 0, file_size)
-
-        with anyopen(self.filename) as f:
-            for _ in range(3):
-                f.readline()
-            self.n_atoms = int(f.readline())
-
-            for _ in range(4):
-                f.readline()
-            self.is_style_grid = f.readline().rstrip() == "ITEM: DIMENSION"
+            self._offsets = self._get_offsets(
+                self._file, 0, file_size, self.is_style_grid, False
+            )
 
         if isinstance(extras, str):
             if extras not in self._EXTRA_ATTRIBUTES \
