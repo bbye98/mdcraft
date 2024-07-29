@@ -7,6 +7,8 @@ This module provides optimized Matplotlib rcParams for various
 scientific publications.
 """
 
+import shutil
+
 import matplotlib as mpl
 
 # Define figure size guidelines for various publications in inches
@@ -41,7 +43,7 @@ def update(
          "savefig.dpi": 1_200,
          "xtick.labelsize": 9,
          "ytick.labelsize": 9,
-         "text.usetex": True
+         "text.usetex": True # If LaTeX is available
        }
 
     If a supported journal acronym is provided as the first argument,
@@ -95,6 +97,6 @@ def update(
             "savefig.dpi": 1_200,
             "xtick.labelsize": font_scaling * 9,
             "ytick.labelsize": font_scaling * 9,
-            "text.usetex": True
+            "text.usetex": bool(shutil.which("latex"))
         } | fig_size | kwargs
     )
