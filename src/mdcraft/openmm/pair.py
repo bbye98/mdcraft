@@ -89,7 +89,7 @@ def coul_gauss(
 
     .. math::
 
-       u_\mathrm{Coul}(r_{12})=\frac{q_1q_2}{4\pi\varepsilon_0r_{12}}
+       u_\mathrm{elec}(r_{12})=\frac{q_1q_2}{4\pi\varepsilon_0r_{12}}
        \mathrm{erf}(\alpha_{12}r_{12})
 
     where :math:`q_1` and :math:`q_2` are the particle charges in
@@ -105,7 +105,7 @@ def coul_gauss(
 
     .. math::
 
-       u_\mathrm{Coul}(r_{12})=\frac{q_1q_2}{4\pi\varepsilon_0r_{12}}
+       u_\mathrm{elec}(r_{12})=\frac{q_1q_2}{4\pi\varepsilon_0r_{12}}
        \mathrm{erf}\left(\frac{\pi^{1/2}}{2^{1/2}a_{12}}r_{12}\right)
 
     is available, where :math:`a_{12}=\sqrt{a_1^2+a_2^2}` with
