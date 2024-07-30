@@ -90,6 +90,23 @@ class ConstantVolumeHeatCapacity:
 
         **Reference unit**: :math:`\\mathrm{kcal/K}` or
         :math:`\\mathrm{kJ/K}`.
+        
+    Example
+    --------
+    First, this analysis class must be imported:
+
+    >>> from mdcraft.analysis.thermodynamics import ConstantVolumeHeatCapacity
+
+    Then, after loading the log files (or providing the energies and temperature directly), the class can be instantiated:
+    
+    >>> cv = ConstantVolumeHeatCapacity("log.lammps)
+    >>> cv.run()
+
+    The results can be obtained under the `results` attribute:
+    
+    >>> cv.results.energies
+    >>> cv.results.heat_capacity
+    
     """
 
     _COLUMNS = {

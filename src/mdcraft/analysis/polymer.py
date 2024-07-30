@@ -270,6 +270,30 @@ class Gyradius(_PolymerAnalysisBase):
         :math:`(N_\\mathrm{groups},\\,N_\\mathrm{frames},\\,3)`.
 
         **Reference unit**: :math:`\\mathrm{Å}`.
+    
+    Example
+    --------
+    First, this analysis class must be imported:
+
+    >>> from mdcraft.analysis.polymer import Gyradius
+
+    Then, after loading a simulation trajectory:
+
+    >>> universe = mda.Universe("simulation.nc", "topology.cif")
+
+    We must then select the atom-groups to be analyzed:
+
+    >>> ag = universe.select_atoms("resname POLY")
+
+    The gyradius class can then be built and run, remembering to specify the number of chains and monomers per chain:
+    
+    >>> gyradius = Gyradius(ag, n_chains=10, n_monomers=100)
+    >>> gyradius.run()
+
+    The results can be obtained under the `results` attribute:
+    
+    >>> gyradius.results.gyradii
+    
     """
 
     def __init__(
@@ -707,6 +731,39 @@ class EndToEndVector(_PolymerAnalysisBase):
         **Shape**: :math:`(N_\\mathrm{groups},\\,N_\\mathrm{blocks})`.
 
         **Reference units**: :math:`\\mathrm{ps}`.
+    
+    Example
+    --------
+    First, this analysis class must be imported:
+
+    >>> from mdcraft.analysis.polymer import EndToEndVector
+
+    Then, after loading a simulation trajectory:
+
+    >>> universe = mda.Universe("simulation.nc", "topology.cif")
+
+    We must then select the atom-groups to be analyzed:
+
+    >>> ag = universe.select_atoms("resname POLY")
+
+    The `EndToEndVector` class can then be built and run, remembering to specify the number of chains and monomers per chain:
+    
+    >>> e2e = EndToEndVector(ag, n_chains=10, n_monomers=100)
+    >>> e2e.run()
+
+    The results can be obtained under the `results` attribute:
+    
+    >>> e2e.results.acf
+    
+    One can also obtain the relaxation times by calling the following:
+    
+    >>> e2e.calculate_relaxation_time()
+    >>> e2e.results.relaxation_times
+    
+    These can be saved by doing the following:
+    
+    >>> e2e.save("e2e")
+    
     """
 
     def __init__(
@@ -1078,6 +1135,30 @@ class SingleChainStructureFactor(NumbaAnalysisBase, _PolymerAnalysisBase):
         Single-chain structure factors :math:`S_\\mathrm{sc}(q)`.
 
         **Shape**: :math:`(N_q,)`.
+        
+    Example
+    --------
+    First, this analysis class must be imported:
+
+    >>> from mdcraft.analysis.polymer import SingleChainStructureFactor
+
+    Then, after loading a simulation trajectory:
+
+    >>> universe = mda.Universe("simulation.nc", "topology.cif")
+
+    We must then select the atom-groups to be analyzed:
+
+    >>> ag = universe.select_atoms("resname POLY")
+
+    The `SingleChainStructureFactor` class can then be built and run, remembering to specify the number of chains and monomers per chain:
+    
+    >>> scsf = SingleChainStructureFactor(ag, n_chains=10, n_monomers=100)
+    >>> scsf.run()
+
+    The results can be obtained under the `results` attribute:
+    
+    >>> scsf.results.scsf
+    
     """
 
     def __init__(

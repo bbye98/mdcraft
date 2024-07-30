@@ -719,6 +719,47 @@ class RadialDistributionFunction(DynamicAnalysisBase):
         :meth:`calculate_structure_factor`.
 
         **Shape**: Same as `results.wavenumbers`.
+    
+    Example
+    --------
+    First, this analysis class must be imported:
+
+    >>> from mdcraft.analysis.structure import RadialDistributionFunction
+
+    Then, after loading a simulation trajectory:
+
+    >>> universe = mda.Universe("simulation.nc", "topology.cif")
+
+    We must then select the atom-group(s) to be analyzed:
+
+    >>> ag1 = universe.select_atoms("type 1")
+    >>> ag2 = universe.select_atoms("type 2")
+
+    The `RadialDistributionFunction` class can then be built and run (if only one atom group is provided, the RDF is calculated for the same atom group):
+    
+    >>> rdf = RadialDistributionFunction(ag1, ag2)
+    >>> rdf.run()
+
+    The results can be obtained under the `results` attribute:
+    
+    >>> rdf.results.rdf
+    
+    One can also obtain the coordination numbers by running (specifying a reasonable threshold is recommended):
+    
+    >>> rdf.calculate_coordination_numbers(rho=0.1,threshold=0.1)
+    
+    Similarly, the potential of mean force can be calculated by running:
+    
+    >>> rdf.calculate_pmf()
+    
+    Finally, the static or partial structure factor can be calculated by running:
+    
+    >>> rdf.calculate_structure_factor()
+    
+    All of these results can be saved by doing the following:
+    
+    >>> rdf.save("rdf")
+    
     """
 
     def __init__(
@@ -1621,6 +1662,38 @@ class StructureFactor(NumbaAnalysisBase):
 
         **Shape**: :math:`(1,\\,N_q)` or
         :math:`(C(N_\\mathrm{g}+1,\\,2),\\,N_q)`.
+    
+    Example
+    --------
+    First, this analysis class must be imported:
+
+    >>> from mdcraft.analysis.structure import StructureFactor
+
+    Then, after loading a simulation trajectory:
+
+    >>> universe = mda.Universe("simulation.nc", "topology.cif")
+
+    We must then select the atom-groups to be analyzed:
+
+    >>> ag = universe.select_atoms("all")
+    
+    Note that if one wishes to obtain the total structure factor, all particles must be included in `ag`. The `StructureFactor` class can then be built and run:
+    
+    >>> ssf = StructureFactor(ag)
+    >>> ssf.run()
+    
+        .. note::
+
+            If `parallel=True`, the analysis will be performed in parallel using all available cores.
+
+    The results can be obtained under the `results` attribute:
+    
+    >>> ssf.results.ssf
+    
+    To save the results to a file, use the `save` method:
+    
+    >>> ssf.save("ssf")
+    
     """
 
     def __init__(
@@ -2350,6 +2423,39 @@ class IntermediateScatteringFunction(StructureFactor):
 
         **Shape**: :math:`(N_t,\\,1,\\,N_q)` or
         :math:`(N_t,\\,N_\\mathrm{g},\\,N_q)`.
+
+    Example
+    --------
+    First, this analysis class must be imported:
+
+    >>> from mdcraft.analysis.structure import IntermediateScatteringFunction
+
+    Then, after loading a simulation trajectory:
+
+    >>> universe = mda.Universe("simulation.nc", "topology.cif")
+
+    We must then select the atom-groups to be analyzed:
+
+    >>> ag = universe.select_atoms("all")
+    
+    Note that if one wishes to obtain the total structure factors, all particles must be included in `ag`. The `IntermediateScatteringFunction` class can then be built and run:
+    
+    >>> isf = IntermediateScatteringFunction(ag)
+    >>> isf.run()
+    
+        .. note::
+
+            If `parallel=True`, the analysis will be performed in parallel using all available cores.
+
+    The results can be obtained under the `results` attribute:
+    
+    >>> isf.results.cisf
+    >>> isf.results.iisf
+    
+    To save the results to a file, use the `save` method:
+    
+    >>> isf.save("isf")
+    
     """
 
     def __init__(

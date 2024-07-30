@@ -800,6 +800,52 @@ class Onsager(SerialAnalysisBase):
       `results.msd_self` is averaged over all particles. Therefore, it
       can be plotted against `results.times` to directly get the 
       self-diffusion coefficients.
+      
+    Example
+    --------
+    First, this analysis class must be imported:
+
+    >>> from mdcraft.analysis.transport import Onsager
+
+    Then, after loading a simulation trajectory:
+
+    >>> universe = mda.Universe("simulation.nc", "topology.cif")
+
+    We must then select the atom-groups to be analyzed (typically the anions and cations):
+
+    >>> ag1 = universe.select_atoms("resname CAT")
+    >>> ag2 = universe.select_atoms("resname ANI")
+    
+    The `Onsager` class can be instantiated with the selected atom-groups, remembering to specify the charges and temperature:
+    
+    >>> otc = Onsager([ag1, ag2], charges=[1, -1], temperature=300)
+    >>> otc.run()
+
+    The results can be obtained under the `results` attribute:
+    
+    >>> otc.results.msd_self
+    >>> otc.results.msd_cross
+    
+    To calculate the Onsager transport coefficients, the following method can be used:
+    
+    >>> otc.calculate_transport_coefficients()
+    
+    The conductivity, electrophoretic mobilities, and transference numbers can be calculated as follows:
+    
+    >>> otc.calculate_conductivity()
+    >>> otc.calculate_electrophoretic_mobilities()
+    >>> otc.calculate_transference_numbers()
+    
+    All of these can be accessed under the `results` attribute:
+    
+    >>> otc.results.L_ij
+    >>> otc.results.conductivity
+    >>> otc.results.electrophoretic_mobilities
+    >>> otc.results.transference_numbers
+    
+    These results can be saved to a file using the `save` method:
+        
+    >>> otc.save("otc")
 
     References
     ----------

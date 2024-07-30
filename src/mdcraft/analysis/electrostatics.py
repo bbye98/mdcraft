@@ -232,6 +232,37 @@ class DipoleMoment(DynamicAnalysisBase):
         :math:`\\varepsilon_\\mathrm{r}` in each dimension.
 
         **Shape**: :math:`(3,)`.
+        
+    Example
+    --------
+    First, this analysis class must be imported:
+
+    >>> from mdcraft.analysis.electrostatics import DipoleMoment
+
+    Then, after loading a simulation trajectory:
+
+    >>> universe = mda.Universe("simulation.nc", "topology.cif")
+
+    We must then select the atom-groups to be analyzed (typically the solvent):
+
+    >>> ag = universe.select_atoms("resname SOL")
+    
+    The `DipoleMoment` class can be instantiated with the selected atom-groups, remembering to specify the charges:
+    
+    >>> dpm = DipoleMoment(ag, charges=ag.charges)
+    >>> dpm.run()
+
+    The results can be obtained under the `results` attribute:
+    
+    >>> dpm.results.dipoles
+    
+    To calculate the relative permittivity, the temperature must be provided:
+    
+    >>> dpm.calculate_relative_permittivity(300)
+    
+    These results can be saved to a file using the `save` method:
+        
+    >>> dpm.save("dpm")
 
     References
     ----------

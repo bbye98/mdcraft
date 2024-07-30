@@ -726,6 +726,42 @@ class DensityProfile(DynamicAnalysisBase):
         length :math:`N_\\mathrm{frames}` is present.
 
         **Reference unit**: :math:`\\mathrm{V}`.
+    
+    Example
+    --------
+    First, this analysis class must be imported:
+
+    >>> from mdcraft.analysis.profile import DensityProfile
+
+    Then, after loading a simulation trajectory:
+
+    >>> universe = mda.Universe("simulation.nc", "topology.cif")
+
+    We must then select the atom-groups to be analyzed:
+
+    >>> ag1 = universe.select_atoms("resname CAT")
+    >>> ag2 = universe.select_atoms("resname ANI")
+    
+    The `DensityProfile` class can be instantiated with the selected atom-groups and the axes to calculate the density profiles along (charges can also be provided to obtain the charge density profiles):
+    
+    >>> prof = DensityProfile([ag1, ag2], groupings="residues", axes="x", charges=[1, -1])
+    >>> prof.run()
+
+    The results can be obtained under the `results` attribute:
+    
+    >>> prof.results.number_densities["x"]
+    
+    To calculate the surface charge densities, the `calculate_surface_charge_densities` method can be used:
+    
+    >>> prof.calculate_surface_charge_densities(dV=1, dielectric=80)
+    
+    Further, to calculate the potential profiles, the `calculate_potential_profiles` method can be used:
+    
+    >>> prof.calculate_potential_profiles(dielectric=80)
+    
+    These results can be saved to a file using the `save` method:
+        
+    >>> prof.save("density_profiles")
     """
 
     def __init__(
