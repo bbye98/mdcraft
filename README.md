@@ -77,3 +77,11 @@ To use the method of image charges
 simulations, you must compile and install [`constvplugin`](
 https://github.com/scychon/openmm_constV) or [`openmm-ic-plugin`](
 https://github.com/bbye98/mdcraft/tree/main/lib/openmm-ic-plugin).
+
+### Tests
+
+After installing, to run the MDCraft tests locally, use `pytest`:
+
+    pip install pytest
+    cd mdcraft
+    pytest
