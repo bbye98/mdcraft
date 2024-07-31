@@ -240,6 +240,7 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
                     self._offsets.extend(future.result())
             self._offsets.sort()
         else:
+            self._file = open(filename, "r")
             self._offsets = self._get_offsets(
                 self._file, 0, file_size, self.is_style_grid, False
             )
