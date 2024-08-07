@@ -136,7 +136,7 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
 
     @staticmethod
     def _get_offsets(
-        file: str | Path | TextIO,
+        file: Union[str, Path, TextIO],
         start: int,
         end: int,
         grid: bool,
