@@ -19,16 +19,22 @@ from ..algorithm import topology as topo
 if FOUND_OPENMM:
     from openmm import app, unit
 
-def create_atoms(
-        dimensions: Union[np.ndarray[float], "unit.Quantity", Q_,
-                          "app.Topology"],
-        N: int = None, N_p: int = 1, *, lattice: str = None,
-        length: Union[float, "unit.Quantity"] = 0.34,
-        flexible: bool = False, bonds: bool = False, angles: bool = False,
-        dihedrals: bool = False, randomize: bool = False,
-        length_unit: Union["unit.Unit", ureg.Unit] = None, wrap: bool = False
-    ) -> Any:
 
+def create_atoms(
+    dimensions: Union[np.ndarray[float], "unit.Quantity", Q_, "app.Topology"],
+    N: int = None,
+    N_p: int = 1,
+    *,
+    lattice: str = None,
+    length: Union[float, "unit.Quantity"] = 0.34,
+    flexible: bool = False,
+    bonds: bool = False,
+    angles: bool = False,
+    dihedrals: bool = False,
+    randomize: bool = False,
+    length_unit: Union["unit.Unit", ureg.Unit] = None,
+    wrap: bool = False,
+) -> Any:
     """
     Generates initial particle positions for coarse-grained simulations.
 
@@ -39,30 +45,34 @@ def create_atoms(
     """
 
     return topo.create_atoms(
-        dimensions, 
-        N, 
-        N_p, 
-        lattice=lattice, 
+        dimensions,
+        N,
+        N_p,
+        lattice=lattice,
         length=length,
-        flexible=flexible, 
-        bonds=bonds, 
+        flexible=flexible,
+        bonds=bonds,
         angles=angles,
-        dihedrals=dihedrals, 
+        dihedrals=dihedrals,
         randomize=randomize,
-        length_unit=length_unit, 
-        wrap=wrap
+        length_unit=length_unit,
+        wrap=wrap,
     )
 
-def write_data(
-        file: Union[str, TextIOWrapper], positions: tuple[np.ndarray[float]],
-        *, bonds: tuple[np.ndarray[int]] = None,
-        angles: tuple[np.ndarray[int]] = None,
-        dihedrals: tuple[np.ndarray[int]] = None,
-        impropers: tuple[np.ndarray[int]] = None,
-        dimensions: np.ndarray[float] = None, tilt: np.ndarray[float] = None,
-        charges: np.ndarray[float] = None, masses: np.ndarray[float] = None,
-    ) -> None:
 
+def write_data(
+    file: Union[str, TextIOWrapper],
+    positions: tuple[np.ndarray[float]],
+    *,
+    bonds: tuple[np.ndarray[int]] = None,
+    angles: tuple[np.ndarray[int]] = None,
+    dihedrals: tuple[np.ndarray[int]] = None,
+    impropers: tuple[np.ndarray[int]] = None,
+    dimensions: np.ndarray[float] = None,
+    tilt: np.ndarray[float] = None,
+    charges: np.ndarray[float] = None,
+    masses: np.ndarray[float] = None,
+) -> None:
     r"""
     Writes topological data to a LAMMPS data file in :code:`atom_style full`.
 
@@ -191,8 +201,10 @@ def write_data(
     for t, (pos, qs) in enumerate(zip(positions, charges)):
         start = sum(n_atoms_type[:t])
         for i, (p, q) in enumerate(zip(pos, qs)):
-            file.write(f"{start + i + 1} {start + i + 1} {t + 1} {q:.6g} "
-                       f"{p[0]:.6g} {p[1]:.6g} {p[2]:.6g}\n")
+            file.write(
+                f"{start + i + 1} {start + i + 1} {t + 1} {q:.6g} "
+                f"{p[0]:.6g} {p[1]:.6g} {p[2]:.6g}\n"
+            )
 
     # Write bonds
     if bonds is not None:

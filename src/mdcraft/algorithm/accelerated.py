@@ -9,10 +9,11 @@ This module contains miscellaneous Numba-accelerated common algorithms.
 import numba
 import numpy as np
 
+
 @numba.njit("f8[:](f8[:],i8)", fastmath=True)
 def numba_histogram_bin_edges(
-        array: np.ndarray[float], n_bins: int) -> np.ndarray[float]:
-
+    array: np.ndarray[float], n_bins: int
+) -> np.ndarray[float]:
     r"""
     Serial Numba-accelerated function to compute the uniform histogram
     bin edges for a one-dimensional NumPy array :math:`\mathbf{a}`
@@ -41,11 +42,11 @@ def numba_histogram_bin_edges(
     bin_edges[-1] = max_
     return bin_edges
 
+
 @numba.njit("i8[:](f8[:],i8,f8[:])", fastmath=True)
 def numba_histogram(
-        array: np.ndarray[float], n_bins: int, bin_edges: np.ndarray[float]
-    ) -> np.ndarray[int]:
-
+    array: np.ndarray[float], n_bins: int, bin_edges: np.ndarray[float]
+) -> np.ndarray[int]:
     r"""
     Serial Numba-accelerated function to compute the histogram of a
     one-dimensional NumPy array :math:`\mathbf{a}` using predetermined
@@ -79,9 +80,9 @@ def numba_histogram(
             histogram_[bin_] += 1
     return histogram_
 
+
 @numba.njit("f8(f8[:],f8[:])", fastmath=True)
 def numba_dot(a: np.ndarray[float], b: np.ndarray[float]) -> float:
-
     r"""
     Serial Numba-accelerated dot product between two one-dimensional
     NumPy arrays :math:`\mathbf{a}` and :math:`\mathbf{b}`, each with
@@ -111,10 +112,9 @@ def numba_dot(a: np.ndarray[float], b: np.ndarray[float]) -> float:
 
     return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
 
-@numba.njit("f8[:,:](f8[:,:],f8[:,:])", fastmath=True)
-def numba_inner(
-        qs: np.ndarray[float], rs: np.ndarray[float]) -> np.ndarray[float]:
 
+@numba.njit("f8[:,:](f8[:,:],f8[:,:])", fastmath=True)
+def numba_inner(qs: np.ndarray[float], rs: np.ndarray[float]) -> np.ndarray[float]:
     r"""
     Serial Numba-accelerated inner product between all possible
     combinations of multiple one-dimensional NumPy arrays
@@ -153,10 +153,11 @@ def numba_inner(
             s[i, j] = numba_dot(qs[i], rs[j])
     return s
 
+
 @numba.njit("f8[:,:](f8[:,:],f8[:,:])", fastmath=True, parallel=True)
 def numba_inner_parallel(
-        qs: np.ndarray[float], rs: np.ndarray[float]) -> np.ndarray[float]:
-
+    qs: np.ndarray[float], rs: np.ndarray[float]
+) -> np.ndarray[float]:
     r"""
     Parallel Numba-accelerated inner product between all possible
     combinations of multiple one-dimensional NumPy arrays

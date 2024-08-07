@@ -23,9 +23,8 @@ series models with :math:`1\leq k\leq 8` analogous to MATLAB's
 
 import numpy as np
 
-def fourier(
-        x: np.ndarray, omega: float, a0: float, *args: float) -> np.ndarray:
 
+def fourier(x: np.ndarray, omega: float, a0: float, *args: float) -> np.ndarray:
     r"""
     General Fourier series model.
 
@@ -83,15 +82,16 @@ def fourier(
     """
 
     n = len(args)
-    assert n >= 2 and n % 2 == 0, \
-        "Number of fitting parameters must be greater than 2 and even."
-    kwx = np.arange(1, n // 2+1)[:, None] * omega * x
-    return a0+args[::2] @ np.cos(kwx)+args[1::2] @ np.sin(kwx)
+    assert (
+        n >= 2 and n % 2 == 0
+    ), "Number of fitting parameters must be greater than 2 and even."
+    kwx = np.arange(1, n // 2 + 1)[:, None] * omega * x
+    return a0 + args[::2] @ np.cos(kwx) + args[1::2] @ np.sin(kwx)
+
 
 def fourier1(
-        x: np.ndarray, a0: float, a1: float, b1: float, omega: float
-    ) -> np.ndarray:
-
+    x: np.ndarray, a0: float, a1: float, b1: float, omega: float
+) -> np.ndarray:
     r"""
     Convenience function for the :code:`fourier1` model from MATLAB.
 
@@ -125,10 +125,10 @@ def fourier1(
 
     return fourier(x, omega, a0, a1, b1)
 
-def fourier2(
-        x: np.ndarray, a0: float, a1: float, b1: float, a2: float,
-        b2: float, omega: float) -> np.ndarray:
 
+def fourier2(
+    x: np.ndarray, a0: float, a1: float, b1: float, a2: float, b2: float, omega: float
+) -> np.ndarray:
     r"""
     Convenience function for the :code:`fourier2` model from MATLAB.
 
@@ -169,10 +169,18 @@ def fourier2(
 
     return fourier(x, omega, a0, a1, b1, a2, b2)
 
-def fourier3(
-        x: np.ndarray, a0: float, a1: float, b1: float, a2: float,
-        b2: float, a3: float, b3: float, omega: float) -> np.ndarray:
 
+def fourier3(
+    x: np.ndarray,
+    a0: float,
+    a1: float,
+    b1: float,
+    a2: float,
+    b2: float,
+    a3: float,
+    b3: float,
+    omega: float,
+) -> np.ndarray:
     r"""
     Convenience function for the :code:`fourier3` model from MATLAB.
 
@@ -220,11 +228,20 @@ def fourier3(
 
     return fourier(x, omega, a0, a1, b1, a2, b2, a3, b3)
 
-def fourier4(
-        x: np.ndarray, a0: float, a1: float, b1: float, a2: float,
-        b2: float, a3: float, b3: float, a4: float, b4: float, omega: float
-    ) -> np.ndarray:
 
+def fourier4(
+    x: np.ndarray,
+    a0: float,
+    a1: float,
+    b1: float,
+    a2: float,
+    b2: float,
+    a3: float,
+    b3: float,
+    a4: float,
+    b4: float,
+    omega: float,
+) -> np.ndarray:
     r"""
     Convenience function for the :code:`fourier4` model from MATLAB.
 
@@ -279,11 +296,22 @@ def fourier4(
 
     return fourier(x, omega, a0, a1, b1, a2, b2, a3, b3, a4, b4)
 
-def fourier5(
-        x: np.ndarray, a0: float, a1: float, b1: float, a2: float,
-        b2: float, a3: float, b3: float, a4: float, b4: float,
-        a5: float, b5: float, omega: float) -> np.ndarray:
 
+def fourier5(
+    x: np.ndarray,
+    a0: float,
+    a1: float,
+    b1: float,
+    a2: float,
+    b2: float,
+    a3: float,
+    b3: float,
+    a4: float,
+    b4: float,
+    a5: float,
+    b5: float,
+    omega: float,
+) -> np.ndarray:
     r"""
     Convenience function for the :code:`fourier5` model from MATLAB.
 
@@ -343,12 +371,24 @@ def fourier5(
 
     return fourier(x, omega, a0, a1, b1, a2, b2, a3, b3, a4, b4, a5, b5)
 
-def fourier6(
-        x: np.ndarray, a0: float, a1: float, b1: float, a2: float,
-        b2: float, a3: float, b3: float, a4: float, b4: float,
-        a5: float, b5: float, a6: float, b6: float, omega: float
-    ) -> np.ndarray:
 
+def fourier6(
+    x: np.ndarray,
+    a0: float,
+    a1: float,
+    b1: float,
+    a2: float,
+    b2: float,
+    a3: float,
+    b3: float,
+    a4: float,
+    b4: float,
+    a5: float,
+    b5: float,
+    a6: float,
+    b6: float,
+    omega: float,
+) -> np.ndarray:
     r"""
     Convenience function for the :code:`fourier6` model from MATLAB.
 
@@ -412,15 +452,28 @@ def fourier6(
         Fitted :math:`y`-values.
     """
 
-    return fourier(x, omega, a0, a1, b1, a2, b2, a3, b3, a4, b4, a5, b5,
-                   a6, b6)
+    return fourier(x, omega, a0, a1, b1, a2, b2, a3, b3, a4, b4, a5, b5, a6, b6)
+
 
 def fourier7(
-        x: np.ndarray, a0: float, a1: float, b1: float, a2: float,
-        b2: float, a3: float, b3: float, a4: float, b4: float,
-        a5: float, b5: float, a6: float, b6: float, a7: float,
-        b7: float, omega: float) -> np.ndarray:
-
+    x: np.ndarray,
+    a0: float,
+    a1: float,
+    b1: float,
+    a2: float,
+    b2: float,
+    a3: float,
+    b3: float,
+    a4: float,
+    b4: float,
+    a5: float,
+    b5: float,
+    a6: float,
+    b6: float,
+    a7: float,
+    b7: float,
+    omega: float,
+) -> np.ndarray:
     r"""
     Convenience function for the :code:`fourier7` model from MATLAB.
 
@@ -490,15 +543,30 @@ def fourier7(
         Fitted :math:`y`-values.
     """
 
-    return fourier(x, omega, a0, a1, b1, a2, b2, a3, b3, a4, b4, a5, b5,
-                   a6, b6, a7, b7)
+    return fourier(x, omega, a0, a1, b1, a2, b2, a3, b3, a4, b4, a5, b5, a6, b6, a7, b7)
+
 
 def fourier8(
-        x: np.ndarray, a0: float, a1: float, b1: float, a2: float,
-        b2: float, a3: float, b3: float, a4: float, b4: float,
-        a5: float, b5: float, a6: float, b6: float, a7: float,
-        b7: float, a8: float, b8: float, omega: float) -> np.ndarray:
-
+    x: np.ndarray,
+    a0: float,
+    a1: float,
+    b1: float,
+    a2: float,
+    b2: float,
+    a3: float,
+    b3: float,
+    a4: float,
+    b4: float,
+    a5: float,
+    b5: float,
+    a6: float,
+    b6: float,
+    a7: float,
+    b7: float,
+    a8: float,
+    b8: float,
+    omega: float,
+) -> np.ndarray:
     r"""
     Convenience function for the :code:`fourier8` model from MATLAB.
 
@@ -574,5 +642,6 @@ def fourier8(
         Fitted :math:`y`-values.
     """
 
-    return fourier(x, omega, a0, a1, b1, a2, b2, a3, b3, a4, b4, a5, b5,
-                   a6, b6, a7, b7, a8, b8)
+    return fourier(
+        x, omega, a0, a1, b1, a2, b2, a3, b3, a4, b4, a5, b5, a6, b6, a7, b7, a8, b8
+    )

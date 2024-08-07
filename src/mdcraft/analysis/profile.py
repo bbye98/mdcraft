@@ -19,8 +19,7 @@ from scipy import integrate, sparse
 
 from .base import Hash, DynamicAnalysisBase
 from .. import FOUND_OPENMM, Q_, ureg
-from ..algorithm.accelerated import (numba_histogram_bin_edges,
-                                     numba_histogram)
+from ..algorithm.accelerated import numba_histogram_bin_edges, numba_histogram
 from ..algorithm.molecule import center_of_mass
 from ..algorithm.topology import unwrap, wrap
 from ..algorithm.unit import is_unitless, strip_unit
@@ -29,17 +28,22 @@ if FOUND_OPENMM:
     from openmm import unit
 
 _ELECTROSTATIC_CONVERSION_FACTORS = (
-    (1 * ureg.elementary_charge
-     / (ureg.vacuum_permittivity * ureg.angstrom)).m_as(ureg.volt),
-    4 * np.pi
+    (1 * ureg.elementary_charge / (ureg.vacuum_permittivity * ureg.angstrom)).m_as(
+        ureg.volt
+    ),
+    4 * np.pi,
 )
 
-def calculate_surface_charge_density(
-        bins: np.ndarray[float], charge_density_profile: np.ndarray[float],
-        dielectric: float = None, *, L: float = None,
-        dV: Union[float, np.ndarray[float]] = None, reduced: bool = False
-    ) -> Union[float, np.ndarray[float]]:
 
+def calculate_surface_charge_density(
+    bins: np.ndarray[float],
+    charge_density_profile: np.ndarray[float],
+    dielectric: float = None,
+    *,
+    L: float = None,
+    dV: Union[float, np.ndarray[float]] = None,
+    reduced: bool = False,
+) -> Union[float, np.ndarray[float]]:
     r"""
     Calculates the surface charge density :math:`\sigma_q` using the
     charge density profile :math:`\rho_q(z)`.
@@ -118,29 +122,32 @@ def calculate_surface_charge_density(
     if bins.ndim != 1:
         raise ValueError("'bins' must be a one-dimensional array.")
     if charge_density_profile.ndim not in {1, 2}:
-        emsg = ("'charge_density_profile' must be a one- or "
-                "two-dimensional array.")
+        emsg = "'charge_density_profile' must be a one- or " "two-dimensional array."
         raise ValueError(emsg)
     if bins.shape[0] != charge_density_profile.shape[-1]:
-        emsg = ("'bins' and 'charge_density_profile' must have the same"
-                "length in the last dimension.")
+        emsg = (
+            "'bins' and 'charge_density_profile' must have the same"
+            "length in the last dimension."
+        )
         raise ValueError(emsg)
     if dV is not None:
         if dielectric is None:
             raise ValueError("'dielectric' must be specified when 'dV' is.")
-        if not isinstance(dV, Real) \
-                and dV.shape[0] != charge_density_profile.shape[0]:
-            emsg = ("The number of potential differences in 'dVs' must "
-                    "be equal to the number of frames in "
-                    "'charge_density_profile'.")
+        if not isinstance(dV, Real) and dV.shape[0] != charge_density_profile.shape[0]:
+            emsg = (
+                "The number of potential differences in 'dVs' must "
+                "be equal to the number of frames in "
+                "'charge_density_profile'."
+            )
             raise ValueError(emsg)
 
     # Determine system size, if not provided
     dz = bins[1] - bins[0]
-    if (uniform := np.allclose(np.diff(bins), dz)) \
-            and not np.isclose(bins[0], dz / 2):
-        wmsg = ("'bins' currently does not start at zero, so it will "
-                f"be shifted left by {(shift := bins[0] - dz / 2):.6g}.")
+    if (uniform := np.allclose(np.diff(bins), dz)) and not np.isclose(bins[0], dz / 2):
+        wmsg = (
+            "'bins' currently does not start at zero, so it will "
+            f"be shifted left by {(shift := bins[0] - dz / 2):.6g}."
+        )
         warnings.warn(wmsg)
         bins -= shift
     if L is None:
@@ -154,14 +161,21 @@ def calculate_surface_charge_density(
         y += dielectric * dV / _ELECTROSTATIC_CONVERSION_FACTORS[reduced]
     return y / L
 
-def calculate_potential_profile(
-        bins: np.ndarray[float], charge_density_profile: np.ndarray[float],
-        dielectric: float, *, L: float = None,
-        sigma_q: Union[float, np.ndarray[float]] = None,
-        dV: Union[float, np.ndarray[float]] = None, threshold: float = 1e-5,
-        V0: Union[float, np.ndarray[float]] = 0, method: str = "integral",
-        pbc: bool = False, reduced: bool = False) -> np.ndarray[float]:
 
+def calculate_potential_profile(
+    bins: np.ndarray[float],
+    charge_density_profile: np.ndarray[float],
+    dielectric: float,
+    *,
+    L: float = None,
+    sigma_q: Union[float, np.ndarray[float]] = None,
+    dV: Union[float, np.ndarray[float]] = None,
+    threshold: float = 1e-5,
+    V0: Union[float, np.ndarray[float]] = 0,
+    method: str = "integral",
+    pbc: bool = False,
+    reduced: bool = False,
+) -> np.ndarray[float]:
     r"""
     Calculates the potential profile :math:`\Psi(z)` using the charge
     density profile :math:`\rho_q(z)` by numerically solving Poisson's
@@ -339,37 +353,54 @@ def calculate_potential_profile(
     if bins.ndim != 1:
         raise ValueError("'bins' must be a one-dimensional array.")
     if charge_density_profile.ndim not in {1, 2}:
-        emsg = ("'charge_density_profile' must be a one- or "
-                "two-dimensional array.")
+        emsg = "'charge_density_profile' must be a one- or " "two-dimensional array."
         raise ValueError(emsg)
     if bins.shape[0] != charge_density_profile.shape[-1]:
-        emsg = ("'bins' and 'charge_density_profile' must have the same"
-                "length in the last dimension.")
+        emsg = (
+            "'bins' and 'charge_density_profile' must have the same"
+            "length in the last dimension."
+        )
         raise ValueError(emsg)
-    if sigma_q is not None and not isinstance(sigma_q, Real) \
-            and sigma_q.shape[0] != charge_density_profile.shape[0]:
-        emsg = ("The number of surface charge densities in 'sigmas_q' "
-                "must be equal to the number of frames in "
-                "'charge_density_profile'.")
+    if (
+        sigma_q is not None
+        and not isinstance(sigma_q, Real)
+        and sigma_q.shape[0] != charge_density_profile.shape[0]
+    ):
+        emsg = (
+            "The number of surface charge densities in 'sigmas_q' "
+            "must be equal to the number of frames in "
+            "'charge_density_profile'."
+        )
         raise ValueError(emsg)
-    if dV is not None and not isinstance(dV, Real) \
-            and dV.shape[0] != charge_density_profile.shape[0]:
-        emsg = ("The number of potential differences in 'dVs' must be "
-                "equal to the number of frames in "
-                "'charge_density_profile'.")
+    if (
+        dV is not None
+        and not isinstance(dV, Real)
+        and dV.shape[0] != charge_density_profile.shape[0]
+    ):
+        emsg = (
+            "The number of potential differences in 'dVs' must be "
+            "equal to the number of frames in "
+            "'charge_density_profile'."
+        )
         raise ValueError(emsg)
-    if V0 is not None and not isinstance(V0, Real) \
-            and V0.shape[0] != charge_density_profile.shape[0]:
-        emsg = ("The number of potentials in 'V0s' must be equal to "
-                "the number of frames in 'charge_density_profile'.")
+    if (
+        V0 is not None
+        and not isinstance(V0, Real)
+        and V0.shape[0] != charge_density_profile.shape[0]
+    ):
+        emsg = (
+            "The number of potentials in 'V0s' must be equal to "
+            "the number of frames in 'charge_density_profile'."
+        )
         raise ValueError(emsg)
 
     # Determine system size, if not provided
     dz = bins[1] - bins[0]
-    if (uniform := np.allclose(np.diff(bins), dz)) \
-            and not np.isclose(bins[0], dz / 2):
-        wmsg = ("'bins' currently does not start at zero, so it will "
-                f"be shifted left by {(shift := bins[0] - dz / 2):.6g}.")
+    if (uniform := np.allclose(np.diff(bins), dz)) and not np.isclose(bins[0], dz / 2):
+        wmsg = (
+            "'bins' currently does not start at zero, so it will "
+            f"be shifted left by {(shift := bins[0] - dz / 2):.6g}."
+        )
         warnings.warn(wmsg)
         bins -= shift
     if L is None:
@@ -386,28 +417,36 @@ def calculate_potential_profile(
         ) / L
 
     if method == "integral":
-        potential = integrate.cumulative_trapezoid(charge_density_profile,
-                                                   bins, initial=0)
+        potential = integrate.cumulative_trapezoid(
+            charge_density_profile, bins, initial=0
+        )
 
         if sigma_q is None:
-            wmsg = ("No surface charge density information. The value "
-                    "will be extracted from the integrated charge "
-                    "density profile, which may be inaccurate due to "
-                    "numerical errors.")
+            wmsg = (
+                "No surface charge density information. The value "
+                "will be extracted from the integrated charge "
+                "density profile, which may be inaccurate due to "
+                "numerical errors."
+            )
             warnings.warn(wmsg)
 
             # Get surface charge density from the integrated charge
             # density profile
-            cut_indices = np.where(
-                np.diff(
-                    np.abs(
-                        np.gradient(
-                            potential if potential.ndim == 1
-                            else potential.mean(axis=0)
+            cut_indices = (
+                np.where(
+                    np.diff(
+                        np.abs(
+                            np.gradient(
+                                potential
+                                if potential.ndim == 1
+                                else potential.mean(axis=0)
+                            )
                         )
-                    ) < threshold
-                )
-            )[0] + 1
+                        < threshold
+                    )
+                )[0]
+                + 1
+            )
             if len(cut_indices) == 0:
                 logging.warning(
                     "No bulk plateau region found in the integrated "
@@ -419,26 +458,32 @@ def calculate_potential_profile(
                 target_index = potential.shape[-1] // 2
                 if potential.ndim == 1:
                     sigma_q = potential[
-                        cut_indices[cut_indices <= target_index][-1]:
-                        cut_indices[cut_indices >= target_index][0]
+                        cut_indices[cut_indices <= target_index][-1] : cut_indices[
+                            cut_indices >= target_index
+                        ][0]
                     ].mean()
                 else:
                     sigma_q = potential[
                         :,
-                        cut_indices[cut_indices <= target_index][-1]:
-                        cut_indices[cut_indices >= target_index][0]
+                        cut_indices[cut_indices <= target_index][-1] : cut_indices[
+                            cut_indices >= target_index
+                        ][0],
                     ].mean(axis=-1, keepdims=True)
 
-        return V0 - ecf * (
-            integrate.cumulative_trapezoid(potential - sigma_q, bins,
-                                           initial=0)
-        ) / dielectric
+        return (
+            V0
+            - ecf
+            * (integrate.cumulative_trapezoid(potential - sigma_q, bins, initial=0))
+            / dielectric
+        )
 
     elif method == "matrix":
         if sigma_q is None:
-            emsg = ("No surface charge density information. Either "
-                    "'sigma_q' or 'dV' must be provided when "
-                    "method='matrix'.")
+            emsg = (
+                "No surface charge density information. Either "
+                "'sigma_q' or 'dV' must be provided when "
+                "method='matrix'."
+            )
             raise ValueError(emsg)
 
         if not np.allclose(np.diff(bins), dz):
@@ -450,13 +495,12 @@ def calculate_potential_profile(
         A = sparse.diags((1, -2, 1), (-1, 0, 1), shape=(N, N), format="csc")
         b = charge_density_profile.copy().T
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore",
-                                  category=sparse.SparseEfficiencyWarning)
+            warnings.simplefilter("ignore", category=sparse.SparseEfficiencyWarning)
 
             # Apply boundary conditions and solve
             if pbc:
                 A[0, -1] = A[-1, 0] = 1
-                b *= -ecf * dz ** 2 / dielectric
+                b *= -ecf * dz**2 / dielectric
                 psi = np.empty_like(b)
                 psi[1:] = sparse.linalg.spsolve(A[1:, 1:], b[1:])
                 psi[0] = psi[-1]
@@ -466,12 +510,12 @@ def calculate_potential_profile(
                 A[-1, 0] = 1
                 A[-1, -2:] = 0
                 b[0] = ecf * dz * sigma_q / dielectric
-                b[1:-1] *= -ecf * dz ** 2 / dielectric
+                b[1:-1] *= -ecf * dz**2 / dielectric
                 b[-1] = V0
                 return sparse.linalg.spsolve(A, b)
 
-class DensityProfile(DynamicAnalysisBase):
 
+class DensityProfile(DynamicAnalysisBase):
     """
     Serial and parallel implementations to calculate the number and
     charge density profiles :math:`\\rho_i(z)` and :math:`\\rho_q(z)` of
@@ -765,20 +809,29 @@ class DensityProfile(DynamicAnalysisBase):
     """
 
     def __init__(
-            self, groups: Union[mda.AtomGroup, tuple[mda.AtomGroup]],
-            groupings: Union[str, tuple[str]] = "atoms",
-            axes: Union[int, str, tuple[Union[int, str]]] = "xyz",
-            n_bins: Union[int, tuple[int]] = 201, *,
-            charges: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
-            dimensions: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
-            recenter: Union[
-                mda.AtomGroup, int, list[mda.AtomGroup, int],
-                tuple[Union[mda.AtomGroup, int, list[mda.AtomGroup, int]],
-                      np.ndarray[float]]
-            ] = None,
-            dim_scales: Union[float, tuple[float]] = 1,
-            average: bool = True, reduced: bool = False,
-            parallel: bool = False, verbose: bool = True, **kwargs) -> None:
+        self,
+        groups: Union[mda.AtomGroup, tuple[mda.AtomGroup]],
+        groupings: Union[str, tuple[str]] = "atoms",
+        axes: Union[int, str, tuple[Union[int, str]]] = "xyz",
+        n_bins: Union[int, tuple[int]] = 201,
+        *,
+        charges: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
+        dimensions: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
+        recenter: Union[
+            mda.AtomGroup,
+            int,
+            list[mda.AtomGroup, int],
+            tuple[
+                Union[mda.AtomGroup, int, list[mda.AtomGroup, int]], np.ndarray[float]
+            ],
+        ] = None,
+        dim_scales: Union[float, tuple[float]] = 1,
+        average: bool = True,
+        reduced: bool = False,
+        parallel: bool = False,
+        verbose: bool = True,
+        **kwargs,
+    ) -> None:
 
         self._groups = [groups] if isinstance(groups, mda.AtomGroup) else groups
         self.universe = self._groups[0].universe
@@ -788,19 +841,24 @@ class DensityProfile(DynamicAnalysisBase):
         self._n_groups = len(self._groups)
         if isinstance(groupings, str):
             if groupings not in GROUPINGS:
-                emsg = (f"Invalid grouping '{groupings}'. Valid values: "
-                        "'" + "', '".join(GROUPINGS) + "'.")
+                emsg = (
+                    f"Invalid grouping '{groupings}'. Valid values: "
+                    "'" + "', '".join(GROUPINGS) + "'."
+                )
                 raise ValueError(emsg)
             self._groupings = self._n_groups * [groupings]
         else:
             if self._n_groups != len(groupings):
-                emsg = ("The shape of 'groupings' is incompatible with "
-                        "that of 'groups'.")
+                emsg = (
+                    "The shape of 'groupings' is incompatible with " "that of 'groups'."
+                )
                 raise ValueError(emsg)
             for gr in groupings:
                 if gr not in GROUPINGS:
-                    emsg = (f"Invalid grouping '{gr}'. Valid values: "
-                            "'" + "', '".join(GROUPINGS) + "'.")
+                    emsg = (
+                        f"Invalid grouping '{gr}'. Valid values: "
+                        "'" + "', '".join(GROUPINGS) + "'."
+                    )
                     raise ValueError(emsg)
             self._groupings = groupings
 
@@ -808,10 +866,9 @@ class DensityProfile(DynamicAnalysisBase):
             self._axis_indices = np.array((axes,), dtype=int)
         else:
             self._axis_indices = np.fromiter(
-                (ord(ax.lower()) - 120 if isinstance(ax, str) else ax
-                 for ax in axes),
+                (ord(ax.lower()) - 120 if isinstance(ax, str) else ax for ax in axes),
                 count=len(axes),
-                dtype=int
+                dtype=int,
             )
         self.axes = tuple(chr(120 + i) for i in self._axis_indices)
         if not all(ax in "xyz" for ax in self.axes):
@@ -825,9 +882,11 @@ class DensityProfile(DynamicAnalysisBase):
             raise ValueError(emsg)
         else:
             if len(n_bins) != len(self.axes):
-                emsg = ("The shape of 'n_bins' is incompatible with "
-                        "the number of axes to calculate density "
-                        "profiles along.")
+                emsg = (
+                    "The shape of 'n_bins' is incompatible with "
+                    "the number of axes to calculate density "
+                    "profiles along."
+                )
                 raise ValueError(emsg)
             if not all(isinstance(n, int) for n in n_bins):
                 emsg = "All bin counts in 'n_bins' must be integers."
@@ -836,8 +895,9 @@ class DensityProfile(DynamicAnalysisBase):
 
         if charges is not None:
             if len(charges) != self._n_groups:
-                emsg = ("The shape of 'charges' is incompatible with "
-                        "that of 'groups'.")
+                emsg = (
+                    "The shape of 'charges' is incompatible with " "that of 'groups'."
+                )
                 raise ValueError(emsg)
             if reduced and not is_unitless(charges):
                 emsg = "'charges' cannot have units when 'reduced=True'."
@@ -849,9 +909,11 @@ class DensityProfile(DynamicAnalysisBase):
                 qs = getattr(ag, gr).charges
                 if not np.allclose(qs, q := qs[0]):
                     self._charges = None
-                    wmsg = (f"Not all {gr} in `groups[{i}]` share the "
-                            "same charge. The charge density profile will "
-                            "not be calculated.")
+                    wmsg = (
+                        f"Not all {gr} in `groups[{i}]` share the "
+                        "same charge. The charge density profile will "
+                        "not be calculated."
+                    )
                     warnings.warn(wmsg)
                     break
                 self._charges[i] = q
@@ -870,20 +932,21 @@ class DensityProfile(DynamicAnalysisBase):
         else:
             raise ValueError("No system dimensions found or provided.")
 
-        if (isinstance(dim_scales, Real)
-            or (len(dim_scales) == 3
-                and all(isinstance(f, Real) for f in dim_scales))):
+        if isinstance(dim_scales, Real) or (
+            len(dim_scales) == 3 and all(isinstance(f, Real) for f in dim_scales)
+        ):
             self._dimensions *= dim_scales
         else:
-            emsg = ("'dim_scales' must be a floating-point number "
-                    "or an array with shape (3,).")
+            emsg = (
+                "'dim_scales' must be a floating-point number "
+                "or an array with shape (3,)."
+            )
             raise ValueError(emsg)
 
         self._Ns = np.fromiter(
-            (getattr(ag, f"n_{gr}")
-             for (ag, gr) in zip(self._groups, self._groupings)),
+            (getattr(ag, f"n_{gr}") for (ag, gr) in zip(self._groups, self._groupings)),
             dtype=int,
-            count=self._n_groups
+            count=self._n_groups,
         )
         self._N = self._Ns.sum()
         self._slices = []
@@ -901,17 +964,20 @@ class DensityProfile(DynamicAnalysisBase):
             elif isinstance(recenter, tuple) and len(recenter) == 2:
                 grp, com = recenter
                 if len(com) != 3:
-                    emsg = ("The target center of mass in 'recenter' "
-                            "must have length 3.")
+                    emsg = (
+                        "The target center of mass in 'recenter' " "must have length 3."
+                    )
                     raise ValueError(emsg)
                 com = np.asarray(com)
             else:
-                emsg = ("Invalid value passed to 'recenter'. The "
-                        "argument must either be an atom group, its "
-                        "index in 'groups', multiple groups/indices, or "
-                        "a tuple containing the aforementioned "
-                        "information and a target center of mass, in "
-                        "that order.")
+                emsg = (
+                    "Invalid value passed to 'recenter'. The "
+                    "argument must either be an atom group, its "
+                    "index in 'groups', multiple groups/indices, or "
+                    "a tuple containing the aforementioned "
+                    "information and a target center of mass, in "
+                    "that order."
+                )
                 raise ValueError(emsg)
 
             if isinstance(grp, int):
@@ -923,17 +989,16 @@ class DensityProfile(DynamicAnalysisBase):
                 try:
                     grp = self._slices[self._groups.index(grp)]
                 except ValueError:
-                    emsg = ("The atom group passed to 'recenter' is not "
-                            "in 'groups'.")
+                    emsg = "The atom group passed to 'recenter' is not " "in 'groups'."
                     raise ValueError(emsg)
             else:
                 try:
                     grp = np.r_[
                         tuple(
                             self._slices[
-                                g if isinstance(g, int)
-                                else self._groups.index(g)
-                            ] for g in grp
+                                g if isinstance(g, int) else self._groups.index(g)
+                            ]
+                            for g in grp
                         )
                     ]
                 except ValueError:
@@ -958,8 +1023,9 @@ class DensityProfile(DynamicAnalysisBase):
             self.results.bin_edges[ax] = numba_histogram_bin_edges(
                 np.asarray((0.0, self._dimensions[ia])), n
             )
-            self.results.bins[ax] = (self.results.bin_edges[ax][:-1]
-                                     + self.results.bin_edges[ax][1:]) / 2
+            self.results.bins[ax] = (
+                self.results.bin_edges[ax][:-1] + self.results.bin_edges[ax][1:]
+            ) / 2
 
         # Store entity masses for center of mass calculations
         self._masses = np.empty(self._N)
@@ -975,8 +1041,9 @@ class DensityProfile(DynamicAnalysisBase):
             # boundary crossings for each entity
             self._positions_old = np.empty((self._N, 3))
             for ag, gr, s in zip(self._groups, self._groupings, self._slices):
-                self._positions_old[s] = (ag.positions if gr == "atoms"
-                                          else center_of_mass(ag, gr))
+                self._positions_old[s] = (
+                    ag.positions if gr == "atoms" else center_of_mass(ag, gr)
+                )
             self._images = np.zeros((self._N, 3), dtype=int)
             self._thresholds = self._dimensions / 2
 
@@ -988,10 +1055,10 @@ class DensityProfile(DynamicAnalysisBase):
                 for i, _ in enumerate(self._sliced_trajectory):
 
                     # Get raw entity positions for current frame
-                    for ag, gr, s in zip(self._groups, self._groupings,
-                                         self._slices):
-                        self._positions[i, s] = (ag.positions if gr == "atoms"
-                                                 else center_of_mass(ag, gr))
+                    for ag, gr, s in zip(self._groups, self._groupings, self._slices):
+                        self._positions[i, s] = (
+                            ag.positions if gr == "atoms" else center_of_mass(ag, gr)
+                        )
 
                     # Globally unwrap entity positions for correct
                     # center of mass
@@ -1000,21 +1067,24 @@ class DensityProfile(DynamicAnalysisBase):
                         self._positions_old,
                         self._dimensions,
                         thresholds=self._thresholds,
-                        images=self._images
+                        images=self._images,
                     )
 
                     # Shift entity positions by the difference between
                     # the group and target centers of mass
                     self._positions[i] -= np.fromiter(
-                        (0 if np.isnan(tx) else gx - tx for gx, tx in zip(
-                            center_of_mass(
-                                positions=self._positions[i, self._recenter[0]],
-                                masses=self._masses[self._recenter[0]]
-                            ),
-                            self._recenter[1]
-                        )),
+                        (
+                            0 if np.isnan(tx) else gx - tx
+                            for gx, tx in zip(
+                                center_of_mass(
+                                    positions=self._positions[i, self._recenter[0]],
+                                    masses=self._masses[self._recenter[0]],
+                                ),
+                                self._recenter[1],
+                            )
+                        ),
                         dtype=float,
-                        count=3
+                        count=3,
                     )
 
                 # Wrap entity positions back into the simulation box so that
@@ -1029,23 +1099,21 @@ class DensityProfile(DynamicAnalysisBase):
             shape = [self._n_groups]
             if not self._average:
                 shape.append(self.n_frames)
-            self.results.number_densities = Hash({
-                ax: np.zeros((*shape, n))
-                for ax, n in zip(self.axes, self._n_bins)
-            })
+            self.results.number_densities = Hash(
+                {ax: np.zeros((*shape, n)) for ax, n in zip(self.axes, self._n_bins)}
+            )
 
         # Store reference units
-        self.results.units = Hash({
-            "bins": ureg.angstrom,
-            "number_densities": ureg.angstrom ** -3
-        })
+        self.results.units = Hash(
+            {"bins": ureg.angstrom, "number_densities": ureg.angstrom**-3}
+        )
 
         # Preallocate dictionary to hold charge density profiles, if
         # necessary
         if self._charges is not None:
             self.results.charge_densities = Hash()
             self.results.units["charge_densities"] = (
-                ureg.elementary_charge / ureg.angstrom ** 3
+                ureg.elementary_charge / ureg.angstrom**3
             )
 
         # Store time information, if necessary
@@ -1053,7 +1121,7 @@ class DensityProfile(DynamicAnalysisBase):
             self.results.times = np.fromiter(
                 (ts.time for ts in self._sliced_trajectory),
                 dtype=float,
-                count=self.n_frames
+                count=self.n_frames,
             )
             self.results.units["times"] = ureg.picosecond
 
@@ -1061,8 +1129,9 @@ class DensityProfile(DynamicAnalysisBase):
 
         # Store atom or center-of-mass positions in the current frame
         for ag, gr, s in zip(self._groups, self._groupings, self._slices):
-            self._positions[s] = (ag.positions if gr == "atoms"
-                                  else center_of_mass(ag, gr))
+            self._positions[s] = (
+                ag.positions if gr == "atoms" else center_of_mass(ag, gr)
+            )
 
         if self._recenter is not None:
 
@@ -1073,21 +1142,24 @@ class DensityProfile(DynamicAnalysisBase):
                 self._positions_old,
                 self._dimensions,
                 thresholds=self._thresholds,
-                images=self._images
+                images=self._images,
             )
 
             # Shift entity positions by the difference between the group
             # and target centers of mass
             self._positions -= np.fromiter(
-                (0 if np.isnan(tx) else gx - tx for gx, tx in zip(
-                    center_of_mass(
-                        positions=self._positions[self._recenter[0]],
-                        masses=self._masses[self._recenter[0]]
-                    ),
-                    self._recenter[1]
-                )),
+                (
+                    0 if np.isnan(tx) else gx - tx
+                    for gx, tx in zip(
+                        center_of_mass(
+                            positions=self._positions[self._recenter[0]],
+                            masses=self._masses[self._recenter[0]],
+                        ),
+                        self._recenter[1],
+                    )
+                ),
                 dtype=float,
-                count=3
+                count=3,
             )
 
         # Wrap entity positions back into the simulation box so that
@@ -1098,30 +1170,33 @@ class DensityProfile(DynamicAnalysisBase):
         for ax, ia, n in zip(self.axes, self._axis_indices, self._n_bins):
             for ig, (gr, s) in enumerate(zip(self._groupings, self._slices)):
                 if self._average:
-                    self.results.number_densities[ax][ig] \
-                        += numba_histogram(self._positions[s, ia], n,
-                                           self.results.bin_edges[ax])
+                    self.results.number_densities[ax][ig] += numba_histogram(
+                        self._positions[s, ia], n, self.results.bin_edges[ax]
+                    )
                 else:
-                    self.results.number_densities[ax][ig, self._frame_index] \
-                        = numba_histogram(self._positions[s, ia], n,
-                                          self.results.bin_edges[ax])
+                    self.results.number_densities[ax][ig, self._frame_index] = (
+                        numba_histogram(
+                            self._positions[s, ia], n, self.results.bin_edges[ax]
+                        )
+                    )
 
     def _single_frame_parallel(
-            self, index: int) -> tuple[int, dict[str, np.ndarray[float]]]:
+        self, index: int
+    ) -> tuple[int, dict[str, np.ndarray[float]]]:
 
         # Set current trajectory frame
         self._sliced_trajectory[index]
 
         # Preallocate arrays to hold bin counts for the current frame
-        counts = {ax: np.empty((self._n_groups, n))
-                  for ax, n in zip(self.axes, self._n_bins)}
+        counts = {
+            ax: np.empty((self._n_groups, n)) for ax, n in zip(self.axes, self._n_bins)
+        }
 
         # Calculate or get entity positions
         if self._recenter is None:
             positions = np.empty((self._N, 3))
             for ag, gr, s in zip(self._groups, self._groupings, self._slices):
-                positions[s] = (ag.positions if gr == "atoms"
-                                else center_of_mass(ag, gr))
+                positions[s] = ag.positions if gr == "atoms" else center_of_mass(ag, gr)
             wrap(positions, self._dimensions)
         else:
             positions = self._positions[index]
@@ -1143,11 +1218,13 @@ class DensityProfile(DynamicAnalysisBase):
             self._results = sorted(self._results)
             self.results.number_densities = Hash()
             for ax in self.axes:
-                self.results.number_densities[ax] \
-                    = np.stack([r[1][ax] for r in self._results], axis=1)
+                self.results.number_densities[ax] = np.stack(
+                    [r[1][ax] for r in self._results], axis=1
+                )
                 if self._average:
-                    self.results.number_densities[ax] \
-                        = self.results.number_densities[ax].sum(axis=1)
+                    self.results.number_densities[ax] = self.results.number_densities[
+                        ax
+                    ].sum(axis=1)
 
             del self._results
             if self._recenter is not None:
@@ -1167,15 +1244,12 @@ class DensityProfile(DynamicAnalysisBase):
 
             if self._charges is not None:
                 self.results.charge_densities[ax] = np.einsum(
-                    "g,g...b->...b",
-                    self._charges,
-                    self.results.number_densities[ax]
+                    "g,g...b->...b", self._charges, self.results.number_densities[ax]
                 )
 
     def _validate_input(
-            self, value: Any, unit_: str, name: str, n_axes: int
-        ) -> Union[Real, np.ndarray[Real]]:
-
+        self, value: Any, unit_: str, name: str, n_axes: int
+    ) -> Union[Real, np.ndarray[Real]]:
         """
         Validates and processes input values to the calculation methods.
 
@@ -1209,17 +1283,17 @@ class DensityProfile(DynamicAnalysisBase):
             if isinstance(value, Real):
                 value = n_axes * [value]
             elif len(value) != n_axes:
-                emsg = (f"The length of '{name}' must match the "
-                        "number of axes.")
+                emsg = f"The length of '{name}' must match the " "number of axes."
                 raise ValueError(emsg)
         return value
 
     def calculate_surface_charge_densities(
-            self, axes: Union[str, tuple[str]] = None,
-            dielectrics: Union[float, tuple[float]] = None, *,
-            dVs: Union[float, np.ndarray[float], "unit.Quantity", Q_] = None
-        ) -> None:
-
+        self,
+        axes: Union[str, tuple[str]] = None,
+        dielectrics: Union[float, tuple[float]] = None,
+        *,
+        dVs: Union[float, np.ndarray[float], "unit.Quantity", Q_] = None,
+    ) -> None:
         """
         Calculates the surface charge densities :math:`\\sigma_q` for
         the specified system dimensions using the charge density
@@ -1256,10 +1330,12 @@ class DensityProfile(DynamicAnalysisBase):
 
         # Ensure charge density profiles have already been calculated
         if not hasattr(self.results, "charge_densities"):
-            emsg = ("Either call DensityProfile.run() before "
-                    "DensityProfile.calculate_potential_profiles() or "
-                    "provide charge information when initializing the "
-                    "DensityProfile object.")
+            emsg = (
+                "Either call DensityProfile.run() before "
+                "DensityProfile.calculate_potential_profiles() or "
+                "provide charge information when initializing the "
+                "DensityProfile object."
+            )
             raise RuntimeError(emsg)
 
         # Validate inputs
@@ -1267,8 +1343,7 @@ class DensityProfile(DynamicAnalysisBase):
             axes = self.axes
             axis_indices = self._axis_indices
         else:
-            if isinstance(axes, Real) \
-                    or any(not isinstance(ax, str) for ax in axes):
+            if isinstance(axes, Real) or any(not isinstance(ax, str) for ax in axes):
                 raise ValueError("'axes' must only contain strings.")
             axes = tuple(axes)
             axis_indices = [ord(ax.lower()) - 120 for ax in axes]
@@ -1287,9 +1362,7 @@ class DensityProfile(DynamicAnalysisBase):
             raise ValueError("No dielectric constants found or provided.")
 
         if dVs is not None:
-            self._dVs[relative_axes] = self._validate_input(
-                dVs, "V", "dVs", n_axes
-            )
+            self._dVs[relative_axes] = self._validate_input(dVs, "V", "dVs", n_axes)
 
         # Preallocate dictionary to hold potential profiles
         if not hasattr(self.results, "surface_charge_densities"):
@@ -1298,33 +1371,35 @@ class DensityProfile(DynamicAnalysisBase):
                 shape.append(self.n_frames)
             self.results.surface_charge_densities = np.empty(shape)
             self.results.surface_charge_densities[:] = np.nan
-            self.results.units["surface_charge_densities"] \
-                = ureg.elementary_charge / ureg.angstrom ** 2
+            self.results.units["surface_charge_densities"] = (
+                ureg.elementary_charge / ureg.angstrom**2
+            )
 
         # Calculate surface charge densities
         for i, (ax, dielectric, L, dV) in enumerate(
-                zip(axes, self._dielectrics, dimensions, self._dVs)
-            ):
-            self.results.surface_charge_densities[i] \
-                = calculate_surface_charge_density(
-                    self.results.bins[ax],
-                    self.results.charge_densities[ax],
-                    dielectric,
-                    L=L,
-                    dV=None if np.isnan(dV) else dV,
-                    reduced=self._reduced
-                )
+            zip(axes, self._dielectrics, dimensions, self._dVs)
+        ):
+            self.results.surface_charge_densities[i] = calculate_surface_charge_density(
+                self.results.bins[ax],
+                self.results.charge_densities[ax],
+                dielectric,
+                L=L,
+                dV=None if np.isnan(dV) else dV,
+                reduced=self._reduced,
+            )
 
     def calculate_potential_profiles(
-            self, axes: Union[str, tuple[str]] = None,
-            dielectrics: Union[float, tuple[float]] = None, *,
-            sigmas_q: Union[float, np.ndarray[float], "unit.Quantity", Q_] = None,
-            dVs: Union[float, np.ndarray[float], "unit.Quantity", Q_] = None,
-            thresholds: Union[float, np.ndarray[float]] = 1e-5,
-            V0s: Union[float, np.ndarray[float], "unit.Quantity", Q_] = 0,
-            methods: Union[str, tuple[str]] = "integral",
-            pbcs: Union[bool, tuple[bool]] = False) -> None:
-
+        self,
+        axes: Union[str, tuple[str]] = None,
+        dielectrics: Union[float, tuple[float]] = None,
+        *,
+        sigmas_q: Union[float, np.ndarray[float], "unit.Quantity", Q_] = None,
+        dVs: Union[float, np.ndarray[float], "unit.Quantity", Q_] = None,
+        thresholds: Union[float, np.ndarray[float]] = 1e-5,
+        V0s: Union[float, np.ndarray[float], "unit.Quantity", Q_] = 0,
+        methods: Union[str, tuple[str]] = "integral",
+        pbcs: Union[bool, tuple[bool]] = False,
+    ) -> None:
         """
         Calculates the potential profiles in the specified dimensions
         using the charge density profiles by numerically solving
@@ -1408,10 +1483,12 @@ class DensityProfile(DynamicAnalysisBase):
 
         # Ensure charge density profiles have already been calculated
         if not hasattr(self.results, "charge_densities"):
-            emsg = ("Either call DensityProfile.run() before "
-                    "DensityProfile.calculate_potential_profiles() or "
-                    "provide charge information when initializing the "
-                    "DensityProfile object.")
+            emsg = (
+                "Either call DensityProfile.run() before "
+                "DensityProfile.calculate_potential_profiles() or "
+                "provide charge information when initializing the "
+                "DensityProfile object."
+            )
             raise RuntimeError(emsg)
 
         # Preallocate dictionary to hold potential profiles
@@ -1424,8 +1501,7 @@ class DensityProfile(DynamicAnalysisBase):
             axes = self.axes
             axis_indices = self._axis_indices
         else:
-            if isinstance(axes, Real) \
-                    or any(not isinstance(ax, str) for ax in axes):
+            if isinstance(axes, Real) or any(not isinstance(ax, str) for ax in axes):
                 raise ValueError("'axes' must only contain strings.")
             axes = tuple(axes)
             axis_indices = [ord(ax.lower()) - 120 for ax in axes]
@@ -1444,19 +1520,18 @@ class DensityProfile(DynamicAnalysisBase):
             raise ValueError("No dielectric constants found or provided.")
 
         if sigmas_q is None:
-            if hasattr(self.results, "surface_charge_densities") \
-                    and np.all(np.isfinite(self._dVs[relative_axes])):
+            if hasattr(self.results, "surface_charge_densities") and np.all(
+                np.isfinite(self._dVs[relative_axes])
+            ):
                 sigmas_q = -self.results.surface_charge_densities
             else:
-                sigmas_q = self._validate_input(sigmas_q, "e/Å^2", "sigmas_q",
-                                                n_axes)
+                sigmas_q = self._validate_input(sigmas_q, "e/Å^2", "sigmas_q", n_axes)
                 if dVs is not None:
                     self._dVs[relative_axes] = self._validate_input(
                         dVs, "V", "dVs", n_axes
                     )
         else:
-            sigmas_q = self._validate_input(sigmas_q, "e/Å^2", "sigmas_q",
-                                            n_axes)
+            sigmas_q = self._validate_input(sigmas_q, "e/Å^2", "sigmas_q", n_axes)
 
         V0s = self._validate_input(V0s, "V", "V0s", n_axes)
         thresholds = self._validate_input(thresholds, "", "thresholds", n_axes)
@@ -1470,8 +1545,10 @@ class DensityProfile(DynamicAnalysisBase):
         else:
             for method in methods:
                 if method not in METHODS:
-                    emsg = (f"Invalid method '{method}'. Valid values: "
-                            "'" + "', '".join(METHODS) + "'.")
+                    emsg = (
+                        f"Invalid method '{method}'. Valid values: "
+                        "'" + "', '".join(METHODS) + "'."
+                    )
                     raise ValueError(emsg)
 
         if isinstance(pbcs, bool):
@@ -1484,9 +1561,16 @@ class DensityProfile(DynamicAnalysisBase):
 
         # Calculate potential profiles
         for ax, dielectric, L, sigma_q, dV, threshold, V0, method, pbc in zip(
-                axes, self._dielectrics, dimensions, sigmas_q, self._dVs,
-                thresholds, V0s, methods, pbcs
-            ):
+            axes,
+            self._dielectrics,
+            dimensions,
+            sigmas_q,
+            self._dVs,
+            thresholds,
+            V0s,
+            methods,
+            pbcs,
+        ):
             self.results.potentials[ax] = calculate_potential_profile(
                 self.results.bins[ax],
                 self.results.charge_densities[ax],
@@ -1498,5 +1582,5 @@ class DensityProfile(DynamicAnalysisBase):
                 V0=V0,
                 method=method,
                 pbc=pbc,
-                reduced=self._reduced
+                reduced=self._reduced,
             )

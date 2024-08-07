@@ -17,10 +17,10 @@ if FOUND_OPENMM:
     from openmm import unit
     from ..openmm.unit import VACUUM_PERMITTIVITY
 
-def get_scale_factors(
-        bases: dict[str, Union["unit.Quantity", Q_]],
-        other: dict[str, list] = None) -> dict[str, Union["unit.Quantity", Q_]]:
 
+def get_scale_factors(
+    bases: dict[str, Union["unit.Quantity", Q_]], other: dict[str, list] = None
+) -> dict[str, Union["unit.Quantity", Q_]]:
     r"""
     Evaluates scale factors for reduced units.
 
@@ -69,10 +69,10 @@ def get_scale_factors(
 
     return bases
 
-def get_lj_scale_factors(
-        bases: dict[str, Union["unit.Quantity", Q_]],
-        other: dict[str, list] = None) -> dict[str, Union["unit.Quantity", Q_]]:
 
+def get_lj_scale_factors(
+    bases: dict[str, Union["unit.Quantity", Q_]], other: dict[str, list] = None
+) -> dict[str, Union["unit.Quantity", Q_]]:
     r"""
     Evaluates scale factors for Lennard-Jones reduced units.
 
@@ -145,11 +145,15 @@ def get_lj_scale_factors(
         boltzmann_constant = unit.BOLTZMANN_CONSTANT_kB
         bases["molar_energy"] = bases["energy"] * avogadro_constant
         bases["time"] = (
-            bases["mass"] * bases["length"] ** 2 / bases["molar_energy"]
-        ).sqrt().in_units_of(unit.picosecond)
+            (bases["mass"] * bases["length"] ** 2 / bases["molar_energy"])
+            .sqrt()
+            .in_units_of(unit.picosecond)
+        )
         bases["charge"] = (
-            4 * np.pi * VACUUM_PERMITTIVITY * bases["length"] * bases["energy"]
-        ).sqrt().in_units_of(unit.elementary_charge)
+            (4 * np.pi * VACUUM_PERMITTIVITY * bases["length"] * bases["energy"])
+            .sqrt()
+            .in_units_of(unit.elementary_charge)
+        )
 
     # Define the default scale factors
     bases["velocity"] = bases["length"] / bases["time"]
@@ -159,16 +163,15 @@ def get_lj_scale_factors(
     bases["dynamic_viscosity"] = bases["pressure"] * bases["time"]
     bases["dipole"] = bases["length"] * bases["charge"]
     bases["electric_field"] = bases["force"] / bases["charge"]
-    bases["mass_density"] = bases["mass"] / (bases["length"] ** 3
-                                             * avogadro_constant)
+    bases["mass_density"] = bases["mass"] / (bases["length"] ** 3 * avogadro_constant)
 
     return get_scale_factors(bases, other)
 
-def strip_unit(
-        value: Union[Number, str, "unit.Quantity", Q_],
-        unit_: Union[str, "unit.Unit", ureg.Unit] = None
-    ) -> tuple[Number, Union[None, "unit.Unit", ureg.Unit]]:
 
+def strip_unit(
+    value: Union[Number, str, "unit.Quantity", Q_],
+    unit_: Union[str, "unit.Unit", ureg.Unit] = None,
+) -> tuple[Number, Union[None, "unit.Unit", ureg.Unit]]:
     """
     Strips the unit from an :obj:`openmm.unit.quantity.Quantity` or
     :obj:`pint.Quantity` object.
@@ -247,7 +250,6 @@ def strip_unit(
     """
 
     def convert_openmm_to_pint(ou: "unit.Unit") -> ureg.Unit:
-
         """
         Converts an OpenMM unit to a Pint unit.
 
@@ -315,12 +317,14 @@ def strip_unit(
                 for u, p in unit_._units.items():
                     unit__ *= getattr(unit, u) ** p
             except AttributeError:
-                emsg = ("strip_unit() relies on the pint module for "
-                        "parsing units. At least one unit in 'unit' is "
-                        "not defined the same way in openmm.unit and pint, "
-                        "so the unit conversion cannot be performed. Try "
-                        "specifying a openmm.unit.Quantity object for "
-                        "'unit' instead.")
+                emsg = (
+                    "strip_unit() relies on the pint module for "
+                    "parsing units. At least one unit in 'unit' is "
+                    "not defined the same way in openmm.unit and pint, "
+                    "so the unit conversion cannot be performed. Try "
+                    "specifying a openmm.unit.Quantity object for "
+                    "'unit' instead."
+                )
                 raise ValueError(emsg)
         value = value.value_in_unit(unit__)
         if swap:
@@ -347,33 +351,33 @@ def strip_unit(
 
     return value, unit__
 
+
 def is_unitless(value: Any) -> bool:
+    """
+    Determines whether a value is unitless.
 
-        """
-        Determines whether a value is unitless.
+    Parameters
+    ----------
+    value : `Any`
+        Value to check for unitlessness.
 
-        Parameters
-        ----------
-        value : `Any`
-            Value to check for unitlessness.
+    Returns
+    -------
+    is_unitless : `bool`
+        Whether the value is unitless.
 
-        Returns
-        -------
-        is_unitless : `bool`
-            Whether the value is unitless.
+    Examples
+    --------
+    >>> is_unitless(90.0)
+    True
+    >>> is_unitless("90 degrees")
+    False
+    >>> is_unitless(90.0 * ureg.degree)
+    False
+    >>> is_unitless(90.0 * unit.degree)
+    False
+    >>> is_unitless({"quantity": 90 * ureg.degree})
+    True
+    """
 
-        Examples
-        --------
-        >>> is_unitless(90.0)
-        True
-        >>> is_unitless("90 degrees")
-        False
-        >>> is_unitless(90.0 * ureg.degree)
-        False
-        >>> is_unitless(90.0 * unit.degree)
-        False
-        >>> is_unitless({"quantity": 90 * ureg.degree})
-        True
-        """
-
-        return strip_unit(value)[1] is None
+    return strip_unit(value)[1] is None

@@ -12,10 +12,10 @@ from typing import Any
 import numpy as np
 import sympy
 
-def get_closest_factors(
-        value: int, n_factors: int, reverse: bool = False
-    ) -> np.ndarray[int]:
 
+def get_closest_factors(
+    value: int, n_factors: int, reverse: bool = False
+) -> np.ndarray[int]:
     """
     Finds the :math:`n` closest factors for a given number :math:`N`,
     sorted in ascending order.
@@ -47,9 +47,12 @@ def get_closest_factors(
 
     # Get all factors of N
     _factors = np.fromiter(
-        (factor for factor, power in sympy.ntheory.factorint(value).items()
-         for _ in range(power)),
-        dtype=int
+        (
+            factor
+            for factor, power in sympy.ntheory.factorint(value).items()
+            for _ in range(power)
+        ),
+        dtype=int,
     )
 
     # Find n closest factors
@@ -71,10 +74,10 @@ def get_closest_factors(
         return np.sort(factors)[::-1]
     return np.sort(factors)
 
-def replicate(
-        cell_dims: np.ndarray[float], cell_pos: np.ndarray[float],
-        n_cells: np.ndarray[int]) -> np.ndarray[float]:
 
+def replicate(
+    cell_dims: np.ndarray[float], cell_pos: np.ndarray[float], n_cells: np.ndarray[int]
+) -> np.ndarray[float]:
     r"""
     Replicates points in an unit cell along the :math:`x`-, :math:`y`-,
     and :math:`z`-directions.
@@ -105,28 +108,33 @@ def replicate(
     # Add cell x-dimensions to cell x-positions and replicate them
     # n_y * n_z times
     x = np.tile(
-        np.concatenate(cell_pos[:, 0]
-                       + (cell_dims[0] * np.arange(n_cells[0]))[:, None]),
-        reps=n_cells[1] * n_cells[2]
+        np.concatenate(
+            cell_pos[:, 0] + (cell_dims[0] * np.arange(n_cells[0]))[:, None]
+        ),
+        reps=n_cells[1] * n_cells[2],
     )
 
     # Replicate cell y-positions n_x times, add cell y-dimensions to
     # them, and then replicate them n_z times
     y = np.tile(
-        np.concatenate(np.tile(cell_pos[:, 1], reps=n_cells[0])
-                       + (np.arange(n_cells[1]) * cell_dims[1])[:, None]),
-        reps=n_cells[2]
+        np.concatenate(
+            np.tile(cell_pos[:, 1], reps=n_cells[0])
+            + (np.arange(n_cells[1]) * cell_dims[1])[:, None]
+        ),
+        reps=n_cells[2],
     )
 
     # Replicate cell z-positions n_x * n_y times and add cell
     # z-dimensions to them
-    z = np.concatenate(np.tile(cell_pos[:, 2], reps=n_cells[0] * n_cells[1])
-                       + cell_dims[2] * np.arange(n_cells[2])[:, None])
+    z = np.concatenate(
+        np.tile(cell_pos[:, 2], reps=n_cells[0] * n_cells[1])
+        + cell_dims[2] * np.arange(n_cells[2])[:, None]
+    )
 
     return np.vstack((x, y, z)).T
 
-def rebin(x: np.ndarray[float], factor: int = None) -> np.ndarray[float]:
 
+def rebin(x: np.ndarray[float], factor: int = None) -> np.ndarray[float]:
     r"""
     Rebins discrete data.
 
@@ -155,10 +163,10 @@ def rebin(x: np.ndarray[float], factor: int = None) -> np.ndarray[float]:
 
     return x.reshape((*x.shape[:-1], -1, factor)).mean(axis=-1)
 
-def depth_first_search(
-        graph: dict[Any, list[Any]], start: Any, visited: bool,
-        group: list[Any]) -> None:
 
+def depth_first_search(
+    graph: dict[Any, list[Any]], start: Any, visited: bool, group: list[Any]
+) -> None:
     """
     Implements the depth-first search algorithm to find connected
     components in a graph.
@@ -184,8 +192,8 @@ def depth_first_search(
         if not visited[neighbor]:
             depth_first_search(graph, neighbor, visited, group)
 
-def find_connected_nodes(graph: dict[Any, list[Any]]) -> list[list[Any]]:
 
+def find_connected_nodes(graph: dict[Any, list[Any]]) -> list[list[Any]]:
     """
     Finds connected components in a graph.
 
@@ -209,8 +217,8 @@ def find_connected_nodes(graph: dict[Any, list[Any]]) -> list[list[Any]]:
             results.append(group)
     return results
 
-def is_lower_triangular(matrix: np.ndarray[float]) -> bool:
 
+def is_lower_triangular(matrix: np.ndarray[float]) -> bool:
     """
     Checks if a matrix is lower triangular.
 

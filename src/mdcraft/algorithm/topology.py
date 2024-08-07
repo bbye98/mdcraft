@@ -15,23 +15,33 @@ from MDAnalysis.lib.distances import minimize_vectors
 import numpy as np
 from .. import FOUND_OPENMM, Q_, ureg
 from .molecule import center_of_mass
-from .utility import (is_lower_triangular, get_closest_factors, replicate, 
-                      find_connected_nodes)
+from .utility import (
+    is_lower_triangular,
+    get_closest_factors,
+    replicate,
+    find_connected_nodes,
+)
 from .unit import strip_unit
 
 if FOUND_OPENMM:
     from openmm import app, unit
 
-def create_atoms(
-        dimensions: Union[np.ndarray[float], "unit.Quantity", Q_,
-                          "app.Topology"],
-        N: int = None, N_p: int = 1, *, lattice: str = None,
-        length: Union[float, "unit.Quantity"] = 0.34,
-        flexible: bool = False, bonds: bool = False, angles: bool = False,
-        dihedrals: bool = False, randomize: bool = False,
-        length_unit: Union["unit.Unit", ureg.Unit] = None, wrap: bool = False
-    ) -> Any:
 
+def create_atoms(
+    dimensions: Union[np.ndarray[float], "unit.Quantity", Q_, "app.Topology"],
+    N: int = None,
+    N_p: int = 1,
+    *,
+    lattice: str = None,
+    length: Union[float, "unit.Quantity"] = 0.34,
+    flexible: bool = False,
+    bonds: bool = False,
+    angles: bool = False,
+    dihedrals: bool = False,
+    randomize: bool = False,
+    length_unit: Union["unit.Unit", ureg.Unit] = None,
+    wrap: bool = False,
+) -> Any:
     """
     Generates initial particle positions for coarse-grained simulations.
 
@@ -166,8 +176,7 @@ def create_atoms(
 
     # Get raw numerical dimensions and length
     if isinstance(dimensions, app.Topology):
-        pbv, length_unit = strip_unit(dimensions.getPeriodicBoxVectors(), 
-                                      length_unit)
+        pbv, length_unit = strip_unit(dimensions.getPeriodicBoxVectors(), length_unit)
         pbv = np.asarray(pbv)
     else:
         dimensions, length_unit = strip_unit(dimensions, length_unit)
@@ -184,12 +193,16 @@ def create_atoms(
         if not isinstance(N, (int, np.integer)):
             raise ValueError("The number of particles N must be an integer.")
         if not (1 <= N_p <= N and isinstance(N_p, (int, np.integer))):
-            emsg = ("The number of particles N_p in each segment must "
-                    "be an integer between 1 and N.")
+            emsg = (
+                "The number of particles N_p in each segment must "
+                "be an integer between 1 and N."
+            )
             raise ValueError(emsg)
         if N_p > 1 and N % N_p != 0:
-            emsg = (f"{N=} particles cannot be evenly divided into segments "
-                    f"with {N_p=} particles.")
+            emsg = (
+                f"{N=} particles cannot be evenly divided into segments "
+                f"with {N_p=} particles."
+            )
             raise ValueError(emsg)
 
         # Generate particle positions for a random melt
@@ -227,21 +240,39 @@ def create_atoms(
 
             # Determine all bonds
             if bonds:
-                topo.append(np.array([(i * N_p + j, i * N_p + j + 1)
-                                      for i in range(segments)
-                                      for j in range(N_p - 1)]))
+                topo.append(
+                    np.array(
+                        [
+                            (i * N_p + j, i * N_p + j + 1)
+                            for i in range(segments)
+                            for j in range(N_p - 1)
+                        ]
+                    )
+                )
 
             # Determine all angles
             if angles:
-                topo.append(np.array([np.arange(i * N_p + j, i * N_p + j + 3)
-                                      for i in range(segments)
-                                      for j in range(N_p - 2)]))
+                topo.append(
+                    np.array(
+                        [
+                            np.arange(i * N_p + j, i * N_p + j + 3)
+                            for i in range(segments)
+                            for j in range(N_p - 2)
+                        ]
+                    )
+                )
 
             # Determine all dihedrals
             if dihedrals:
-                topo.append(np.array([np.arange(i * N_p + j, i * N_p + j + 4)
-                                      for i in range(segments)
-                                      for j in range(N_p - 3)]))
+                topo.append(
+                    np.array(
+                        [
+                            np.arange(i * N_p + j, i * N_p + j + 4)
+                            for i in range(segments)
+                            for j in range(N_p - 3)
+                        ]
+                    )
+                )
 
             return topo[0] if len(topo) == 1 else tuple(topo)
     else:
@@ -258,30 +289,36 @@ def create_atoms(
         else:
             if lattice == "fcc":
                 cell_dims = length * np.array((1, np.sqrt(3), 3 * np.sqrt(6) / 3))
-                cell_pos = length * np.array((
-                    (0, 0, 0),
-                    (0.5, np.sqrt(3) / 2, 0),
-                    (0.5, np.sqrt(3) / 6, np.sqrt(6) / 3),
-                    (0, 2 * np.sqrt(3) / 3, np.sqrt(6) / 3),
-                    (0, np.sqrt(3) / 3, 2 * np.sqrt(6) / 3),
-                    (0.5, 5 * np.sqrt(3) / 6, 2 * np.sqrt(6) / 3),
-                ))
+                cell_pos = length * np.array(
+                    (
+                        (0, 0, 0),
+                        (0.5, np.sqrt(3) / 2, 0),
+                        (0.5, np.sqrt(3) / 6, np.sqrt(6) / 3),
+                        (0, 2 * np.sqrt(3) / 3, np.sqrt(6) / 3),
+                        (0, np.sqrt(3) / 3, 2 * np.sqrt(6) / 3),
+                        (0.5, 5 * np.sqrt(3) / 6, 2 * np.sqrt(6) / 3),
+                    )
+                )
             elif lattice == "hcp":
                 cell_dims = length * np.array((1, np.sqrt(3), 2 * np.sqrt(6) / 3))
-                cell_pos = length * np.array((
-                    (0, 0, 0),
-                    (0.5, np.sqrt(3) / 2, 0),
-                    (0.5, np.sqrt(3) / 6, np.sqrt(6) / 3),
-                    (0, 2 * np.sqrt(3) / 3, np.sqrt(6) / 3)
-                ))
+                cell_pos = length * np.array(
+                    (
+                        (0, 0, 0),
+                        (0.5, np.sqrt(3) / 2, 0),
+                        (0.5, np.sqrt(3) / 6, np.sqrt(6) / 3),
+                        (0, 2 * np.sqrt(3) / 3, np.sqrt(6) / 3),
+                    )
+                )
             elif lattice == "honeycomb":
                 cell_dims = length * np.array((np.sqrt(3), 3, np.inf))
-                cell_pos = length * np.array((
-                    (0, 0, 0),
-                    (0, 1, 0),
-                    (np.sqrt(3) / 2, 1.5, 0),
-                    (np.sqrt(3) / 2, 2.5, 0)
-                ))
+                cell_pos = length * np.array(
+                    (
+                        (0, 0, 0),
+                        (0, 1, 0),
+                        (np.sqrt(3) / 2, 1.5, 0),
+                        (np.sqrt(3) / 2, 2.5, 0),
+                    )
+                )
 
             # Determine unit cell multiples
             n_cells = around(dimensions / cell_dims).astype(int)
@@ -299,19 +336,26 @@ def create_atoms(
             pos = pos[~np.any(pos > dimensions, axis=1)]
 
         return (
-            (np.divide(pos, dimensions, 
-                       out=np.zeros_like(pos),
-                       where=dimensions != 0) @ pbv.T) * length_unit, 
-            n_cells * cell_dims * length_unit
+            (
+                np.divide(
+                    pos, dimensions, out=np.zeros_like(pos), where=dimensions != 0
+                )
+                @ pbv.T
+            )
+            * length_unit,
+            n_cells * cell_dims * length_unit,
         )
 
-def unwrap(
-        positions: np.ndarray[float], positions_old: np.ndarray[float],
-        dimensions: np.ndarray[float], *, thresholds: float = None,
-        images: np.ndarray[int] = None, in_place: bool = True
-    ) -> Union[None, tuple[np.ndarray[float], np.ndarray[float],
-                           np.ndarray[int]]]:
 
+def unwrap(
+    positions: np.ndarray[float],
+    positions_old: np.ndarray[float],
+    dimensions: np.ndarray[float],
+    *,
+    thresholds: float = None,
+    images: np.ndarray[int] = None,
+    in_place: bool = True,
+) -> Union[None, tuple[np.ndarray[float], np.ndarray[float], np.ndarray[int]]]:
     r"""
     Globally unwraps particle positions.
 
@@ -396,12 +440,16 @@ def unwrap(
         positions += images * dimensions
         return positions, positions_old, images
 
-def unwrap_edge(
-        group: mda.AtomGroup = None, *, positions: np.ndarray[float] = None,
-        bonds: np.ndarray[int] = None, dimensions: np.ndarray[float] = None,
-        thresholds: np.ndarray[float] = None, masses: np.ndarray[float] = None,
-    ) -> np.ndarray[float]:
 
+def unwrap_edge(
+    group: mda.AtomGroup = None,
+    *,
+    positions: np.ndarray[float] = None,
+    bonds: np.ndarray[int] = None,
+    dimensions: np.ndarray[float] = None,
+    thresholds: np.ndarray[float] = None,
+    masses: np.ndarray[float] = None,
+) -> np.ndarray[float]:
     r"""
     Locally unwraps the positions of molecules at the edge of the
     simulation box.
@@ -493,43 +541,49 @@ def unwrap_edge(
             for particle_index in todo:
                 for bonded_index in bond_pairs[particle_index]:
                     if bonded_index in done:
-                        positions[particle_index] = (
-                            positions[bonded_index]
-                            + minimize_vectors(positions[particle_index]
-                                               - positions[bonded_index],
-                                               dimensions)
+                        positions[particle_index] = positions[
+                            bonded_index
+                        ] + minimize_vectors(
+                            positions[particle_index] - positions[bonded_index],
+                            dimensions,
                         )
                         done.add(particle_index)
                         break
             todo -= done
 
         if masses is None:
-            wmsg = ("No masses specified. All atoms are assumed to "
-                    "have a mass of 1.")
+            wmsg = "No masses specified. All atoms are assumed to " "have a mass of 1."
             warnings.warn(wmsg)
             masses = np.ones(len(positions))
         elif len(masses) == len(molecules):
             masses = np.concatenate(masses)
         elif len(masses) != len(positions):
-            emsg = ("The number of masses must be equal to the number "
-                    "of atoms or the number of molecules.")
+            emsg = (
+                "The number of masses must be equal to the number "
+                "of atoms or the number of molecules."
+            )
             raise ValueError(emsg)
 
         # Recenter molecules using their centers of mass
         for molecule_indices in molecules:
-            com = center_of_mass(positions=positions[molecule_indices],
-                                 masses=masses[molecule_indices])
-            positions[molecule_indices] \
-                += wrap(com, dimensions[:3], in_place=False) - com
+            com = center_of_mass(
+                positions=positions[molecule_indices], masses=masses[molecule_indices]
+            )
+            positions[molecule_indices] += (
+                wrap(com, dimensions[:3], in_place=False) - com
+            )
 
         return positions
     else:
         raise ValueError("Either 'group' or 'positions' must be specified.")
 
-def wrap(
-        positions: np.ndarray[float], dimensions: np.ndarray[float], *,
-        in_place: bool = True) -> np.ndarray[float]:
 
+def wrap(
+    positions: np.ndarray[float],
+    dimensions: np.ndarray[float],
+    *,
+    in_place: bool = True,
+) -> np.ndarray[float]:
     r"""
     Wraps particle positions back into the primary simulation cell.
 
@@ -565,18 +619,18 @@ def wrap(
 
     wrap_indices = (positions < 0) | (positions > dimensions)
     if in_place:
-        positions[wrap_indices] -= (
-            np.floor(positions / dimensions) * dimensions
-        )[wrap_indices]
+        positions[wrap_indices] -= (np.floor(positions / dimensions) * dimensions)[
+            wrap_indices
+        ]
     else:
         positions = positions.copy()
-        positions[wrap_indices] -= (
-            np.floor(positions / dimensions) * dimensions
-        )[wrap_indices]
+        positions[wrap_indices] -= (np.floor(positions / dimensions) * dimensions)[
+            wrap_indices
+        ]
         return positions
 
-def reduce_box_vectors(vectors: np.ndarray[float]) -> np.ndarray[float]:
 
+def reduce_box_vectors(vectors: np.ndarray[float]) -> np.ndarray[float]:
     r"""
     Performs lattice reduction on box vectors.
 
@@ -609,10 +663,10 @@ def reduce_box_vectors(vectors: np.ndarray[float]) -> np.ndarray[float]:
     b -= a * np.round(b[0] / a[0])
     return np.vstack((a, b, c))
 
+
 def convert_cell_representation(
-        *, parameters: np.ndarray[float] = None,
-        vectors: np.ndarray[float] = None) -> np.ndarray[float]:
-    
+    *, parameters: np.ndarray[float] = None, vectors: np.ndarray[float] = None
+) -> np.ndarray[float]:
     r"""
     Converts between crystallographic lattice parameters and triclinic
     box vectors.
@@ -652,7 +706,7 @@ def convert_cell_representation(
     representation : `numpy.ndarray`
         Lattice parameters or box vectors.
     """
-    
+
     if parameters is None and vectors is None:
         emsg = "Either 'parameters' or 'vectors' must be specified."
         raise ValueError(emsg)
@@ -676,32 +730,39 @@ def convert_cell_representation(
         vectors[1, 0] = parameters[1] * np.cos(gamma)
         vectors[1, 1] = parameters[1] * np.sin(gamma)
         vectors[2, 0] = parameters[2] * np.cos(beta)
-        vectors[2, 1] = (parameters[2] * (np.cos(alpha) - np.cos(beta) * np.cos(gamma)) 
-                         / np.sin(gamma))
-        vectors[2, 2] = np.sqrt(parameters[2] ** 2 - vectors[2, 0] ** 2 
-                                - vectors[2, 1] ** 2)
+        vectors[2, 1] = (
+            parameters[2]
+            * (np.cos(alpha) - np.cos(beta) * np.cos(gamma))
+            / np.sin(gamma)
+        )
+        vectors[2, 2] = np.sqrt(
+            parameters[2] ** 2 - vectors[2, 0] ** 2 - vectors[2, 1] ** 2
+        )
         vectors[np.isclose(vectors, 0, atol=5e-6)] = 0
         return vectors
-    
+
     else:
         if not is_lower_triangular(vectors):
             vectors = reduce_box_vectors(vectors)
         parameters = np.empty(6)
         parameters[:3] = np.linalg.norm(vectors, axis=1)
-        parameters[3] = np.degrees(np.arccos(np.dot(vectors[1], vectors[2]) 
-                                             / (parameters[1] * parameters[2])))
-        parameters[4] = np.degrees(np.arccos(np.dot(vectors[0], vectors[2]) 
-                                             / (parameters[0] * parameters[2])))
-        parameters[5] = np.degrees(np.arccos(np.dot(vectors[0], vectors[1]) 
-                                             / (parameters[0] * parameters[1])))
+        parameters[3] = np.degrees(
+            np.arccos(np.dot(vectors[1], vectors[2]) / (parameters[1] * parameters[2]))
+        )
+        parameters[4] = np.degrees(
+            np.arccos(np.dot(vectors[0], vectors[2]) / (parameters[0] * parameters[2]))
+        )
+        parameters[5] = np.degrees(
+            np.arccos(np.dot(vectors[0], vectors[1]) / (parameters[0] * parameters[1]))
+        )
         return parameters
-    
-def get_cell_representation(
-        rep: np.ndarray[float], output: str, /
-    ) -> np.ndarray[float]:
 
+
+def get_cell_representation(
+    rep: np.ndarray[float], output: str, /
+) -> np.ndarray[float]:
     r"""
-    Gets the desired cell representation given a starting cell 
+    Gets the desired cell representation given a starting cell
     representation.
 
     Parameters
@@ -733,19 +794,25 @@ def get_cell_representation(
         elif rep.shape[0] == 6:
             input_ = "parameters"
         else:
-            emsg = ("Invalid shape for 'rep'. Dimensions or lattice "
-                    "parameters must be provided as a 3- or 6-element "
-                    "array, respectively.")
+            emsg = (
+                "Invalid shape for 'rep'. Dimensions or lattice "
+                "parameters must be provided as a 3- or 6-element "
+                "array, respectively."
+            )
             raise ValueError(emsg)
     elif rep.ndim == 2:
         if rep.shape != (3, 3):
-            emsg = ("Invalid shape for 'rep'. Box vectors must be "
-                    "provided as rows in a 3-by-3 matrix.")
+            emsg = (
+                "Invalid shape for 'rep'. Box vectors must be "
+                "provided as rows in a 3-by-3 matrix."
+            )
             raise ValueError(emsg)
         input_ = "vectors"
     else:
-        emsg = ("Invalid shape for 'rep'. Must be a 3- or 6-element "
-                "array, or a 3-by-3 matrix.")
+        emsg = (
+            "Invalid shape for 'rep'. Must be a 3- or 6-element "
+            "array, or a 3-by-3 matrix."
+        )
         raise ValueError(emsg)
 
     if input_ == output:

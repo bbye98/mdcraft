@@ -9,5 +9,4 @@ This module is a collection of algorithms used in other MDCraft
 
 from . import accelerated, correlation, molecule, topology, unit, utility
 
-__all__ = ["accelerated", "correlation", "molecule", "topology", "unit",
-           "utility"]
+__all__ = ["accelerated", "correlation", "molecule", "topology", "unit", "utility"]

@@ -21,8 +21,8 @@ with :math:`1\leq n\leq8` analogous to MATLAB's :code:`gauss1`,
 
 import numpy as np
 
-def gauss(x: np.ndarray, *args: float) -> np.ndarray:
 
+def gauss(x: np.ndarray, *args: float) -> np.ndarray:
     r"""
     General Gaussian model.
 
@@ -71,12 +71,13 @@ def gauss(x: np.ndarray, *args: float) -> np.ndarray:
     """
 
     n = len(args)
-    assert n >= 3 and n % 3 == 0, \
-        "Number of fitting parameters must be greater than and divisible by 3."
-    return np.exp(-((x[:, None] - args[1::3]) / args[2::3]) ** 2) @ args[::3]
+    assert (
+        n >= 3 and n % 3 == 0
+    ), "Number of fitting parameters must be greater than and divisible by 3."
+    return np.exp(-(((x[:, None] - args[1::3]) / args[2::3]) ** 2)) @ args[::3]
+
 
 def gauss1(x: np.ndarray, a1: float, b1: float, c1: float) -> np.ndarray:
-
     r"""
     Convenience function for the :code:`gauss1` model from MATLAB.
 
@@ -106,10 +107,10 @@ def gauss1(x: np.ndarray, a1: float, b1: float, c1: float) -> np.ndarray:
 
     return gauss(x, a1, b1, c1)
 
-def gauss2(
-        x: np.ndarray, a1: float, b1: float, c1: float, a2: float, b2: float,
-        c2: float) -> np.ndarray:
 
+def gauss2(
+    x: np.ndarray, a1: float, b1: float, c1: float, a2: float, b2: float, c2: float
+) -> np.ndarray:
     r"""
     Convenience function for the :code:`gauss2` model from MATLAB:
 
@@ -149,10 +150,19 @@ def gauss2(
 
     return gauss(x, a1, b1, c1, a2, b2, c2)
 
-def gauss3(
-        x: np.ndarray, a1: float, b1: float, c1: float, a2: float, b2: float,
-        c2: float, a3: float, b3: float, c3: float) -> np.ndarray:
 
+def gauss3(
+    x: np.ndarray,
+    a1: float,
+    b1: float,
+    c1: float,
+    a2: float,
+    b2: float,
+    c2: float,
+    a3: float,
+    b3: float,
+    c3: float,
+) -> np.ndarray:
     r"""
     Convenience function for the :code:`gauss3` model from MATLAB.
 
@@ -202,11 +212,22 @@ def gauss3(
 
     return gauss(x, a1, b1, c1, a2, b2, c2, a3, b3, c3)
 
-def gauss4(
-        x: np.ndarray, a1: float, b1: float, c1: float, a2: float, b2: float,
-        c2: float, a3: float, b3: float, c3: float, a4: float, b4: float,
-        c4: float) -> np.ndarray:
 
+def gauss4(
+    x: np.ndarray,
+    a1: float,
+    b1: float,
+    c1: float,
+    a2: float,
+    b2: float,
+    c2: float,
+    a3: float,
+    b3: float,
+    c3: float,
+    a4: float,
+    b4: float,
+    c4: float,
+) -> np.ndarray:
     r"""
     Convenience function for the :code:`gauss4` model from MATLAB.
 
@@ -266,11 +287,25 @@ def gauss4(
 
     return gauss(x, a1, b1, c1, a2, b2, c2, a3, b3, c3, a4, b4, c4)
 
-def gauss5(
-        x: np.ndarray, a1: float, b1: float, c1: float, a2: float, b2: float,
-        c2: float, a3: float, b3: float, c3: float, a4: float, b4: float,
-        c4: float, a5: float, b5: float, c5: float) -> np.ndarray:
 
+def gauss5(
+    x: np.ndarray,
+    a1: float,
+    b1: float,
+    c1: float,
+    a2: float,
+    b2: float,
+    c2: float,
+    a3: float,
+    b3: float,
+    c3: float,
+    a4: float,
+    b4: float,
+    c4: float,
+    a5: float,
+    b5: float,
+    c5: float,
+) -> np.ndarray:
     r"""
     Convenience function for the :code:`gauss5` model from MATLAB.
 
@@ -336,15 +371,30 @@ def gauss5(
         Fitted :math:`y`-values.
     """
 
-    return gauss(x, a1, b1, c1, a2, b2, c2, a3, b3, c3, a4, b4, c4,
-                 a5, b5, c5)
+    return gauss(x, a1, b1, c1, a2, b2, c2, a3, b3, c3, a4, b4, c4, a5, b5, c5)
+
 
 def gauss6(
-        x: np.ndarray, a1: float, b1: float, c1: float, a2: float, b2: float,
-        c2: float, a3: float, b3: float, c3: float, a4: float, b4: float,
-        c4: float, a5: float, b5: float, c5: float, a6: float, b6: float,
-        c6: float) -> np.ndarray:
-
+    x: np.ndarray,
+    a1: float,
+    b1: float,
+    c1: float,
+    a2: float,
+    b2: float,
+    c2: float,
+    a3: float,
+    b3: float,
+    c3: float,
+    a4: float,
+    b4: float,
+    c4: float,
+    a5: float,
+    b5: float,
+    c5: float,
+    a6: float,
+    b6: float,
+    c6: float,
+) -> np.ndarray:
     r"""
     Convenience function for the :code:`gauss6` model from MATLAB.
 
@@ -419,15 +469,35 @@ def gauss6(
         Fitted :math:`y`-values.
     """
 
-    return gauss(x, a1, b1, c1, a2, b2, c2, a3, b3, c3, a4, b4, c4,
-                 a5, b5, c5, a6, b6, c6)
+    return gauss(
+        x, a1, b1, c1, a2, b2, c2, a3, b3, c3, a4, b4, c4, a5, b5, c5, a6, b6, c6
+    )
+
 
 def gauss7(
-        x: np.ndarray, a1: float, b1: float, c1: float, a2: float, b2: float,
-        c2: float, a3: float, b3: float, c3: float, a4: float, b4: float,
-        c4: float, a5: float, b5: float, c5: float, a6: float, b6: float,
-        c6: float, a7: float, b7: float, c7: float) -> np.ndarray:
-
+    x: np.ndarray,
+    a1: float,
+    b1: float,
+    c1: float,
+    a2: float,
+    b2: float,
+    c2: float,
+    a3: float,
+    b3: float,
+    c3: float,
+    a4: float,
+    b4: float,
+    c4: float,
+    a5: float,
+    b5: float,
+    c5: float,
+    a6: float,
+    b6: float,
+    c6: float,
+    a7: float,
+    b7: float,
+    c7: float,
+) -> np.ndarray:
     r"""
     Convenience function for the :code:`gauss7` model from MATLAB.
 
@@ -511,16 +581,59 @@ def gauss7(
         Fitted :math:`y`-values.
     """
 
-    return gauss(x, a1, b1, c1, a2, b2, c2, a3, b3, c3, a4, b4, c4,
-                 a5, b5, c5, a6, b6, c6, a7, b7, c7)
+    return gauss(
+        x,
+        a1,
+        b1,
+        c1,
+        a2,
+        b2,
+        c2,
+        a3,
+        b3,
+        c3,
+        a4,
+        b4,
+        c4,
+        a5,
+        b5,
+        c5,
+        a6,
+        b6,
+        c6,
+        a7,
+        b7,
+        c7,
+    )
+
 
 def gauss8(
-        x: np.ndarray, a1: float, b1: float, c1: float, a2: float, b2: float,
-        c2: float, a3: float, b3: float, c3: float, a4: float, b4: float,
-        c4: float, a5: float, b5: float, c5: float, a6: float, b6: float,
-        c6: float, a7: float, b7: float, c7: float, a8: float, b8: float,
-        c8: float) -> np.ndarray:
-
+    x: np.ndarray,
+    a1: float,
+    b1: float,
+    c1: float,
+    a2: float,
+    b2: float,
+    c2: float,
+    a3: float,
+    b3: float,
+    c3: float,
+    a4: float,
+    b4: float,
+    c4: float,
+    a5: float,
+    b5: float,
+    c5: float,
+    a6: float,
+    b6: float,
+    c6: float,
+    a7: float,
+    b7: float,
+    c7: float,
+    a8: float,
+    b8: float,
+    c8: float,
+) -> np.ndarray:
     r"""
     Convenience function for the :code:`gauss8` model from MATLAB.
 
@@ -613,5 +726,30 @@ def gauss8(
         Fitted :math:`y`-values.
     """
 
-    return gauss(x, a1, b1, c1, a2, b2, c2, a3, b3, c3, a4, b4, c4,
-                 a5, b5, c5, a6, b6, c6, a7, b7, c7, a8, b8, c8)
+    return gauss(
+        x,
+        a1,
+        b1,
+        c1,
+        a2,
+        b2,
+        c2,
+        a3,
+        b3,
+        c3,
+        a4,
+        b4,
+        c4,
+        a5,
+        b5,
+        c5,
+        a6,
+        b6,
+        c6,
+        a7,
+        b7,
+        c7,
+        a8,
+        b8,
+        c8,
+    )

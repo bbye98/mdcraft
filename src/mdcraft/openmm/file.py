@@ -18,8 +18,8 @@ from openmm import app, unit
 
 from .. import VERSION
 
-class NetCDFFile():
 
+class NetCDFFile:
     """
     Interface for reading and writing AMBER NetCDF trajectory and
     restart files.
@@ -42,14 +42,15 @@ class NetCDFFile():
     """
 
     def __init__(
-            self, file: Union[str, nc.Dataset], mode: str,
-            restart: bool = False, **kwargs):
+        self, file: Union[str, nc.Dataset], mode: str, restart: bool = False, **kwargs
+    ):
 
         if isinstance(file, str):
             if not file.endswith((".nc", ".ncdf")):
                 file += ".nc"
-            self._nc = nc.Dataset(file, mode=mode,
-                                  format="NETCDF3_64BIT_OFFSET", **kwargs)
+            self._nc = nc.Dataset(
+                file, mode=mode, format="NETCDF3_64BIT_OFFSET", **kwargs
+            )
         else:
             self._nc = file
         self._nc.set_always_mask(False)
@@ -62,11 +63,10 @@ class NetCDFFile():
             self._restart = restart
 
     def get_dimensions(
-            self, frames: Union[int, list[int], slice] = None,
-            units: bool = True
-        ) -> Union[tuple[np.ndarray[float], np.ndarray[float]],
-                   tuple[unit.Quantity, unit.Quantity]]:
-
+        self, frames: Union[int, list[int], slice] = None, units: bool = True
+    ) -> Union[
+        tuple[np.ndarray[float], np.ndarray[float]], tuple[unit.Quantity, unit.Quantity]
+    ]:
         """
         Get the simulation box dimensions.
 
@@ -92,17 +92,22 @@ class NetCDFFile():
             **Reference unit**: :math:`^\\circ`.
         """
 
-        cell_lengths = (self._nc.variables["cell_lengths"][:] if frames is None
-                        else self._nc.variables["cell_lengths"][frames])
-        cell_angles = (self._nc.variables["cell_angles"][:] if frames is None
-                       else self._nc.variables["cell_angles"][frames])
+        cell_lengths = (
+            self._nc.variables["cell_lengths"][:]
+            if frames is None
+            else self._nc.variables["cell_lengths"][frames]
+        )
+        cell_angles = (
+            self._nc.variables["cell_angles"][:]
+            if frames is None
+            else self._nc.variables["cell_angles"][frames]
+        )
         if units:
             cell_lengths *= unit.angstrom
             cell_angles *= unit.degree
         return cell_lengths, cell_angles
 
     def get_num_frames(self) -> int:
-
         """
         Get the number of frames.
 
@@ -115,7 +120,6 @@ class NetCDFFile():
         return self._nc.dimensions["frame"].size
 
     def get_num_atoms(self) -> int:
-
         """
         Get the number of atoms.
 
@@ -128,9 +132,8 @@ class NetCDFFile():
         return self._nc.dimensions["atom"].size
 
     def get_times(
-            self, frames: Union[int, list[int], slice] = None,
-            units: bool = True) -> Union[np.ndarray[float], unit.Quantity]:
-
+        self, frames: Union[int, list[int], slice] = None, units: bool = True
+    ) -> Union[np.ndarray[float], unit.Quantity]:
         """
         Get simulation times.
 
@@ -151,16 +154,18 @@ class NetCDFFile():
             **Reference unit**: :math:`\\mathrm{ps}`.
         """
 
-        times = (self._nc.variables["time"][:] if frames is None
-                 else self._nc.variables["time"][frames])
+        times = (
+            self._nc.variables["time"][:]
+            if frames is None
+            else self._nc.variables["time"][frames]
+        )
         if units:
             times *= unit.picosecond
         return times
 
     def get_positions(
-            self, frames: Union[int, list[int], slice] = None,
-            units: bool = True) -> Union[np.ndarray[float], unit.Quantity]:
-
+        self, frames: Union[int, list[int], slice] = None, units: bool = True
+    ) -> Union[np.ndarray[float], unit.Quantity]:
         """
         Get the atom positions.
 
@@ -181,16 +186,18 @@ class NetCDFFile():
             **Reference unit**: :math:`\\mathrm{Å}`.
         """
 
-        positions = (self._nc.variables["coordinates"][:] if frames is None
-                     else self._nc.variables["coordinates"][frames])
+        positions = (
+            self._nc.variables["coordinates"][:]
+            if frames is None
+            else self._nc.variables["coordinates"][frames]
+        )
         if units:
             positions *= unit.angstrom
         return positions
 
     def get_velocities(
-            self, frames: Union[int, list[int], slice] = None,
-            units: bool = True) -> Union[np.ndarray[float], unit.Quantity]:
-
+        self, frames: Union[int, list[int], slice] = None, units: bool = True
+    ) -> Union[np.ndarray[float], unit.Quantity]:
         """
         Get atom velocities.
 
@@ -213,21 +220,25 @@ class NetCDFFile():
         """
 
         if "velocities" not in self._nc.variables:
-            wmsg = ("The NetCDF file does not contain information about "
-                    "the atom velocities.")
+            wmsg = (
+                "The NetCDF file does not contain information about "
+                "the atom velocities."
+            )
             warnings.warn(wmsg)
             return None
 
-        velocities = (self._nc.variables["velocities"][:] if frames is None
-                      else self._nc.variables["velocities"][frames])
+        velocities = (
+            self._nc.variables["velocities"][:]
+            if frames is None
+            else self._nc.variables["velocities"][frames]
+        )
         if units:
             velocities *= unit.angstrom / unit.picosecond
         return velocities
 
     def get_forces(
-            self, frames: Union[int, list[int], slice] = None,
-            units: bool = True) -> Union[np.ndarray[float], unit.Quantity]:
-
+        self, frames: Union[int, list[int], slice] = None, units: bool = True
+    ) -> Union[np.ndarray[float], unit.Quantity]:
         """
         Get the forces acting on the atoms.
 
@@ -250,25 +261,38 @@ class NetCDFFile():
         """
 
         if "forces" not in self._nc.variables:
-            wmsg = ("The NetCDF file does not contain information about "
-                    "the forces acting on the atoms.")
+            wmsg = (
+                "The NetCDF file does not contain information about "
+                "the forces acting on the atoms."
+            )
             warnings.warn(wmsg)
             return None
 
-        forces = (self._nc.variables["forces"][:] if frames is None
-                  else self._nc.variables["forces"][frames])
+        forces = (
+            self._nc.variables["forces"][:]
+            if frames is None
+            else self._nc.variables["forces"][frames]
+        )
         if units:
             forces *= unit.kilocalorie_per_mole / unit.angstrom
         return forces
 
     def write_header(
-            self: Any, N: int, cell: bool, velocities: bool, forces: bool,
-            restart: bool = False, *, remd: str = None, temp0: float = None,
-            remd_dimtype: np.ndarray[int] = None,
-            remd_indices: np.ndarray[int] = None, remd_repidx: int = -1,
-            remd_crdidx: int = -1, remd_values: np.ndarray[float] = None
-        ) -> "NetCDFFile":
-
+        self: Any,
+        N: int,
+        cell: bool,
+        velocities: bool,
+        forces: bool,
+        restart: bool = False,
+        *,
+        remd: str = None,
+        temp0: float = None,
+        remd_dimtype: np.ndarray[int] = None,
+        remd_indices: np.ndarray[int] = None,
+        remd_repidx: int = -1,
+        remd_crdidx: int = -1,
+        remd_values: np.ndarray[float] = None,
+    ) -> "NetCDFFile":
         """
         Initialize a NetCDF file according to `AMBER NetCDF
         Trajectory/Restart Convention Version 1.0, Revision C
@@ -359,15 +383,16 @@ class NetCDFFile():
         self._nc.ConventionVersion = "1.0"
         self._nc.program = "MDCraft"
         self._nc.programVersion = VERSION
-        self._nc.title = (f"OpenMM {openmm.Platform.getOpenMMVersion()} / "
-                          f"{platform.node()}")
+        self._nc.title = (
+            f"OpenMM {openmm.Platform.getOpenMMVersion()} / " f"{platform.node()}"
+        )
 
         if self._restart:
             self._nc.createDimension("frame", 1)
         else:
             self._nc.createDimension("frame", None)
 
-        if remd == "multi": # pragma: no cover
+        if remd == "multi":  # pragma: no cover
             self._nc.createDimension("remd_dimension", len(remd_dimtype))
         self._nc.createDimension("spatial", 3)
         self._nc.createDimension("atom", N)
@@ -375,8 +400,7 @@ class NetCDFFile():
         if self._restart:
             self._nc.createVariable("coordinates", "d", ("atom", "spatial"))
         else:
-            self._nc.createVariable("coordinates", "f",
-                                    ("frame", "atom", "spatial"))
+            self._nc.createVariable("coordinates", "f", ("frame", "atom", "spatial"))
         self._nc.variables["coordinates"].units = "angstrom"
 
         self._nc.createVariable("time", "d", ("frame",))
@@ -390,20 +414,19 @@ class NetCDFFile():
             self._nc.variables["spatial"][:] = list("xyz")
             self._nc.createVariable("cell_spatial", "c", ("cell_spatial",))
             self._nc.variables["cell_spatial"][:] = list("abc")
-            self._nc.createVariable("cell_angular", "c",
-                                    ("cell_angular", "label"))
-            self._nc.variables["cell_angular"][:] = [list("alpha"),
-                                                     list("beta "),
-                                                     list("gamma")]
+            self._nc.createVariable("cell_angular", "c", ("cell_angular", "label"))
+            self._nc.variables["cell_angular"][:] = [
+                list("alpha"),
+                list("beta "),
+                list("gamma"),
+            ]
 
             if self._restart:
                 self._nc.createVariable("cell_lengths", "d", ("cell_spatial",))
                 self._nc.createVariable("cell_angles", "d", ("cell_angular",))
             else:
-                self._nc.createVariable("cell_lengths", "f",
-                                        ("frame", "cell_spatial"))
-                self._nc.createVariable("cell_angles", "f",
-                                        ("frame", "cell_angular"))
+                self._nc.createVariable("cell_lengths", "f", ("frame", "cell_spatial"))
+                self._nc.createVariable("cell_angles", "f", ("frame", "cell_angular"))
             self._nc.variables["cell_lengths"].units = "angstrom"
             self._nc.variables["cell_angles"].units = "degree"
 
@@ -411,8 +434,7 @@ class NetCDFFile():
             if self._restart:
                 self._nc.createVariable("velocities", "d", ("atom", "spatial"))
             else:
-                self._nc.createVariable("velocities", "f",
-                                        ("frame", "atom", "spatial"))
+                self._nc.createVariable("velocities", "f", ("frame", "atom", "spatial"))
             self._nc.variables["velocities"].units = "angstrom/picosecond"
             self._nc.variables["velocities"].scale_factor = 20.455
 
@@ -420,62 +442,66 @@ class NetCDFFile():
             if self._restart:
                 self._nc.createVariable("forces", "d", ("atom", "spatial"))
             else:
-                self._nc.createVariable("forces", "f",
-                                        ("frame", "atom", "spatial"))
+                self._nc.createVariable("forces", "f", ("frame", "atom", "spatial"))
             self._nc.variables["forces"].units = "kilocalorie/mole/angstrom"
 
-        if remd is not None: # pragma: no cover
+        if remd is not None:  # pragma: no cover
             if remd == "temp":
                 self._nc.createVariable("temp0", "d", ("frame",))
                 if self._restart:
                     if temp0 is None:
-                        emsg = ("Temperature must be provided for a REMD "
-                                "restart file.")
+                        emsg = (
+                            "Temperature must be provided for a REMD " "restart file."
+                        )
                         raise ValueError(emsg)
                     self._nc.variables["temp0"][0] = temp0
                 self._nc.variables["temp0"].units = "kelvin"
 
             elif remd == "multi":
-                self._nc.createVariable("remd_dimtype", "i",
-                                        ("remd_dimension",))
+                self._nc.createVariable("remd_dimtype", "i", ("remd_dimension",))
                 self._nc.createVariable("remd_repidx", "i", ("frame",))
                 self._nc.createVariable("remd_crdidx", "i", ("frame",))
                 if self._restart:
                     if remd_dimtype is None:
-                        emsg = ("Dimension types must be provided for a "
-                                "multi-dimensional REMD restart file.")
+                        emsg = (
+                            "Dimension types must be provided for a "
+                            "multi-dimensional REMD restart file."
+                        )
                         raise ValueError(emsg)
                     self._nc.variables["remd_dimtype"] = remd_dimtype
 
-                    self._nc.createVariable("remd_indices", "i",
-                                            ("remd_dimension",))
+                    self._nc.createVariable("remd_indices", "i", ("remd_dimension",))
                     if remd_indices is None:
-                        emsg = ("Dimension indices must be provided for a "
-                                "multi-dimensional REMD restart file.")
+                        emsg = (
+                            "Dimension indices must be provided for a "
+                            "multi-dimensional REMD restart file."
+                        )
                         raise ValueError(emsg)
                     self._nc.variables["remd_indices"] = remd_indices
 
                     self._nc.variables["remd_repidx"][0] = remd_repidx
                     self._nc.variables["remd_crdidx"][0] = remd_crdidx
 
-                    self._nc.createVariable("remd_values", "d",
-                                            ("remd_dimension",))
+                    self._nc.createVariable("remd_values", "d", ("remd_dimension",))
                     if remd_values is None:
-                        emsg = ("Replica values must be provided for a "
-                                "multi-dimensional REMD restart file.")
+                        emsg = (
+                            "Replica values must be provided for a "
+                            "multi-dimensional REMD restart file."
+                        )
                         raise ValueError(emsg)
                     self._nc.variables["remd_values"][:] = remd_values
 
                 else:
-                    self._nc.createVariable("remd_indices", "i",
-                                            ("frame", "remd_dimension"))
-                    self._nc.createVariable("remd_values", "d",
-                                            ("frame", "remd_dimension"))
+                    self._nc.createVariable(
+                        "remd_indices", "i", ("frame", "remd_dimension")
+                    )
+                    self._nc.createVariable(
+                        "remd_values", "d", ("frame", "remd_dimension")
+                    )
 
         return self
 
     def write_file(self: Any, state: openmm.State) -> "NetCDFFile":
-
         """
         Write a single simulation state to a restart NetCDF file.
 
@@ -506,34 +532,37 @@ class NetCDFFile():
         data = {}
         pbv = state.getPeriodicBoxVectors()
         if pbv is not None:
-            (a, b, c, alpha, beta, gamma) = \
+            (a, b, c, alpha, beta, gamma) = (
                 app.internal.unitcell.computeLengthsAndAngles(pbv)
+            )
             data["cell_lengths"] = 10 * np.array((a, b, c))
             data["cell_angles"] = 180 * np.array((alpha, beta, gamma)) / np.pi
-        data["coordinates"] = (state.getPositions(asNumpy=True)
-                               .value_in_unit(unit.angstrom))
+        data["coordinates"] = state.getPositions(asNumpy=True).value_in_unit(
+            unit.angstrom
+        )
         try:
-            data["velocities"] \
-                = state.getVelocities(asNumpy=True).value_in_unit(
-                    unit.angstrom / unit.picosecond
-                )
-        except openmm.OpenMMException: # pragma: no cover
+            data["velocities"] = state.getVelocities(asNumpy=True).value_in_unit(
+                unit.angstrom / unit.picosecond
+            )
+        except openmm.OpenMMException:  # pragma: no cover
             pass
         try:
-            data["forces"] \
-                = state.getForces(asNumpy=True).value_in_unit(
-                    unit.kilocalorie_per_mole / unit.angstrom
-                )
-        except openmm.OpenMMException: # pragma: no cover
+            data["forces"] = state.getForces(asNumpy=True).value_in_unit(
+                unit.kilocalorie_per_mole / unit.angstrom
+            )
+        except openmm.OpenMMException:  # pragma: no cover
             pass
 
         # Create NetCDF file or object if it doesn't already exist
         if not isinstance(self, NetCDFFile):
             self = NetCDFFile(self, "w", restart=True)
         if not hasattr(self._nc, "Conventions"):
-            self.write_header(data["coordinates"].shape[0],
-                              "cell_lengths" in data or "cell_angles" in data,
-                              "velocities" in data, "forces" in data)
+            self.write_header(
+                data["coordinates"].shape[0],
+                "cell_lengths" in data or "cell_angles" in data,
+                "velocities" in data,
+                "forces" in data,
+            )
             self._nc.set_always_mask(False)
         elif self._nc.Conventions != "AMBERRESTART":
             raise ValueError("The NetCDF file must be a restart file.")
@@ -546,14 +575,16 @@ class NetCDFFile():
         return self
 
     def write_model(
-            self: Any, time: Union[float, np.ndarray[float]],
-            coordinates: np.ndarray[float],
-            velocities: np.ndarray[float] = None,
-            forces: np.ndarray[float] = None,
-            cell_lengths: np.ndarray[float] = None,
-            cell_angles: np.ndarray[float] = None, *, restart: bool = False
-        ) -> "NetCDFFile":
-
+        self: Any,
+        time: Union[float, np.ndarray[float]],
+        coordinates: np.ndarray[float],
+        velocities: np.ndarray[float] = None,
+        forces: np.ndarray[float] = None,
+        cell_lengths: np.ndarray[float] = None,
+        cell_angles: np.ndarray[float] = None,
+        *,
+        restart: bool = False,
+    ) -> "NetCDFFile":
         """
         Write simulation state(s) to a NetCDF file.
 
@@ -634,9 +665,12 @@ class NetCDFFile():
         if not isinstance(self, NetCDFFile):
             self = NetCDFFile(self, "w", restart=restart)
         if not hasattr(self._nc, "Conventions"):
-            self.write_header(coordinates.shape[0],
-                              cell_lengths is not None or cell_angles is not None,
-                              velocities is not None, forces is not None)
+            self.write_header(
+                coordinates.shape[0],
+                cell_lengths is not None or cell_angles is not None,
+                velocities is not None,
+                forces is not None,
+            )
             self._nc.set_always_mask(False)
 
         # Write model to NetCDF file

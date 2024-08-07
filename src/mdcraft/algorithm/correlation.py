@@ -15,12 +15,17 @@ import warnings
 import numpy as np
 from scipy import fft
 
-def correlation_fft(
-        x: np.ndarray[Union[float, complex]],
-        y: np.ndarray[Union[float, complex]] = None, /, axis: int = None, *,
-        average: bool = False, double: bool = False, vector: bool = False
-    ) -> np.ndarray[Union[float, complex]]:
 
+def correlation_fft(
+    x: np.ndarray[Union[float, complex]],
+    y: np.ndarray[Union[float, complex]] = None,
+    /,
+    axis: int = None,
+    *,
+    average: bool = False,
+    double: bool = False,
+    vector: bool = False,
+) -> np.ndarray[Union[float, complex]]:
     r"""
     Evaluates the autocorrelation functions (ACF)
     :math:`\mathrm{R_\mathbf{XX}}(\tau)` or cross-correlation functions
@@ -143,8 +148,7 @@ def correlation_fft(
         raise ValueError("The arrays cannot be empty.")
     ndim = x.ndim
     if not 1 <= ndim <= 4:
-        emsg = ("The arrays must be one-, two-, three-, or four-"
-                "dimensional.")
+        emsg = "The arrays must be one-, two-, three-, or four-" "dimensional."
         raise ValueError(emsg)
     if y is not None:
         y = np.asarray(y)
@@ -158,18 +162,19 @@ def correlation_fft(
         else:
             axis = 0
             if ndim > 1:
-                wmsg = ("The axis along which to compute the ACF/CCF "
-                        "was not specified and is ambiguous for a "
-                        "multidimensional array. As such, it has been "
-                        "set to the first axis by default.")
+                wmsg = (
+                    "The axis along which to compute the ACF/CCF "
+                    "was not specified and is ambiguous for a "
+                    "multidimensional array. As such, it has been "
+                    "set to the first axis by default."
+                )
                 warnings.warn(wmsg)
     elif axis not in {0, 1}:
-        emsg = ("The ACF/CCF can only be computed along the first or "
-                "second axis.")
+        emsg = "The ACF/CCF can only be computed along the first or " "second axis."
         raise ValueError(emsg)
 
     # Determine whether faster real-valued FFTs can be used
-    if (real := np.isrealobj(x) and (y is None or np.isrealobj(y))):
+    if real := np.isrealobj(x) and (y is None or np.isrealobj(y)):
         fft_ = fft.rfft
         ifft = fft.irfft
     else:
@@ -208,13 +213,13 @@ def correlation_fft(
     if axis:
         r[:, :N_t] /= np.expand_dims(np.arange(N_t, 0, -1), axes)
         if r.shape[axis] != N_t:
-            r[:, 1 - N_t:] /= np.expand_dims(np.arange(1, N_t), axes)
-            r = np.hstack((r[:, 1 - N_t:], r[:, :N_t]))
+            r[:, 1 - N_t :] /= np.expand_dims(np.arange(1, N_t), axes)
+            r = np.hstack((r[:, 1 - N_t :], r[:, :N_t]))
     else:
         r[:N_t] /= np.expand_dims(np.arange(N_t, 0, -1), axes)
         if r.shape[axis] != N_t:
-            r[1 - N_t:] /= np.expand_dims(np.arange(1, N_t), axes)
-            r = np.concatenate((r[1 - N_t:], r[:N_t]))
+            r[1 - N_t :] /= np.expand_dims(np.arange(1, N_t), axes)
+            r = np.concatenate((r[1 - N_t :], r[:N_t]))
 
     # Average over all entities, if desired
     if average:
@@ -224,12 +229,17 @@ def correlation_fft(
 
     return r
 
-def correlation_shift(
-        x: np.ndarray[Union[float, complex]],
-        y: np.ndarray[Union[float, complex]] = None, /, axis: int = None, *,
-        average: bool = False, double: bool = False, vector: bool = False
-    ) -> np.ndarray[Union[float, complex]]:
 
+def correlation_shift(
+    x: np.ndarray[Union[float, complex]],
+    y: np.ndarray[Union[float, complex]] = None,
+    /,
+    axis: int = None,
+    *,
+    average: bool = False,
+    double: bool = False,
+    vector: bool = False,
+) -> np.ndarray[Union[float, complex]]:
     r"""
     Evaluates the autocorrelation functions (ACF)
     :math:`\mathrm{R_\mathbf{XX}}(\tau)` or cross-correlation functions
@@ -344,8 +354,7 @@ def correlation_shift(
         raise ValueError("The arrays cannot be empty.")
     ndim = x.ndim
     if not 1 <= ndim <= 4:
-        emsg = ("The arrays must be one-, two-, three-, or four-"
-                "dimensional.")
+        emsg = "The arrays must be one-, two-, three-, or four-" "dimensional."
         raise ValueError(emsg)
     if y is not None:
         y = np.asarray(y)
@@ -359,14 +368,15 @@ def correlation_shift(
         else:
             axis = 0
             if ndim > 1:
-                wmsg = ("The axis along which to compute the ACF/CCF "
-                        "was not specified and is ambiguous for a "
-                        "multidimensional array. As such, it has been "
-                        "set to the first axis by default.")
+                wmsg = (
+                    "The axis along which to compute the ACF/CCF "
+                    "was not specified and is ambiguous for a "
+                    "multidimensional array. As such, it has been "
+                    "set to the first axis by default."
+                )
                 warnings.warn(wmsg)
     elif axis not in {0, 1}:
-        emsg = ("The ACF/CCF can only be computed along the first or "
-                "second axis.")
+        emsg = "The ACF/CCF can only be computed along the first or " "second axis."
         raise ValueError(emsg)
 
     # Calculate the ACF/CCF
@@ -374,46 +384,57 @@ def correlation_shift(
     if y is None:
         if ndim == 1:
             r = np.fromiter(
-                (np.dot(x[i:], x[:-i if i else None]) for i in range(N_t)),
+                (np.dot(x[i:], x[: -i if i else None]) for i in range(N_t)),
                 dtype=float,
                 count=N_t,
             )
         elif axis:
             axes = f"bt...{'d' * vector}"
             r = np.stack(
-                [np.einsum(f"{axes},{axes}->b...",
-                           x[:, i:], x[:, :-i if i else None])
-                 for i in range(N_t)],
-                axis=1
+                [
+                    np.einsum(
+                        f"{axes},{axes}->b...", x[:, i:], x[:, : -i if i else None]
+                    )
+                    for i in range(N_t)
+                ],
+                axis=1,
             )
         else:
             axes = f"t...{'d' * vector}"
             r = np.stack(
-                [np.einsum(f"{axes},{axes}->...", x[i:], x[:-i if i else None])
-                 for i in range(N_t)]
+                [
+                    np.einsum(f"{axes},{axes}->...", x[i:], x[: -i if i else None])
+                    for i in range(N_t)
+                ]
             )
     else:
         start = np.r_[np.zeros(N_t - 1, dtype=int), 0:N_t]
-        stop = np.r_[1:N_t + 1, N_t * np.ones(N_t - 1, dtype=int)]
+        stop = np.r_[1 : N_t + 1, N_t * np.ones(N_t - 1, dtype=int)]
         if ndim == 1:
             r = np.fromiter(
-                (np.dot(x[i:j], y[k:m])
-                 for i, j, k, m in zip(start[::-1], stop[::-1], start, stop)),
+                (
+                    np.dot(x[i:j], y[k:m])
+                    for i, j, k, m in zip(start[::-1], stop[::-1], start, stop)
+                ),
                 dtype=float,
-                count=2 * N_t - 1
+                count=2 * N_t - 1,
             )
         elif axis:
             axes = f"bt...{'d' * vector}"
             r = np.stack(
-                [np.einsum(f"{axes},{axes}->b...", x[:, i:j], y[:, k:m])
-                 for i, j, k, m in zip(start[::-1], stop[::-1], start, stop)],
-                axis=1
+                [
+                    np.einsum(f"{axes},{axes}->b...", x[:, i:j], y[:, k:m])
+                    for i, j, k, m in zip(start[::-1], stop[::-1], start, stop)
+                ],
+                axis=1,
             )
         else:
             axes = f"t...{'d' * vector}"
             r = np.stack(
-                [np.einsum(f"{axes},{axes}->...", x[i:j], y[k:m])
-                 for i, j, k, m in zip(start[::-1], stop[::-1], start, stop)]
+                [
+                    np.einsum(f"{axes},{axes}->...", x[i:j], y[k:m])
+                    for i, j, k, m in zip(start[::-1], stop[::-1], start, stop)
+                ]
             )
 
     # Double the ACF or overlap the negative and positive time lags for
@@ -422,9 +443,9 @@ def correlation_shift(
         if y is None:
             r *= 2
         elif axis:
-            r = r[:, N_t - 1:] + r[:, N_t - 1::-1]
+            r = r[:, N_t - 1 :] + r[:, N_t - 1 :: -1]
         else:
-            r = r[N_t - 1:] + r[N_t - 1::-1]
+            r = r[N_t - 1 :] + r[N_t - 1 :: -1]
 
     # Determine the axes over which to expand the dimensions of the
     # reversed time array for correct matrix division
@@ -435,11 +456,11 @@ def correlation_shift(
     if axis:
         r[:, -N_t:] /= np.expand_dims(np.arange(N_t, 0, -1), axes)
         if r.shape[axis] != N_t:
-            r[:, :N_t - 1] /= np.expand_dims(np.arange(1, N_t), axes)
+            r[:, : N_t - 1] /= np.expand_dims(np.arange(1, N_t), axes)
     else:
         r[-N_t:] /= np.expand_dims(np.arange(N_t, 0, -1), axes)
         if r.shape[axis] != N_t:
-            r[:N_t - 1] /= np.expand_dims(np.arange(1, N_t), axes)
+            r[: N_t - 1] /= np.expand_dims(np.arange(1, N_t), axes)
 
     # Average over all entities, if desired
     if average:
@@ -449,10 +470,15 @@ def correlation_shift(
 
     return r
 
-def msd_fft(
-        r_i: np.ndarray[float], r_j: np.ndarray[float] = None, /,
-        axis: int = None, *, average: bool = True) -> np.ndarray[float]:
 
+def msd_fft(
+    r_i: np.ndarray[float],
+    r_j: np.ndarray[float] = None,
+    /,
+    axis: int = None,
+    *,
+    average: bool = True,
+) -> np.ndarray[float]:
     r"""
     Evaluates the mean squared displacements (MSD) or the analogous
     cross displacements (CD) of positions :math:`\mathbf{r}_i(t)` and
@@ -590,13 +616,11 @@ def msd_fft(
     if r_i.size == 0:
         raise ValueError("The position arrays cannot be empty.")
     if r_i.shape[-1] != 3:
-        emsg = ("The position arrays must have three components in "
-                "the last axis.")
+        emsg = "The position arrays must have three components in " "the last axis."
         raise ValueError(emsg)
     ndim = r_i.ndim
     if not 2 <= ndim <= 4:
-        emsg = ("The position arrays must be two-, three-, or four-"
-                "dimensional.")
+        emsg = "The position arrays must be two-, three-, or four-" "dimensional."
         raise ValueError(emsg)
     if r_j is not None:
         r_j = np.asarray(r_j)
@@ -610,19 +634,19 @@ def msd_fft(
         else:
             axis = 0
             if ndim == 3:
-                emsg = ("The axis along which to compute the MSD/CD "
-                        "was not specified and is ambiguous for a "
-                        "three-dimensional array. As such, it has been "
-                        "set to the first axis by default.")
+                emsg = (
+                    "The axis along which to compute the MSD/CD "
+                    "was not specified and is ambiguous for a "
+                    "three-dimensional array. As such, it has been "
+                    "set to the first axis by default."
+                )
                 warnings.warn(emsg)
     elif axis not in {0, 1}:
-        emsg = ("The MSD/CD can only be computed along the first or "
-                "second axis.")
+        emsg = "The MSD/CD can only be computed along the first or " "second axis."
         raise ValueError(emsg)
 
     # Get intermediate quantities required for the MSD/CD calculation
-    R_ij = correlation_fft(r_i, r_j, axis, average=False, double=True,
-                           vector=True)
+    R_ij = correlation_fft(r_i, r_j, axis, average=False, double=True, vector=True)
     D_ij = (r_i * (r_i if r_j is None else r_j)).sum(axis=-1)
 
     N_t = r_i.shape[axis]
@@ -636,18 +660,14 @@ def msd_fft(
             mask[axis] = False
             D_k = stack((D_ij, np.expand_dims(np.zeros(shape[mask]), axis)))
             if axis:
-                Q_ij = (
-                    2 * D_k.sum(axis=axis, keepdims=True) * np.ones((1, N_t, 1))
-                    - np.cumsum(
-                        D_k[:, np.arange(-1, N_t - 1)] + D_k[:, N_t:0:-1],
-                        axis=axis
-                    )
+                Q_ij = 2 * D_k.sum(axis=axis, keepdims=True) * np.ones(
+                    (1, N_t, 1)
+                ) - np.cumsum(
+                    D_k[:, np.arange(-1, N_t - 1)] + D_k[:, N_t:0:-1], axis=axis
                 )
             else:
-                Q_ij = (
-                    2 * D_k.sum(axis=axis) * np.ones((N_t, 1))
-                    - np.cumsum(D_k[np.arange(-1, N_t - 1)] + D_k[N_t:0:-1],
-                                axis=axis)
+                Q_ij = 2 * D_k.sum(axis=axis) * np.ones((N_t, 1)) - np.cumsum(
+                    D_k[np.arange(-1, N_t - 1)] + D_k[N_t:0:-1], axis=axis
                 )
             return Q_ij / np.arange(N_t, 0, -1)[:, None] - R_ij
 
@@ -657,26 +677,27 @@ def msd_fft(
 
     # Calculate the averaged MSD/CD
     if axis:
-        Q_ij = (
-            2 * D_ij.sum(axis=axis, keepdims=True) * np.ones((1, N_t))
-            - np.insert(
-                np.cumsum(D_ij[:, :N_t - 1] + D_ij[:, N_t - 1:0:-1], axis=axis),
-                0,
-                0,
-                axis=axis
-            )
+        Q_ij = 2 * D_ij.sum(axis=axis, keepdims=True) * np.ones((1, N_t)) - np.insert(
+            np.cumsum(D_ij[:, : N_t - 1] + D_ij[:, N_t - 1 : 0 : -1], axis=axis),
+            0,
+            0,
+            axis=axis,
         )
     else:
-        Q_ij = (
-            2 * D_ij.sum() * np.ones(N_t)
-            - np.insert(np.cumsum(D_ij[:N_t - 1] + D_ij[N_t - 1:0:-1]), 0, 0)
+        Q_ij = 2 * D_ij.sum() * np.ones(N_t) - np.insert(
+            np.cumsum(D_ij[: N_t - 1] + D_ij[N_t - 1 : 0 : -1]), 0, 0
         )
     return Q_ij / np.arange(N_t, 0, -1) - R_ij
 
-def msd_shift(
-        r_i: np.ndarray[float], r_j: np.ndarray[float] = None, /,
-        axis: int = None, *, average: bool = True) -> np.ndarray[float]:
 
+def msd_shift(
+    r_i: np.ndarray[float],
+    r_j: np.ndarray[float] = None,
+    /,
+    axis: int = None,
+    *,
+    average: bool = True,
+) -> np.ndarray[float]:
     r"""
     Evaluates the mean squared displacements (MSD) or the analogous
     cross displacements (CD) of positions :math:`\mathbf{r}_i(t)` and
@@ -784,13 +805,11 @@ def msd_shift(
     if r_i.size == 0:
         raise ValueError("The position arrays cannot be empty.")
     if r_i.shape[-1] != 3:
-        emsg = ("The position arrays must have three components in "
-                "the last axis.")
+        emsg = "The position arrays must have three components in " "the last axis."
         raise ValueError(emsg)
     ndim = r_i.ndim
     if not 2 <= ndim <= 4:
-        emsg = ("The position arrays must be two-, three-, or four-"
-                "dimensional.")
+        emsg = "The position arrays must be two-, three-, or four-" "dimensional."
         raise ValueError(emsg)
     if r_j is not None:
         r_j = np.asarray(r_j)
@@ -804,14 +823,15 @@ def msd_shift(
         else:
             axis = 0
             if ndim == 3:
-                emsg = ("The axis along which to compute the MSD/CD "
-                        "was not specified and is ambiguous for a "
-                        "three-dimensional array. As such, it has been "
-                        "set to the first axis by default.")
+                emsg = (
+                    "The axis along which to compute the MSD/CD "
+                    "was not specified and is ambiguous for a "
+                    "three-dimensional array. As such, it has been "
+                    "set to the first axis by default."
+                )
                 warnings.warn(emsg)
     elif axis not in {0, 1}:
-        emsg = ("The MSD/CD can only be computed along the first or "
-                "second axis.")
+        emsg = "The MSD/CD can only be computed along the first or " "second axis."
         raise ValueError(emsg)
 
     # Calculate the MSD/CD for each entity
@@ -819,37 +839,47 @@ def msd_shift(
     if r_j is None:
         if axis:
             disp = np.stack(
-                [((r_i[:, :-i if i else None] - r_i[:, i:]) ** 2)
-                 .sum(axis=-1).mean(axis=axis)
-                 for i in range(N_t)],
-                axis=1
+                [
+                    ((r_i[:, : -i if i else None] - r_i[:, i:]) ** 2)
+                    .sum(axis=-1)
+                    .mean(axis=axis)
+                    for i in range(N_t)
+                ],
+                axis=1,
             )
         else:
-            disp = np.stack([((r_i[:-i if i else None] - r_i[i:]) ** 2)
-                             .sum(axis=-1).mean(axis=axis)
-                             for i in range(N_t)])
+            disp = np.stack(
+                [
+                    ((r_i[: -i if i else None] - r_i[i:]) ** 2)
+                    .sum(axis=-1)
+                    .mean(axis=axis)
+                    for i in range(N_t)
+                ]
+            )
     else:
         if axis:
             disp = np.stack(
                 [
                     np.einsum(
                         "bt...d,bt...d->bt...",
-                        r_i[:, :-i if i else None] - r_i[:, i:],
-                        r_j[:, :-i if i else None] - r_j[:, i:]
+                        r_i[:, : -i if i else None] - r_i[:, i:],
+                        r_j[:, : -i if i else None] - r_j[:, i:],
                     ).mean(axis=axis)
                     for i in range(N_t)
                 ],
-                axis=1
+                axis=1,
             )
         else:
-            disp = np.stack([
-                np.einsum(
-                    "t...d,t...d->t...",
-                    r_i[:-i if i else None] - r_i[i:],
-                    r_j[:-i if i else None] - r_j[i:]
-                ).mean(axis=axis)
-                for i in range(N_t)
-            ])
+            disp = np.stack(
+                [
+                    np.einsum(
+                        "t...d,t...d->t...",
+                        r_i[: -i if i else None] - r_i[i:],
+                        r_j[: -i if i else None] - r_j[i:],
+                    ).mean(axis=axis)
+                    for i in range(N_t)
+                ]
+            )
 
     # Average over all entities, if desired
     if ndim - axis == 3 and average:

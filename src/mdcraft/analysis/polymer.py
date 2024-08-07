@@ -29,8 +29,8 @@ from ..fit.exponential import stretched_exp
 if FOUND_OPENMM:
     from openmm import unit
 
-class _PolymerAnalysisBase(DynamicAnalysisBase):
 
+class _PolymerAnalysisBase(DynamicAnalysisBase):
     r"""
     An analysis base object for polymer systems.
 
@@ -104,11 +104,17 @@ class _PolymerAnalysisBase(DynamicAnalysisBase):
     """
 
     def __init__(
-            self, groups: Union[mda.AtomGroup, tuple[mda.AtomGroup]],
-            groupings: Union[str, tuple[str]] = "atoms",
-            n_chains: Union[int, tuple[int]] = None,
-            n_monomers: Union[int, tuple[int]] = None, *, unwrap: bool = False,
-            parallel: bool = False, verbose: bool = True, **kwargs) -> None:
+        self,
+        groups: Union[mda.AtomGroup, tuple[mda.AtomGroup]],
+        groupings: Union[str, tuple[str]] = "atoms",
+        n_chains: Union[int, tuple[int]] = None,
+        n_monomers: Union[int, tuple[int]] = None,
+        *,
+        unwrap: bool = False,
+        parallel: bool = False,
+        verbose: bool = True,
+        **kwargs,
+    ) -> None:
 
         self._groups = [groups] if isinstance(groups, mda.AtomGroup) else groups
         self.universe = self._groups[0].universe
@@ -122,19 +128,24 @@ class _PolymerAnalysisBase(DynamicAnalysisBase):
         self._n_groups = len(self._groups)
         if isinstance(groupings, str):
             if groupings not in GROUPINGS:
-                emsg = (f"Invalid grouping '{groupings}'. Valid values: "
-                        "'" + "', '".join(GROUPINGS) + "'.")
+                emsg = (
+                    f"Invalid grouping '{groupings}'. Valid values: "
+                    "'" + "', '".join(GROUPINGS) + "'."
+                )
                 raise ValueError(emsg)
             self._groupings = self._n_groups * [groupings]
         else:
             if self._n_groups != len(groupings):
-                emsg = ("The shape of 'groupings' is incompatible with "
-                        "that of 'groups'.")
+                emsg = (
+                    "The shape of 'groupings' is incompatible with " "that of 'groups'."
+                )
                 raise ValueError(emsg)
             for gr in groupings:
                 if gr not in GROUPINGS:
-                    emsg = (f"Invalid grouping '{gr}'. Valid "
-                            "values: '" + "', '".join(GROUPINGS) + "'.")
+                    emsg = (
+                        f"Invalid grouping '{gr}'. Valid "
+                        "values: '" + "', '".join(GROUPINGS) + "'."
+                    )
                     raise ValueError(emsg)
             self._groupings = groupings
 
@@ -152,23 +163,26 @@ class _PolymerAnalysisBase(DynamicAnalysisBase):
             elif self._n_groups == len(n_chains):
                 self._n_chains = n_chains
             else:
-                emsg = ("The shape of 'n_chains' is incompatible with "
-                        "that of 'groups'.")
+                emsg = (
+                    "The shape of 'n_chains' is incompatible with " "that of 'groups'."
+                )
                 raise ValueError(emsg)
             if isinstance(n_monomers, (int, np.integer)):
                 self._n_monomers = n_monomers * np.ones(n_monomers, dtype=int)
             elif self._n_groups == len(n_monomers):
                 self._n_monomers = n_monomers
             else:
-                emsg = ("The shape of 'n_monomers' is incompatible "
-                        "with that of 'groups'.")
+                emsg = (
+                    "The shape of 'n_monomers' is incompatible "
+                    "with that of 'groups'."
+                )
                 raise ValueError(emsg)
 
         self._unwrap = unwrap
         self._verbose = verbose
 
-class Gyradius(_PolymerAnalysisBase):
 
+class Gyradius(_PolymerAnalysisBase):
     """
     Serial and parallel implementations to calculate the radius of
     gyration :math:`R_\\mathrm{g}` of a polymer.
@@ -270,7 +284,7 @@ class Gyradius(_PolymerAnalysisBase):
         :math:`(N_\\mathrm{groups},\\,N_\\mathrm{frames},\\,3)`.
 
         **Reference unit**: :math:`\\mathrm{Å}`.
-    
+
     Example
     --------
     First, this analysis class must be imported:
@@ -286,31 +300,46 @@ class Gyradius(_PolymerAnalysisBase):
     >>> ag = universe.select_atoms("resname POLY")
 
     The gyradius class can then be built and run, remembering to specify the number of chains and monomers per chain:
-    
+
     >>> gyradius = Gyradius(ag, n_chains=10, n_monomers=100)
     >>> gyradius.run()
 
     The results can be obtained under the `results` attribute:
-    
+
     >>> gyradius.results.gyradii
-    
+
     """
 
     def __init__(
-            self, groups: Union[mda.AtomGroup, tuple[mda.AtomGroup]],
-            groupings: Union[str, tuple[str]] = "atoms",
-            n_chains: Union[int, tuple[int]] = None,
-            n_monomers: Union[int, tuple[int]] = None, *,
-            components: bool = False, unwrap: bool = False,
-            parallel: bool = False, verbose: bool = True, **kwargs):
+        self,
+        groups: Union[mda.AtomGroup, tuple[mda.AtomGroup]],
+        groupings: Union[str, tuple[str]] = "atoms",
+        n_chains: Union[int, tuple[int]] = None,
+        n_monomers: Union[int, tuple[int]] = None,
+        *,
+        components: bool = False,
+        unwrap: bool = False,
+        parallel: bool = False,
+        verbose: bool = True,
+        **kwargs,
+    ):
 
-        super().__init__(groups, groupings, n_chains, n_monomers,
-                         unwrap=unwrap, parallel=parallel, verbose=verbose,
-                         **kwargs)
+        super().__init__(
+            groups,
+            groupings,
+            n_chains,
+            n_monomers,
+            unwrap=unwrap,
+            parallel=parallel,
+            verbose=verbose,
+            **kwargs,
+        )
 
         if self.universe.dimensions is None and unwrap:
-            emsg = ("System dimensions were not found, but are "
-                    "required when 'unwrap=True'.")
+            emsg = (
+                "System dimensions were not found, but are "
+                "required when 'unwrap=True'."
+            )
             raise ValueError(emsg)
 
         self._Ns_p = self._n_chains * self._n_monomers
@@ -336,25 +365,35 @@ class Gyradius(_PolymerAnalysisBase):
             # Preallocate arrays to determine the number of periodic
             # boundary crossings for each entity
             self._positions_old = np.empty((self._N_p, 3))
-            for ag, gr, s, M, N in zip(self._groups, self._groupings,
-                                       self._slices, self._n_chains,
-                                       self._n_monomers):
+            for ag, gr, s, M, N in zip(
+                self._groups,
+                self._groupings,
+                self._slices,
+                self._n_chains,
+                self._n_monomers,
+            ):
                 if self._internal and gr == "residues":
                     ag.unwrap()
                     self._positions_old[s] = center_of_mass(ag, gr)
                 else:
                     positions = unwrap_edge(
                         positions=ag.positions,
-                        bonds=np.array([(i * N + j, i * N + j + 1)
-                                        for i in range(M) for j in range(N - 1)]),
+                        bonds=np.array(
+                            [
+                                (i * N + j, i * N + j + 1)
+                                for i in range(M)
+                                for j in range(N - 1)
+                            ]
+                        ),
                         dimensions=dimensions,
-                        masses=ag.masses
+                        masses=ag.masses,
                     )
                     self._positions_old[s] = (
-                        positions if gr == "atoms"
+                        positions
+                        if gr == "atoms"
                         else center_of_mass(
                             positions=positions.reshape(M, N, -1, 3),
-                            masses=ag.masses.reshape(M, N, -1)
+                            masses=ag.masses.reshape(M, N, -1),
                         )
                     )
             self._images = np.zeros((self._N_p, 3), dtype=int)
@@ -364,17 +403,22 @@ class Gyradius(_PolymerAnalysisBase):
             if self._parallel:
                 self._positions = np.empty((self.n_frames, self._N_p, 3))
                 for i, _ in enumerate(self._sliced_trajectory):
-                    for ag, gr, s, M, N in zip(self._groups, self._groupings,
-                                               self._slices, self._n_chains,
-                                               self._n_monomers):
+                    for ag, gr, s, M, N in zip(
+                        self._groups,
+                        self._groupings,
+                        self._slices,
+                        self._n_chains,
+                        self._n_monomers,
+                    ):
                         if self._internal and gr == "residues":
                             self._positions[i, s] = center_of_mass(ag, gr)
                         else:
                             self._positions[i, s] = (
-                                ag.positions if gr == "atoms"
+                                ag.positions
+                                if gr == "atoms"
                                 else center_of_mass(
                                     positions=ag.positions.reshape(M, N, -1, 3),
-                                    masses=ag.masses.reshape(M, N, -1)
+                                    masses=ag.masses.reshape(M, N, -1),
                                 )
                             )
 
@@ -385,7 +429,7 @@ class Gyradius(_PolymerAnalysisBase):
                         self._positions_old,
                         dimensions,
                         thresholds=dimensions / 2,
-                        images=self._images
+                        images=self._images,
                     )
 
         # Preallocate arrays to hold radii of gyration
@@ -401,19 +445,25 @@ class Gyradius(_PolymerAnalysisBase):
     def _single_frame(self) -> None:
 
         for i, (ag, gr, M, N, s) in enumerate(
-                zip(self._groups, self._groupings, self._n_chains,
-                    self._n_monomers, self._slices)
-            ):
+            zip(
+                self._groups,
+                self._groupings,
+                self._n_chains,
+                self._n_monomers,
+                self._slices,
+            )
+        ):
 
             # Store atom or center-of-mass positions in the current frame
             if self._internal and gr == "residues":
                 positions = center_of_mass(ag, gr)
             else:
                 positions = (
-                    ag.positions if gr == "atoms"
+                    ag.positions
+                    if gr == "atoms"
                     else center_of_mass(
                         positions=ag.positions.reshape(M, N, -1, 3),
-                        masses=ag.masses.reshape(M, N, -1)
+                        masses=ag.masses.reshape(M, N, -1),
                     )
                 )
 
@@ -426,20 +476,18 @@ class Gyradius(_PolymerAnalysisBase):
                     self._positions_old[s],
                     dimensions,
                     thresholds=dimensions / 2,
-                    images=self._images[s]
+                    images=self._images[s],
                 )
 
             # Compute the radii of gyration
-            self.results.gyradii[i, self._frame_index] \
-                = radius_of_gyration(
-                    grouping="segments",
-                    positions=positions.reshape((M, N, 3)),
-                    masses=ag.masses.reshape((M, N)),
-                    components=self._components
-                ).mean(axis=0)
+            self.results.gyradii[i, self._frame_index] = radius_of_gyration(
+                grouping="segments",
+                positions=positions.reshape((M, N, 3)),
+                masses=ag.masses.reshape((M, N)),
+                components=self._components,
+            ).mean(axis=0)
 
-    def _single_frame_parallel(
-            self, index: int) -> tuple[int, np.ndarray[float]]:
+    def _single_frame_parallel(self, index: int) -> tuple[int, np.ndarray[float]]:
 
         # Set current trajectory frame
         self._sliced_trajectory[index]
@@ -451,9 +499,14 @@ class Gyradius(_PolymerAnalysisBase):
         gyradii = np.empty(shape)
 
         for i, (ag, gr, M, N, s) in enumerate(
-                zip(self._groups, self._groupings, self._n_chains,
-                    self._n_monomers, self._slices)
-            ):
+            zip(
+                self._groups,
+                self._groupings,
+                self._n_chains,
+                self._n_monomers,
+                self._slices,
+            )
+        ):
 
             # Calculate or get entity positions
             if self._unwrap:
@@ -462,10 +515,11 @@ class Gyradius(_PolymerAnalysisBase):
                 positions = center_of_mass(ag, gr)
             else:
                 positions = (
-                    ag.positions if gr == "atoms"
+                    ag.positions
+                    if gr == "atoms"
                     else center_of_mass(
                         positions=ag.positions.reshape(M, N, -1, 3),
-                        masses=ag.masses.reshape(M, N, -1)
+                        masses=ag.masses.reshape(M, N, -1),
                     )
                 )
 
@@ -474,7 +528,7 @@ class Gyradius(_PolymerAnalysisBase):
                 grouping="segments",
                 positions=positions.reshape((M, N, 3)),
                 masses=ag.masses.reshape((M, N)),
-                components=self._components
+                components=self._components,
             ).mean(axis=0)
 
         return index, gyradii
@@ -485,8 +539,7 @@ class Gyradius(_PolymerAnalysisBase):
         # arrays that will not be reused
         if self._parallel:
             self._results = sorted(self._results)
-            self.results.gyradii \
-                = np.stack([r[1] for r in self._results], axis=1)
+            self.results.gyradii = np.stack([r[1] for r in self._results], axis=1)
 
             del self._results
             if self._unwrap:
@@ -494,13 +547,17 @@ class Gyradius(_PolymerAnalysisBase):
         if self._unwrap:
             del self._positions_old, self._images
 
+
 def correlation_fft(
-        x: np.ndarray[Union[float, complex]],
-        y: np.ndarray[Union[float, complex]] = None, /, axis: int = None, *,
-        average: bool = False, double: bool = False, vector: bool = False
-    ) -> np.ndarray[Union[float, complex]]:
-
-
+    x: np.ndarray[Union[float, complex]],
+    y: np.ndarray[Union[float, complex]] = None,
+    /,
+    axis: int = None,
+    *,
+    average: bool = False,
+    double: bool = False,
+    vector: bool = False,
+) -> np.ndarray[Union[float, complex]]:
     r"""
     Evaluates the autocorrelation functions (ACF)
     :math:`\mathrm{R_\mathbf{XX}}(\tau)` or cross-correlation functions
@@ -514,15 +571,21 @@ def correlation_fft(
        :func:`mdcraft.algorithm.correlation.correlation_fft`.
     """
 
-    return correlation.correlation_fft(x, y, axis, average=average,
-                                       double=double, vector=vector)
+    return correlation.correlation_fft(
+        x, y, axis, average=average, double=double, vector=vector
+    )
+
 
 def correlation_shift(
-        x: np.ndarray[Union[float, complex]],
-        y: np.ndarray[Union[float, complex]] = None, /, axis: int = None, *,
-        average: bool = False, double: bool = False, vector: bool = False
-    ) -> np.ndarray[Union[float, complex]]:
-
+    x: np.ndarray[Union[float, complex]],
+    y: np.ndarray[Union[float, complex]] = None,
+    /,
+    axis: int = None,
+    *,
+    average: bool = False,
+    double: bool = False,
+    vector: bool = False,
+) -> np.ndarray[Union[float, complex]]:
     r"""
     Evaluates the autocorrelation functions (ACF)
     :math:`\mathrm{R_\mathbf{XX}}(\tau)` or cross-correlation functions
@@ -536,12 +599,14 @@ def correlation_shift(
        :func:`mdcraft.algorithm.correlation.correlation_shift`.
     """
 
-    return correlation.correlation_shift(x, y, axis, average=average,
-                                         double=double, vector=vector)
+    return correlation.correlation_shift(
+        x, y, axis, average=average, double=double, vector=vector
+    )
+
 
 def calculate_relaxation_time(
-        times: np.ndarray[float], acf: np.ndarray[float]) -> float:
-
+    times: np.ndarray[float], acf: np.ndarray[float]
+) -> float:
     r"""
     Calculates the orientational relaxation time :math:`\tau_\mathrm{r}`
     of polymers using end-to-end vector autocorrelation function (ACF)
@@ -587,12 +652,13 @@ def calculate_relaxation_time(
         **Reference unit**: :math:`\mathrm{ps}`.
     """
 
-    tau_r, beta = optimize.curve_fit(stretched_exp, times / times[1], acf,
-                                     bounds=(0, np.inf))[0]
+    tau_r, beta = optimize.curve_fit(
+        stretched_exp, times / times[1], acf, bounds=(0, np.inf)
+    )[0]
     return tau_r * times[1] * special.gamma((beta + 1) / beta)
 
-class EndToEndVector(_PolymerAnalysisBase):
 
+class EndToEndVector(_PolymerAnalysisBase):
     """
     A serial implementation to calculate the end-to-end vector
     autocorrelation function (ACF) :math:`C_\\mathrm{ee}(t)` and
@@ -767,22 +833,38 @@ class EndToEndVector(_PolymerAnalysisBase):
     """
 
     def __init__(
-            self, groups: Union[mda.AtomGroup, tuple[mda.AtomGroup]],
-            groupings: Union[str, tuple[str]] = "atoms",
-            n_chains: Union[int, tuple[int]] = None,
-            n_monomers: Union[int, tuple[int]] = None, *, n_blocks: int = 1,
-            dt: Union[float, "unit.Quantity", Q_] = None, fft: bool = True,
-            unwrap: bool = False, verbose: bool = True, **kwargs) -> None:
+        self,
+        groups: Union[mda.AtomGroup, tuple[mda.AtomGroup]],
+        groupings: Union[str, tuple[str]] = "atoms",
+        n_chains: Union[int, tuple[int]] = None,
+        n_monomers: Union[int, tuple[int]] = None,
+        *,
+        n_blocks: int = 1,
+        dt: Union[float, "unit.Quantity", Q_] = None,
+        fft: bool = True,
+        unwrap: bool = False,
+        verbose: bool = True,
+        **kwargs,
+    ) -> None:
 
         # Disable parallel support for this analysis class
         if "parallel" in kwargs:
-            wmsg = ("The 'EndToEndVector' analysis class does not "
-                    "support multithreading.")
+            wmsg = (
+                "The 'EndToEndVector' analysis class does not "
+                "support multithreading."
+            )
             warnings.warn(wmsg)
             del kwargs["parallel"]
 
-        super().__init__(groups, groupings, n_chains, n_monomers,
-                         unwrap=unwrap, verbose=verbose, **kwargs)
+        super().__init__(
+            groups,
+            groupings,
+            n_chains,
+            n_monomers,
+            unwrap=unwrap,
+            verbose=verbose,
+            **kwargs,
+        )
 
         self._M = self._n_chains.sum()
         self._slices = []
@@ -801,8 +883,10 @@ class EndToEndVector(_PolymerAnalysisBase):
         if hasattr(self._sliced_trajectory, "frames"):
             dfs = np.diff(self._sliced_trajectory.frames)
             if (df := dfs[0]) <= 0 or not np.allclose(dfs, df):
-                emsg = ("The selected frames must be evenly spaced and "
-                        "proceed forward in time.")
+                emsg = (
+                    "The selected frames must be evenly spaced and "
+                    "proceed forward in time."
+                )
                 raise ValueError(emsg)
         elif (df := self.step) <= 0:
             raise ValueError("The analysis must proceed forward in time.")
@@ -812,12 +896,14 @@ class EndToEndVector(_PolymerAnalysisBase):
         self._n_frames_block = self.n_frames // self._n_blocks
         self._n_frames = self._n_blocks * self._n_frames_block
         if (extra_frames := self.n_frames - self._n_frames) > 0:
-            wmsg = (f"The trajectory is not divisible into {self._n_blocks:,} "
-                    f"blocks, so the last {extra_frames:,} frame(s) will be "
-                    "discarded. To maximize performance, set appropriate "
-                    "starting and ending frames in run() so that the number "
-                    "of frames to be analyzed is divisible by the number of "
-                    "blocks.")
+            wmsg = (
+                f"The trajectory is not divisible into {self._n_blocks:,} "
+                f"blocks, so the last {extra_frames:,} frame(s) will be "
+                "discarded. To maximize performance, set appropriate "
+                "starting and ending frames in run() so that the number "
+                "of frames to be analyzed is divisible by the number of "
+                "blocks."
+            )
             warnings.warn(wmsg)
 
         # Preallocate arrays to store end-to-end vectors
@@ -832,28 +918,40 @@ class EndToEndVector(_PolymerAnalysisBase):
             # boundary crossings for the first and last monomer in each
             # chain
             self._positions_end_old = np.empty((self._M, 2, 3))
-            for ag, gr, s, M, N in zip(self._groups, self._groupings,
-                                       self._slices, self._n_chains,
-                                       self._n_monomers):
+            for ag, gr, s, M, N in zip(
+                self._groups,
+                self._groupings,
+                self._slices,
+                self._n_chains,
+                self._n_monomers,
+            ):
                 if self._internal and gr == "residues":
                     ag.unwrap()
                     self._positions_end_old[s] = np.stack(
-                        [center_of_mass(s.residues[[0, -1]].atoms, "residues")
-                         for s in ag.segments]
+                        [
+                            center_of_mass(s.residues[[0, -1]].atoms, "residues")
+                            for s in ag.segments
+                        ]
                     )
                 else:
                     positions = unwrap_edge(
                         positions=ag.positions,
-                        bonds=np.array([(i * N + j, i * N + j + 1)
-                                        for i in range(M) for j in range(N - 1)]),
+                        bonds=np.array(
+                            [
+                                (i * N + j, i * N + j + 1)
+                                for i in range(M)
+                                for j in range(N - 1)
+                            ]
+                        ),
                         dimensions=self._dimensions,
-                        masses=ag.masses
+                        masses=ag.masses,
                     ).reshape(M, N, -1, 3)[:, (0, -1)]
                     self._positions_end_old[s] = (
-                        positions[:, :, 0] if gr == "atoms"
+                        positions[:, :, 0]
+                        if gr == "atoms"
                         else center_of_mass(
                             positions=positions,
-                            masses=ag.masses.reshape(M, N, -1)[:, (0, -1)]
+                            masses=ag.masses.reshape(M, N, -1)[:, (0, -1)],
                         )
                     )
             self._images = np.zeros((self._M, 2, 3), dtype=int)
@@ -872,9 +970,13 @@ class EndToEndVector(_PolymerAnalysisBase):
 
     def _single_frame(self) -> None:
 
-        for ag, gr, s, M, N in zip(self._groups, self._groupings,
-                                  self._slices, self._n_chains,
-                                  self._n_monomers):
+        for ag, gr, s, M, N in zip(
+            self._groups,
+            self._groupings,
+            self._slices,
+            self._n_chains,
+            self._n_monomers,
+        ):
 
             # Store ending monomer or center-of-mass positions in the
             # current frame
@@ -886,10 +988,11 @@ class EndToEndVector(_PolymerAnalysisBase):
             else:
                 positions_end = ag.positions.reshape(M, N, -1, 3)[:, (0, -1)]
                 positions_end = (
-                    positions_end[:, :, 0] if gr == "atoms"
+                    positions_end[:, :, 0]
+                    if gr == "atoms"
                     else center_of_mass(
                         positions=positions_end,
-                        masses=ag.masses.reshape(M, N, -1)[:, (0, -1)]
+                        masses=ag.masses.reshape(M, N, -1)[:, (0, -1)],
                     )
                 )
 
@@ -901,12 +1004,11 @@ class EndToEndVector(_PolymerAnalysisBase):
                     self._positions_end_old[s],
                     self._dimensions,
                     thresholds=self._thresholds,
-                    images=self._images[s]
+                    images=self._images[s],
                 )
 
             # Compute the end-to-end vectors
-            self._e2e[self._frame_index, s] \
-                = np.diff(positions_end, axis=1)[:, 0]
+            self._e2e[self._frame_index, s] = np.diff(positions_end, axis=1)[:, 0]
 
     def _conclude(self) -> None:
 
@@ -916,29 +1018,29 @@ class EndToEndVector(_PolymerAnalysisBase):
 
         # Compute end-to-end vector ACFs
         _acf = correlation_fft if self._fft else correlation_shift
-        for i, (s, M) in ProgressBar(enumerate(zip(self._slices,
-                                                   self._n_chains))):
+        for i, (s, M) in ProgressBar(enumerate(zip(self._slices, self._n_chains))):
             self.results.acf[i] = _acf(
-                (self._e2e[:, s]
-                 / np.linalg.norm(self._e2e[:, s], axis=-1, keepdims=True))
-                .reshape(self._n_blocks, -1, M, 3),
+                (
+                    self._e2e[:, s]
+                    / np.linalg.norm(self._e2e[:, s], axis=-1, keepdims=True)
+                ).reshape(self._n_blocks, -1, M, 3),
                 average=True,
-                vector=True
+                vector=True,
             )
 
     def calculate_relaxation_times(self) -> None:
-
         """
         Calculates the orientational relaxation times.
         """
 
         if not hasattr(self.results, "acf"):
-            emsg = ("Call EndToEndVector.run() before "
-                    "EndToEndVector.calculate_relaxation_times().")
+            emsg = (
+                "Call EndToEndVector.run() before "
+                "EndToEndVector.calculate_relaxation_times()."
+            )
             raise RuntimeError(emsg)
 
-        self.results.relaxation_times = np.empty((self._n_groups,
-                                                  self._n_blocks))
+        self.results.relaxation_times = np.empty((self._n_groups, self._n_blocks))
         self.results.units["relaxation_times"] = ureg.picosecond
 
         for i, block in enumerate(self.results.acf):
@@ -948,8 +1050,8 @@ class EndToEndVector(_PolymerAnalysisBase):
                     self.results.times[valid], acf[valid]
                 )
 
-class SingleChainStructureFactor(NumbaAnalysisBase, _PolymerAnalysisBase):
 
+class SingleChainStructureFactor(NumbaAnalysisBase, _PolymerAnalysisBase):
     """
     Serial and parallel implementations to calculate the single-chain
     structure factor :math:`S_\\mathrm{sc}(q)` of a homopolymer.
@@ -1162,31 +1264,49 @@ class SingleChainStructureFactor(NumbaAnalysisBase, _PolymerAnalysisBase):
     """
 
     def __init__(
-            self, groups: mda.AtomGroup, groupings: str = "atoms",
-            n_chains: int = None, n_monomers: int = None, *, form: str = "exp",
-            dimensions: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
-            n_points: int = 32, n_surfaces: int = None,
-            n_surface_points: int = 8,
-            q_max: Union[float, "unit.Quantity", Q_] = None,
-            wavevectors: np.ndarray[float] = None, sort: bool = True,
-            unique: bool = True, unwrap: bool = False, parallel: bool = False,
-            verbose: bool = True, **kwargs) -> None:
+        self,
+        groups: mda.AtomGroup,
+        groupings: str = "atoms",
+        n_chains: int = None,
+        n_monomers: int = None,
+        *,
+        form: str = "exp",
+        dimensions: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
+        n_points: int = 32,
+        n_surfaces: int = None,
+        n_surface_points: int = 8,
+        q_max: Union[float, "unit.Quantity", Q_] = None,
+        wavevectors: np.ndarray[float] = None,
+        sort: bool = True,
+        unique: bool = True,
+        unwrap: bool = False,
+        parallel: bool = False,
+        verbose: bool = True,
+        **kwargs,
+    ) -> None:
 
         # Specify 'parallel=False' to use the NumbaAnalysisBase.run method
         # instead of the ParallelAnalysisBase.run method
-        _PolymerAnalysisBase.__init__(groups, groupings, n_chains, n_monomers,
-                                      unwrap=unwrap, parallel=False,
-                                      verbose=verbose, **kwargs)
+        _PolymerAnalysisBase.__init__(
+            groups,
+            groupings,
+            n_chains,
+            n_monomers,
+            unwrap=unwrap,
+            parallel=False,
+            verbose=verbose,
+            **kwargs,
+        )
 
         if wavevectors is not None:
             self._wavevectors = wavevectors
         else:
-            dimensions = strip_unit(
-                dimensions or self.universe.dimensions[:3], "Å"
-            )[0]
+            dimensions = strip_unit(dimensions or self.universe.dimensions[:3], "Å")[0]
             if dimensions is None:
-                emsg = ("System dimensions were not found, but are "
-                        "required when 'wavevectors' is not specified.")
+                emsg = (
+                    "System dimensions were not found, but are "
+                    "required when 'wavevectors' is not specified."
+                )
                 raise ValueError(emsg)
             elif len(dimensions) != 3:
                 raise ValueError("'dimensions' must have length 3.")
@@ -1194,35 +1314,46 @@ class SingleChainStructureFactor(NumbaAnalysisBase, _PolymerAnalysisBase):
 
             if np.allclose(dimensions, dimensions[0]):
                 grid = 2 * np.pi * np.arange(n_points) / dimensions[0]
-                self._wavevectors = (np.stack(np.meshgrid(grid, grid, grid), -1)
-                                    .reshape(-1, 3))
+                self._wavevectors = np.stack(np.meshgrid(grid, grid, grid), -1).reshape(
+                    -1, 3
+                )
                 if n_surfaces:
-                    n_theta, n_phi = get_closest_factors(n_surface_points, 2,
-                                                        reverse=True)
-                    theta = np.linspace(np.pi / (2 * n_theta + 4),
-                                        np.pi / 2 - np.pi / (2 * n_theta + 4),
-                                        n_theta)
-                    phi = np.linspace(np.pi / (2 * n_phi + 4),
-                                    np.pi / 2 - np.pi / (2 * n_phi + 4),
-                                    n_phi)
-                    self._wavevectors = np.vstack((
-                        self._wavevectors,
-                        np.einsum(
-                            "o,tpd->otpd",
-                            grid[1:n_surfaces + 1],
-                            np.stack(
-                                (np.sin(theta) * np.cos(phi)[:, None],
-                                np.sin(theta) * np.sin(phi)[:, None],
-                                np.tile(np.cos(theta)[None, :], (n_phi, 1))),
-                                axis=-1
-                            )
-                        ).reshape((n_surfaces * n_surface_points, 3))
-                    ))
+                    n_theta, n_phi = get_closest_factors(
+                        n_surface_points, 2, reverse=True
+                    )
+                    theta = np.linspace(
+                        np.pi / (2 * n_theta + 4),
+                        np.pi / 2 - np.pi / (2 * n_theta + 4),
+                        n_theta,
+                    )
+                    phi = np.linspace(
+                        np.pi / (2 * n_phi + 4),
+                        np.pi / 2 - np.pi / (2 * n_phi + 4),
+                        n_phi,
+                    )
+                    self._wavevectors = np.vstack(
+                        (
+                            self._wavevectors,
+                            np.einsum(
+                                "o,tpd->otpd",
+                                grid[1 : n_surfaces + 1],
+                                np.stack(
+                                    (
+                                        np.sin(theta) * np.cos(phi)[:, None],
+                                        np.sin(theta) * np.sin(phi)[:, None],
+                                        np.tile(np.cos(theta)[None, :], (n_phi, 1)),
+                                    ),
+                                    axis=-1,
+                                ),
+                            ).reshape((n_surfaces * n_surface_points, 3)),
+                        )
+                    )
             else:
                 self._wavevectors = np.stack(
-                    np.meshgrid(*[2 * np.pi * np.arange(n_points) / L
-                                for L in dimensions]),
-                    axis=-1
+                    np.meshgrid(
+                        *[2 * np.pi * np.arange(n_points) / L for L in dimensions]
+                    ),
+                    axis=-1,
                 ).reshape(-1, 3)
         self._wavenumbers = np.linalg.norm(self._wavevectors, axis=1)
 
@@ -1233,17 +1364,18 @@ class SingleChainStructureFactor(NumbaAnalysisBase, _PolymerAnalysisBase):
             self._wavenumbers = self._wavenumbers[keep]
 
         self._njit = lambda s: numba.njit(s, fastmath=True, parallel=parallel)
-        self._delta_fourier_transform_sum = self._njit(
-            "c16[:](f8[:,:],f8[:,:])"
-        )(structure.delta_fourier_transform_sum)
-        self._ssf_trigonometric = self._njit(
-            "f8[:](f8[:,:])"
-        )(structure.ssf_trigonometric)
-        self._psf_trigonometric = self._njit(
-            "f8[:](f8[:,:],f8[:,:])"
-        )(structure.psf_trigonometric)
-        self._inner = (accelerated.numba_inner_parallel if parallel
-                       else accelerated.numba_inner)
+        self._delta_fourier_transform_sum = self._njit("c16[:](f8[:,:],f8[:,:])")(
+            structure.delta_fourier_transform_sum
+        )
+        self._ssf_trigonometric = self._njit("f8[:](f8[:,:])")(
+            structure.ssf_trigonometric
+        )
+        self._psf_trigonometric = self._njit("f8[:](f8[:,:],f8[:,:])")(
+            structure.psf_trigonometric
+        )
+        self._inner = (
+            accelerated.numba_inner_parallel if parallel else accelerated.numba_inner
+        )
 
         self._form = form
         self._sort = sort
@@ -1254,39 +1386,37 @@ class SingleChainStructureFactor(NumbaAnalysisBase, _PolymerAnalysisBase):
 
         # Preallocate array to store single-chain structure factors
         if not self._parallel:
-            self.results.scsf = np.zeros((self._n_groups,
-                                          len(self._wavenumbers)))
+            self.results.scsf = np.zeros((self._n_groups, len(self._wavenumbers)))
 
         # Determine the unique wavenumbers
         self.results.wavenumbers = np.unique(self._wavenumbers.round(11))
 
         # Store reference units
-        self.results.units = Hash({"results.wavenumbers": ureg.angstrom ** -1})
+        self.results.units = Hash({"results.wavenumbers": ureg.angstrom**-1})
 
     def _single_frame(self) -> None:
 
         for ig, (ag, gr, M, N) in enumerate(
-                zip(self._groups, self._groupings, self._n_chains,
-                    self._n_monomers)
-            ):
+            zip(self._groups, self._groupings, self._n_chains, self._n_monomers)
+        ):
 
             # Get entity positions in the current frame
             if self._internal and gr == "residues":
                 positions = center_of_mass(ag, gr)
             else:
                 positions = (
-                    ag.positions if gr == "atoms"
+                    ag.positions
+                    if gr == "atoms"
                     else center_of_mass(
                         positions=ag.positions.reshape(M, N, -1, 3),
-                        masses=ag.masses.reshape(M, N, -1)
+                        masses=ag.masses.reshape(M, N, -1),
                     )
                 )
 
             # Calculate single-chain structure factor contributions
             if self._form == "exp":
                 for chain in positions.reshape((M, N, 3)):
-                    rhos = self._delta_fourier_transform_sum(self._wavevectors,
-                                                             chain)
+                    rhos = self._delta_fourier_transform_sum(self._wavevectors, chain)
                     self.results.scsf[ig] += (rhos * rhos.conj()).real
             elif self._form == "trig":
                 for chain in positions.reshape((M, N, 3)):
@@ -1303,9 +1433,12 @@ class SingleChainStructureFactor(NumbaAnalysisBase, _PolymerAnalysisBase):
         # Combine values sharing the same wavenumber, if desired
         if self._unique:
             self.results.scsf = np.hstack(
-                [self.results.scsf[:, np.isclose(q, self._wavenumbers)]
-                 .mean(axis=1, keepdims=True)
-                for q in self.results.wavenumbers]
+                [
+                    self.results.scsf[:, np.isclose(q, self._wavenumbers)].mean(
+                        axis=1, keepdims=True
+                    )
+                    for q in self.results.wavenumbers
+                ]
             )
 
         # Sort the results by wavenumber, if desired

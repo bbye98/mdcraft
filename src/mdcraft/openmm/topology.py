@@ -16,8 +16,8 @@ from openmm import app
 
 from ..algorithm import topology as t
 
-def create_atoms(*args, **kwargs) -> Any:
 
+def create_atoms(*args, **kwargs) -> Any:
     """
     Generates initial particle positions.
 
@@ -27,11 +27,11 @@ def create_atoms(*args, **kwargs) -> Any:
 
     return t.create_atoms(*args, **kwargs)
 
-def _get_hierarchy_indices(
-        item: Union[app.Atom, app.topology.Bond, app.Residue, app.Chain],
-        bonds: dict[str, list]
-    ) -> tuple[set[int], set[int], set[int], set[int]]:
 
+def _get_hierarchy_indices(
+    item: Union[app.Atom, app.topology.Bond, app.Residue, app.Chain],
+    bonds: dict[str, list],
+) -> tuple[set[int], set[int], set[int], set[int]]:
     """
     Get unique indices of all topology items related to the one passed
     to this function.
@@ -71,18 +71,23 @@ def _get_hierarchy_indices(
     """
 
     if isinstance(item, app.Atom):
-        return {item.index}, set(), {item.residue.index}, \
-               {item.residue.chain.index}
+        return {item.index}, set(), {item.residue.index}, {item.residue.chain.index}
 
     elif isinstance(item, app.topology.Bond):
-        return {item.atom1.index, item.atom2.index}, {bonds.index(item)}, \
-               {item.atom1.residue.index, item.atom2.residue.index}, \
-               {item.atom1.residue.chain.index, item.atom2.residue.chain.index}
+        return (
+            {item.atom1.index, item.atom2.index},
+            {bonds.index(item)},
+            {item.atom1.residue.index, item.atom2.residue.index},
+            {item.atom1.residue.chain.index, item.atom2.residue.chain.index},
+        )
 
     elif isinstance(item, app.Residue):
-        return {a.index for a in item.atoms()}, \
-               {bonds.index(b) for b in item.bonds()}, {item.index}, \
-               {item.chain.index}
+        return (
+            {a.index for a in item.atoms()},
+            {bonds.index(b) for b in item.bonds()},
+            {item.index},
+            {item.chain.index},
+        )
 
     elif isinstance(item, app.Chain):
         atom_indices = set()
@@ -95,8 +100,8 @@ def _get_hierarchy_indices(
             residue_indices |= r
         return atom_indices, bond_indices, residue_indices, {item.index}
 
-def _is_topology_object(obj: Any):
 
+def _is_topology_object(obj: Any):
     """
     Check if the argument is a topology item.
 
@@ -112,12 +117,15 @@ def _is_topology_object(obj: Any):
     """
     return isinstance(obj, (app.Atom, app.topology.Bond, app.Residue, app.Chain))
 
-def get_subset(
-        topology: app.Topology, positions: np.ndarray[float], *,
-        delete: list[Any] = None, keep: list[Any] = None,
-        types: Union[str, Iterable[str]] = None
-    ) -> Union[app.Topology, np.ndarray[float]]:
 
+def get_subset(
+    topology: app.Topology,
+    positions: np.ndarray[float],
+    *,
+    delete: list[Any] = None,
+    keep: list[Any] = None,
+    types: Union[str, Iterable[str]] = None,
+) -> Union[app.Topology, np.ndarray[float]]:
     r"""
     Creates a topology subset and gets its corresponding particle positions.
 
@@ -178,10 +186,12 @@ def get_subset(
 
     # Check if both delete and keep arguments were provided
     if all(found):
-        emsg = ("Only specify topology items to either delete or keep. "
-                "When both types are specified, the atoms, bonds, "
-                "residues, and/or chains to be removed from the topology "
-                "become ambiguous.")
+        emsg = (
+            "Only specify topology items to either delete or keep. "
+            "When both types are specified, the atoms, bonds, "
+            "residues, and/or chains to be removed from the topology "
+            "become ambiguous."
+        )
         raise ValueError(emsg)
 
     # Return original topology and positions if no items are specified
@@ -190,11 +200,13 @@ def get_subset(
 
     # Ensure object type(s) are provided if not all items are topology
     # objects
-    elif types is None \
-            and not all(_is_topology_object(i) for i in
-                        next(a for a in [delete, keep] if a is not None)):
-        emsg = ("Object types must be specified for the topology items "
-                f"to be {'kept' if found[0] else 'deleted'}.")
+    elif types is None and not all(
+        _is_topology_object(i) for i in next(a for a in [delete, keep] if a is not None)
+    ):
+        emsg = (
+            "Object types must be specified for the topology items "
+            f"to be {'kept' if found[0] else 'deleted'}."
+        )
         raise ValueError(emsg)
 
     # Create a generator of types if a string is provided
@@ -214,15 +226,17 @@ def get_subset(
             "atom": list(topology.atoms()),
             "bond": list(topology.bonds()),
             "chain": list(topology.chains()),
-            "residue": list(topology.residues())
+            "residue": list(topology.residues()),
         }
 
         # If indices and types of objects to be deleted are specified,
         # create an iterable object of corresponding items from the
         # dictionary
         if found[0]:
-            delete = (i if _is_topology_object(i) else model[t][i]
-                    for i, t in zip(delete, types))
+            delete = (
+                i if _is_topology_object(i) else model[t][i]
+                for i, t in zip(delete, types)
+            )
         else:
 
             # Preallocate sets to store indices of atoms, residues, and

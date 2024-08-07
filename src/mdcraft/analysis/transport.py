@@ -27,10 +27,15 @@ from ..fit.polynomial import poly1
 if FOUND_OPENMM:
     from openmm import unit
 
-def msd_fft(
-        r_i: np.ndarray[float], r_j: np.ndarray[float] = None, /,
-        axis: int = None, *, average: bool = True) -> np.ndarray[float]:
 
+def msd_fft(
+    r_i: np.ndarray[float],
+    r_j: np.ndarray[float] = None,
+    /,
+    axis: int = None,
+    *,
+    average: bool = True,
+) -> np.ndarray[float]:
     r"""
     Evaluates the mean squared displacements (MSD) or the analogous
     cross displacements (CD) of positions :math:`\mathbf{r}_i(t)` and
@@ -44,10 +49,15 @@ def msd_fft(
 
     return correlation.msd_fft(r_i, r_j, axis, average=average)
 
-def msd_shift(
-        r_i: np.ndarray[float], r_j: np.ndarray[float] = None, /,
-        axis: int = None, *, average: bool = True) -> np.ndarray[float]:
 
+def msd_shift(
+    r_i: np.ndarray[float],
+    r_j: np.ndarray[float] = None,
+    /,
+    axis: int = None,
+    *,
+    average: bool = True,
+) -> np.ndarray[float]:
     r"""
     Evaluates the mean squared displacements (MSD) or the analogous
     cross displacements (CD) of positions :math:`\mathbf{r}_i(t)` and
@@ -61,15 +71,24 @@ def msd_shift(
 
     return correlation.msd_shift(r_i, r_j, axis, average=average)
 
-def calculate_transport_coefficients(
-        times: np.ndarray[float], msd_cross: np.ndarray[float],
-        msd_self: np.ndarray[float], Ns: np.ndarray[int],
-        dimensions: np.ndarray[float], kBT: float, start: int = 1,
-        stop: int = None, scale: str = "log", *, start_self: int = None,
-        stop_self: int = None, scale_self: str = None,
-        enforce_linear: bool = True, verbose: bool = False
-    ) -> tuple[np.ndarray[float], np.ndarray[float], np.ndarray[float]]:
 
+def calculate_transport_coefficients(
+    times: np.ndarray[float],
+    msd_cross: np.ndarray[float],
+    msd_self: np.ndarray[float],
+    Ns: np.ndarray[int],
+    dimensions: np.ndarray[float],
+    kBT: float,
+    start: int = 1,
+    stop: int = None,
+    scale: str = "log",
+    *,
+    start_self: int = None,
+    stop_self: int = None,
+    scale_self: str = None,
+    enforce_linear: bool = True,
+    verbose: bool = False,
+) -> tuple[np.ndarray[float], np.ndarray[float], np.ndarray[float]]:
     r"""
     Fits the mean squared displacements (MSDs) or the analogous cross
     displacements (CDs) to evaluate the self-diffusion coefficients
@@ -178,7 +197,7 @@ def calculate_transport_coefficients(
         **Reference unit**: :math:`\mathrm{mol/(kJ\cdotÅ\cdot ps)}`.
 
     L_ii_self : `numpy.ndarray`
-        Self-diffusion contribution to the single-species Onsager 
+        Self-diffusion contribution to the single-species Onsager
         transport coefficients :math:`L_{ii}^\mathrm{self}`.
 
         **Shape**: :math:`(N_\mathrm{blocks},\,N_\mathrm{groups})`.
@@ -205,8 +224,7 @@ def calculate_transport_coefficients(
     # self-diffusion coefficients
     ndim = msd_self.ndim
     if ndim not in {2, 3}:
-        emsg = ("The arrays containing the cross- and self-MSDs have "
-                "invalid shapes.")
+        emsg = "The arrays containing the cross- and self-MSDs have " "invalid shapes."
         raise ValueError(emsg)
     elif ndim == 2:
         n_groups = msd_self.shape[0]
@@ -241,8 +259,9 @@ def calculate_transport_coefficients(
                 elif scale == "log":
                     if enforce_linear:
                         L_ij[b, r_ud[i], c_ud[i]] = np.exp(
-                            optimize.curve_fit(lambda x, b: poly1(x, 1, b),
-                                               np.log(x), np.log(y))[0]
+                            optimize.curve_fit(
+                                lambda x, b: poly1(x, 1, b), np.log(x), np.log(y)
+                            )[0]
                         )
                     else:
                         fit = np.polyfit(np.log(x), np.log(y), 1)
@@ -274,8 +293,9 @@ def calculate_transport_coefficients(
                 elif scale_self == "log":
                     if enforce_linear:
                         D_i[b, i] = np.exp(
-                            optimize.curve_fit(lambda x, b: poly1(x, 1, b),
-                                               np.log(x), np.log(y))[0]
+                            optimize.curve_fit(
+                                lambda x, b: poly1(x, 1, b), np.log(x), np.log(y)
+                            )[0]
                         )
                     else:
                         fit = np.polyfit(np.log(x), np.log(y), 1)
@@ -291,10 +311,10 @@ def calculate_transport_coefficients(
 
     return L_ij, Ns * D_i / denom, D_i
 
-def calculate_conductivity(
-        L_ij: np.ndarray[float], charges: np.ndarray[float], *, 
-        reduced: bool = False) -> np.ndarray[float]:
 
+def calculate_conductivity(
+    L_ij: np.ndarray[float], charges: np.ndarray[float], *, reduced: bool = False
+) -> np.ndarray[float]:
     r"""
     Calculates the ionic conductivity :math:`\kappa` using the
     Onsager transport coefficients :math:`L_{ij}`.
@@ -310,7 +330,7 @@ def calculate_conductivity(
         **Reference unit**: :math:`\mathrm{mol/(kJ\cdotÅ\cdot ps)}`.
 
     charges : array-like
-        Charges :math:`q_i` shared by all atoms or centers of mass in 
+        Charges :math:`q_i` shared by all atoms or centers of mass in
         each species :math:`i`.
 
         **Shape**: :math:`(N_\mathrm{groups},)`.
@@ -334,16 +354,27 @@ def calculate_conductivity(
 
     kappas = np.einsum("bij,ij->b", L_ij, charges * charges[:, None])
     if not reduced:
-        kappas = (kappas * ureg.avogadro_constant
-                  * ureg.elementary_charge ** 2 * ureg.mole
-                  / ureg.coulomb ** 2).to("").magnitude
+        kappas = (
+            (
+                kappas
+                * ureg.avogadro_constant
+                * ureg.elementary_charge**2
+                * ureg.mole
+                / ureg.coulomb**2
+            )
+            .to("")
+            .magnitude
+        )
     return kappas
 
-def calculate_electrophoretic_mobilities(
-        L_ij: np.ndarray[float], charges: np.ndarray[float], 
-        rhos: np.ndarray[float], *, reduced: bool = False
-    ) -> np.ndarray[float]:
 
+def calculate_electrophoretic_mobilities(
+    L_ij: np.ndarray[float],
+    charges: np.ndarray[float],
+    rhos: np.ndarray[float],
+    *,
+    reduced: bool = False,
+) -> np.ndarray[float]:
     r"""
     Calculates the electrophoretic mobility :math:`\mu_i` of each
     species using the Onsager transport coefficients :math:`L_{ij}`.
@@ -359,7 +390,7 @@ def calculate_electrophoretic_mobilities(
         **Reference unit**: :math:`\mathrm{mol/(kJ\cdotÅ\cdot ps)}`.
 
     charges : array-like
-        Charges :math:`q_i` shared by all atoms or centers of mass in 
+        Charges :math:`q_i` shared by all atoms or centers of mass in
         each species :math:`i`.
 
         **Shape**: :math:`(N_\mathrm{groups},)`.
@@ -367,7 +398,7 @@ def calculate_electrophoretic_mobilities(
         **Reference unit**: :math:`\mathrm{e}`.
 
     rhos : array-like
-        Number densities :math:`n_i` of the atoms or centers of mass in 
+        Number densities :math:`n_i` of the atoms or centers of mass in
         each species :math:`i`.
 
         **Shape**: :math:`(N_\mathrm{groups},)`.
@@ -392,13 +423,23 @@ def calculate_electrophoretic_mobilities(
 
     mus = (L_ij * charges / rhos[:, None]).sum(axis=-1)
     if not reduced:
-        mus = (mus * ureg.avogadro_constant * ureg.elementary_charge
-               * ureg.mole / ureg.coulomb).to_reduced_units().magnitude
+        mus = (
+            (
+                mus
+                * ureg.avogadro_constant
+                * ureg.elementary_charge
+                * ureg.mole
+                / ureg.coulomb
+            )
+            .to_reduced_units()
+            .magnitude
+        )
     return mus
 
-def calculate_transference_numbers(
-        L_ij: np.ndarray[float], charges: np.ndarray[float]) -> np.ndarray[float]:
 
+def calculate_transference_numbers(
+    L_ij: np.ndarray[float], charges: np.ndarray[float]
+) -> np.ndarray[float]:
     r"""
     Calculates the transference number :math:`t_i` of each species using
     the Onsager transport coefficients :math:`L_{ij}`.
@@ -414,7 +455,7 @@ def calculate_transference_numbers(
         **Reference unit**: :math:`\mathrm{mol/(kJ\cdotÅ\cdot ps)}`.
 
     charges : array-like
-        Charges :math:`q_i` shared by all atoms or centers of mass in 
+        Charges :math:`q_i` shared by all atoms or centers of mass in
         each species :math:`i`.
 
         **Shape**: :math:`(N_\mathrm{groups},)`.
@@ -433,8 +474,8 @@ def calculate_transference_numbers(
     s = charges * (L_ij * charges).sum(axis=-1)
     return s / s.sum(axis=-1)
 
-class Onsager(SerialAnalysisBase):
 
+class Onsager(SerialAnalysisBase):
     """
     A serial implementation to calculate the Onsager transport
     coefficients and its related properties.
@@ -857,15 +898,24 @@ class Onsager(SerialAnalysisBase):
     """
 
     def __init__(
-            self, groups: Union[mda.AtomGroup, tuple[mda.AtomGroup]],
-            groupings: Union[str, tuple[str]] = "atoms",
-            temperature: Union[float, "unit.Quantity", Q_] = 300, *,
-            charges: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
-            dimensions: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
-            dt: Union[float, "unit.Quantity", Q_] = None,
-            n_blocks: int = 1, center: bool = False, center_atom: bool = False,
-            center_wrap: bool = False, fft: bool = True, reduced: bool = False,
-            unwrap: bool = False, verbose: bool = True, **kwargs) -> None:
+        self,
+        groups: Union[mda.AtomGroup, tuple[mda.AtomGroup]],
+        groupings: Union[str, tuple[str]] = "atoms",
+        temperature: Union[float, "unit.Quantity", Q_] = 300,
+        *,
+        charges: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
+        dimensions: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
+        dt: Union[float, "unit.Quantity", Q_] = None,
+        n_blocks: int = 1,
+        center: bool = False,
+        center_atom: bool = False,
+        center_wrap: bool = False,
+        fft: bool = True,
+        reduced: bool = False,
+        unwrap: bool = False,
+        verbose: bool = True,
+        **kwargs,
+    ) -> None:
 
         self._groups = [groups] if isinstance(groups, mda.AtomGroup) else groups
         self.universe = self._groups[0].universe
@@ -875,19 +925,24 @@ class Onsager(SerialAnalysisBase):
         self._n_groups = len(self._groups)
         if isinstance(groupings, str):
             if groupings not in GROUPINGS:
-                emsg = (f"Invalid grouping '{groupings}'. Valid values: "
-                        "'" + "', '".join(GROUPINGS) + "'.")
+                emsg = (
+                    f"Invalid grouping '{groupings}'. Valid values: "
+                    "'" + "', '".join(GROUPINGS) + "'."
+                )
                 raise ValueError(emsg)
             self._groupings = self._n_groups * [groupings]
         else:
             if self._n_groups != len(groupings):
-                emsg = ("The shape of 'groupings' is incompatible with "
-                        "that of 'groups'.")
+                emsg = (
+                    "The shape of 'groupings' is incompatible with " "that of 'groups'."
+                )
                 raise ValueError(emsg)
             for gr in groupings:
                 if gr not in GROUPINGS:
-                    emsg = (f"Invalid grouping '{gr}'. Valid values: "
-                            "'" + "', '".join(GROUPINGS) + "'.")
+                    emsg = (
+                        f"Invalid grouping '{gr}'. Valid values: "
+                        "'" + "', '".join(GROUPINGS) + "'."
+                    )
                     raise ValueError(emsg)
             self._groupings = groupings
 
@@ -897,8 +952,10 @@ class Onsager(SerialAnalysisBase):
         self._kBT = strip_unit(temperature, "K")[0]
         if not reduced:
             self._kBT = (
-                self._kBT * ureg.avogadro_constant 
-                * ureg.boltzmann_constant * ureg.kelvin
+                self._kBT
+                * ureg.avogadro_constant
+                * ureg.boltzmann_constant
+                * ureg.kelvin
             ).m_as(ureg.kilojoule / ureg.mole)
 
         if dimensions is not None:
@@ -922,8 +979,9 @@ class Onsager(SerialAnalysisBase):
 
         if charges is not None:
             if len(charges) != self._n_groups:
-                emsg = ("The shape of 'charges' is incompatible with "
-                        "that of 'groups'.")
+                emsg = (
+                    "The shape of 'charges' is incompatible with " "that of 'groups'."
+                )
                 raise ValueError(emsg)
             if reduced and not is_unitless(charges):
                 emsg = "'charges' cannot have units when 'reduced=True'."
@@ -935,9 +993,11 @@ class Onsager(SerialAnalysisBase):
                 qs = getattr(ag, gr).charges
                 if not np.allclose(qs, q := qs[0]):
                     self._charges = None
-                    wmsg = (f"Not all {gr} in `groups[{i}]` share the "
-                            "same charge. Charge information will not "
-                            "be stored.")
+                    wmsg = (
+                        f"Not all {gr} in `groups[{i}]` share the "
+                        "same charge. Charge information will not "
+                        "be stored."
+                    )
                     warnings.warn(wmsg)
                     break
                 self._charges[i] = q
@@ -945,10 +1005,9 @@ class Onsager(SerialAnalysisBase):
             self._charges = None
 
         self._Ns = np.fromiter(
-            (getattr(ag, f"n_{gr}")
-             for (ag, gr) in zip(self._groups, self._groupings)),
+            (getattr(ag, f"n_{gr}") for (ag, gr) in zip(self._groups, self._groupings)),
             dtype=int,
-            count=self._n_groups
+            count=self._n_groups,
         )
         self._N = self._Ns.sum()
         self._slices = []
@@ -958,12 +1017,17 @@ class Onsager(SerialAnalysisBase):
             _ += N
 
         if np.all(~np.isclose(self._dimensions, 0)):
-            self._rhos = np.fromiter(
-                (getattr(g, f"n_{gr}")
-                for g, gr in zip(self._groups, self._groupings)),
-                count=self._n_groups,
-                dtype=float
-            ) / self._dimensions.prod()
+            self._rhos = (
+                np.fromiter(
+                    (
+                        getattr(g, f"n_{gr}")
+                        for g, gr in zip(self._groups, self._groupings)
+                    ),
+                    count=self._n_groups,
+                    dtype=float,
+                )
+                / self._dimensions.prod()
+            )
 
         self._n_blocks = n_blocks
         self._center = center
@@ -980,23 +1044,27 @@ class Onsager(SerialAnalysisBase):
         if hasattr(self._sliced_trajectory, "frames"):
             dfs = np.diff(self._sliced_trajectory.frames)
             if (df := dfs[0]) <= 0 or not np.allclose(dfs, df):
-                emsg = ("The selected frames must be evenly spaced and "
-                        "proceed forward in time.")
+                emsg = (
+                    "The selected frames must be evenly spaced and "
+                    "proceed forward in time."
+                )
                 raise ValueError(emsg)
         elif (df := self.step) <= 0:
             raise ValueError("The analysis must proceed forward in time.")
-        
+
         # Determine number of frames used when the trajectory is split
         # into blocks
         self._n_frames_block = self.n_frames // self._n_blocks
         self._n_frames = self._n_blocks * self._n_frames_block
         if (extra_frames := self.n_frames - self._n_frames) > 0:
-            wmsg = (f"The trajectory is not divisible into {self._n_blocks:,} "
-                    f"blocks, so the last {extra_frames:,} frame(s) will be "
-                    "discarded. To maximize performance, set appropriate "
-                    "starting and ending frames in run() so that the number "
-                    "of frames to be analyzed is divisible by the number of "
-                    "blocks.")
+            wmsg = (
+                f"The trajectory is not divisible into {self._n_blocks:,} "
+                f"blocks, so the last {extra_frames:,} frame(s) will be "
+                "discarded. To maximize performance, set appropriate "
+                "starting and ending frames in run() so that the number "
+                "of frames to be analyzed is divisible by the number of "
+                "blocks."
+            )
             warnings.warn(wmsg)
 
         # Find all unique AtomGroup combinations
@@ -1006,12 +1074,10 @@ class Onsager(SerialAnalysisBase):
 
         # Preallocate arrays to store MSDs and CDs
         self.results.msd_cross = np.empty(
-            (len(self.results.pairs), self._n_blocks, self._n_frames_block),
-            dtype=float
+            (len(self.results.pairs), self._n_blocks, self._n_frames_block), dtype=float
         )
         self.results.msd_self = np.empty(
-            (self._n_groups, self._n_blocks, self._n_frames_block),
-            dtype=float
+            (self._n_groups, self._n_blocks, self._n_frames_block), dtype=float
         )
 
         # Preallocate arrays to store positions and number of boundary
@@ -1028,8 +1094,9 @@ class Onsager(SerialAnalysisBase):
 
         # Store reference units
         self.results.units = Hash({"times": ureg.picosecond})
-        self.results.units["msd_cross"] = \
-            self.results.units["msd_self"] = ureg.angstrom ** 2
+        self.results.units["msd_cross"] = self.results.units["msd_self"] = (
+            ureg.angstrom**2
+        )
 
     def _single_frame(self) -> None:
 
@@ -1037,19 +1104,19 @@ class Onsager(SerialAnalysisBase):
         positions = self.universe.atoms.positions.copy()
         if self._unwrap:
             unwrap(
-                positions, 
-                self._positions_old, 
+                positions,
+                self._positions_old,
                 self._dimensions,
-                thresholds=self._thresholds, 
-                images=self._images
+                thresholds=self._thresholds,
+                images=self._images,
             )
 
         for ag, gr, s in zip(self._groups, self._groupings, self._slices):
             self._positions[self._frame_index, s] = (
-                positions[ag.indices] if gr == "atoms"
+                positions[ag.indices]
+                if gr == "atoms"
                 else center_of_mass(
-                    ag, gr,
-                    images=self._images[ag.indices] if self._unwrap else None
+                    ag, gr, images=self._images[ag.indices] if self._unwrap else None
                 )
             )
 
@@ -1058,20 +1125,26 @@ class Onsager(SerialAnalysisBase):
             if self._center_atom:
                 if self._center_wrap:
                     wrap(positions, self._dimensions)
-                scom = center_of_mass(positions=positions,
-                                      masses=self.universe.atoms.masses)
+                scom = center_of_mass(
+                    positions=positions, masses=self.universe.atoms.masses
+                )
             else:
                 if self._center_wrap:
-                    positions = wrap(self._positions[self._frame_index],
-                                     self._dimensions, in_place=False)
+                    positions = wrap(
+                        self._positions[self._frame_index],
+                        self._dimensions,
+                        in_place=False,
+                    )
                 else:
                     positions = self._positions[self._frame_index]
                 scom = center_of_mass(
                     positions=positions,
                     masses=np.concatenate(
-                        [getattr(g, gr).masses
-                         for g, gr in zip(self._groups, self._groupings)]
-                    )
+                        [
+                            getattr(g, gr).masses
+                            for g, gr in zip(self._groups, self._groupings)
+                        ]
+                    ),
                 )
             self._positions[self._frame_index] -= scom
 
@@ -1079,38 +1152,42 @@ class Onsager(SerialAnalysisBase):
 
         # Truncate the positions array if there are extra frames
         if self.n_frames != self._n_frames:
-            self._positions = self._positions[:self._n_frames]
+            self._positions = self._positions[: self._n_frames]
 
         # Compute the MSDs (or their analogs) for each unique AtomGroup
         # pair
         msd = msd_fft if self._fft else msd_shift
         delete_dimensions = np.isclose(self._dimensions, 0)
-        for i, (i1, i2) in enumerate(ProgressBar(self.results.pairs,
-                                                 verbose=self._verbose)):
+        for i, (i1, i2) in enumerate(
+            ProgressBar(self.results.pairs, verbose=self._verbose)
+        ):
             if i1 == i2:
                 if self._Ns[i1]:
                     positions = self._positions[:, self._slices[i1]].reshape(
                         (self._n_blocks, -1, self._Ns[i1], 3)
                     )
                     positions[:, :, :, delete_dimensions] = 0
-                    self.results.msd_cross[i] = msd(positions.sum(axis=2),
-                                                    axis=1)
+                    self.results.msd_cross[i] = msd(positions.sum(axis=2), axis=1)
                     self.results.msd_self[i1] = (
-                        msd(positions, axis=1, average=False).sum(axis=-1) /
-                        self._Ns[i1]
+                        msd(positions, axis=1, average=False).sum(axis=-1)
+                        / self._Ns[i1]
                     )
                 else:
-                    self.results.msd_cross[i] \
-                        = self.results.msd_self[i1] = np.nan
+                    self.results.msd_cross[i] = self.results.msd_self[i1] = np.nan
             elif self._Ns[i1] and self._Ns[i2]:
-                positions1 = self._positions[:, self._slices[i1]].reshape(
-                    (self._n_blocks, -1, self._Ns[i1], 3)
-                ).sum(axis=2)
-                positions2 = self._positions[:, self._slices[i2]].reshape(
-                    (self._n_blocks, -1, self._Ns[i2], 3)
-                ).sum(axis=2)
-                positions1[:, :, delete_dimensions] \
-                    = positions2[:, :, delete_dimensions] = 0
+                positions1 = (
+                    self._positions[:, self._slices[i1]]
+                    .reshape((self._n_blocks, -1, self._Ns[i1], 3))
+                    .sum(axis=2)
+                )
+                positions2 = (
+                    self._positions[:, self._slices[i2]]
+                    .reshape((self._n_blocks, -1, self._Ns[i2], 3))
+                    .sum(axis=2)
+                )
+                positions1[:, :, delete_dimensions] = positions2[
+                    :, :, delete_dimensions
+                ] = 0
                 self.results.msd_cross[i] = msd(positions1, positions2, axis=1)
             else:
                 self.results.msd_cross[i] = np.nan
@@ -1121,10 +1198,16 @@ class Onsager(SerialAnalysisBase):
         self.results.msd_self /= D
 
     def calculate_transport_coefficients(
-            self, start: int = 1, stop: int = None, scale: str = "log", *,
-            start_self: int = None, stop_self: int = None,
-            scale_self: str = None, enforce_linear: bool = True) -> None:
-
+        self,
+        start: int = 1,
+        stop: int = None,
+        scale: str = "log",
+        *,
+        start_self: int = None,
+        stop_self: int = None,
+        scale_self: str = None,
+        enforce_linear: bool = True,
+    ) -> None:
         r"""
         Fits the mean squared displacements (MSDs) (or analogs) to
         evaluate the Onsager transport coefficients :math:`L_{ij}` and
@@ -1182,12 +1265,14 @@ class Onsager(SerialAnalysisBase):
         """
 
         if not hasattr(self.results, "msd_cross"):
-            emsg = ("Call Onsager.run() before "
-                    "Onsager.calculate_transport_coefficients().")
+            emsg = (
+                "Call Onsager.run() before "
+                "Onsager.calculate_transport_coefficients()."
+            )
             raise RuntimeError(emsg)
 
-        self.results.L_ij, self.results.L_ii_self, self.results.D_i \
-            = calculate_transport_coefficients(
+        self.results.L_ij, self.results.L_ii_self, self.results.D_i = (
+            calculate_transport_coefficients(
                 self.results.times,
                 self.results.msd_cross,
                 self.results.msd_self,
@@ -1201,20 +1286,19 @@ class Onsager(SerialAnalysisBase):
                 stop_self=stop_self,
                 scale_self=scale_self,
                 enforce_linear=enforce_linear,
-                verbose=self._verbose
+                verbose=self._verbose,
             )
+        )
 
         # Store reference units
-        self.results.units["D_i"] = ureg.angstrom ** 2 / ureg.picosecond
-        self.results.units["L_ii_self"] = self.results.units["L_ij"] \
-            = 1 / (ureg.kilojoule * ureg.angstrom * ureg.picosecond
-                   / ureg.mole)
+        self.results.units["D_i"] = ureg.angstrom**2 / ureg.picosecond
+        self.results.units["L_ii_self"] = self.results.units["L_ij"] = 1 / (
+            ureg.kilojoule * ureg.angstrom * ureg.picosecond / ureg.mole
+        )
 
     def calculate_conductivity(
-            self, *,
-            charges: Union[np.ndarray[float], "unit.Quantity", Q_] = None
-        ) -> None:
-
+        self, *, charges: Union[np.ndarray[float], "unit.Quantity", Q_] = None
+    ) -> None:
         """
         Calculates the ionic conductivity :math:`\\kappa` using the
         Onsager transport coefficients :math:`L_{ij}`.
@@ -1234,14 +1318,17 @@ class Onsager(SerialAnalysisBase):
         """
 
         if not hasattr(self.results, "L_ij"):
-            emsg = ("Call Onsager.calculate_transport_coefficients() before "
-                    "Onsager.calculate_conductivity().")
+            emsg = (
+                "Call Onsager.calculate_transport_coefficients() before "
+                "Onsager.calculate_conductivity()."
+            )
             raise RuntimeError(emsg)
 
         if charges is not None:
             if len(charges) != self._n_groups:
-                emsg = ("The shape of 'charges' is incompatible with "
-                        "that of 'groups'.")
+                emsg = (
+                    "The shape of 'charges' is incompatible with " "that of 'groups'."
+                )
                 raise ValueError(emsg)
             if self._reduced and not is_unitless(charges):
                 emsg = "'charges' cannot have units when 'reduced=True'."
@@ -1251,21 +1338,19 @@ class Onsager(SerialAnalysisBase):
             raise ValueError("No charge number information available.")
 
         self.results.conductivity = calculate_conductivity(
-            self.results.L_ij, 
-            self._charges,
-            reduced=self._reduced
+            self.results.L_ij, self._charges, reduced=self._reduced
         )
 
-        self.results.units["conductivity"] = \
-            ureg.coulomb ** 2 / (ureg.kilojoule * ureg.angstrom
-                                 * ureg.picosecond)
+        self.results.units["conductivity"] = ureg.coulomb**2 / (
+            ureg.kilojoule * ureg.angstrom * ureg.picosecond
+        )
 
     def calculate_electrophoretic_mobilities(
-            self, *,
-            charges: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
-            rhos: Union[np.ndarray[float], "unit.Quantity", Q_] = None
-        ) -> None:
-
+        self,
+        *,
+        charges: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
+        rhos: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
+    ) -> None:
         """
         Calculates the electrophoretic mobility :math:`\\mu_i` of each
         species using the Onsager transport coefficients :math:`L_{ij}`.
@@ -1293,14 +1378,17 @@ class Onsager(SerialAnalysisBase):
         """
 
         if not hasattr(self.results, "L_ij"):
-            emsg = ("Call Onsager.calculate_transport_coefficients() before "
-                    "Onsager.calculate_electrophoretic_mobilities().")
+            emsg = (
+                "Call Onsager.calculate_transport_coefficients() before "
+                "Onsager.calculate_electrophoretic_mobilities()."
+            )
             raise RuntimeError(emsg)
 
         if charges is not None:
             if len(charges) != self._n_groups:
-                emsg = ("The shape of 'charges' is incompatible with "
-                        "that of 'groups'.")
+                emsg = (
+                    "The shape of 'charges' is incompatible with " "that of 'groups'."
+                )
                 raise ValueError(emsg)
             if self._reduced and not is_unitless(charges):
                 emsg = "'charges' cannot have units when 'reduced=True'."
@@ -1311,8 +1399,7 @@ class Onsager(SerialAnalysisBase):
 
         if rhos is not None:
             if len(rhos) != self._n_groups:
-                emsg = ("The shape of 'rhos' is incompatible with "
-                        "that of 'groups'.")
+                emsg = "The shape of 'rhos' is incompatible with " "that of 'groups'."
                 raise ValueError(emsg)
             if self._reduced and not is_unitless(rhos):
                 emsg = "'rhos' cannot have units when 'reduced=True'."
@@ -1321,23 +1408,17 @@ class Onsager(SerialAnalysisBase):
         if self._rhos is None:
             raise ValueError("No number density information available.")
 
-        self.results.electrophoretic_mobilities \
-            = calculate_electrophoretic_mobilities(
-                self.results.L_ij, 
-                self._charges, 
-                self._rhos,
-                reduced=self._reduced
-            )
+        self.results.electrophoretic_mobilities = calculate_electrophoretic_mobilities(
+            self.results.L_ij, self._charges, self._rhos, reduced=self._reduced
+        )
 
-        self.results.units["electrophoretic_mobilities"] = \
-            ureg.angstrom ** 2 * ureg.coulomb / (ureg.kilojoule
-                                                 * ureg.picosecond)
+        self.results.units["electrophoretic_mobilities"] = (
+            ureg.angstrom**2 * ureg.coulomb / (ureg.kilojoule * ureg.picosecond)
+        )
 
     def calculate_transference_numbers(
-            self, *,
-            charges: Union[np.ndarray[float], "unit.Quantity", Q_] = None
-        ) -> None:
-
+        self, *, charges: Union[np.ndarray[float], "unit.Quantity", Q_] = None
+    ) -> None:
         """
         Calculates the transference number of each species using the
         Onsager transport coefficients :math:`L_{ij}`.
@@ -1357,14 +1438,17 @@ class Onsager(SerialAnalysisBase):
         """
 
         if not hasattr(self.results, "L_ij"):
-            emsg = ("Call Onsager.calculate_transport_coefficients() before "
-                    "Onsager.calculate_transference_numbers().")
+            emsg = (
+                "Call Onsager.calculate_transport_coefficients() before "
+                "Onsager.calculate_transference_numbers()."
+            )
             raise RuntimeError(emsg)
 
         if charges is not None:
             if len(charges) != self._n_groups:
-                emsg = ("The shape of 'charges' is incompatible with "
-                        "that of 'groups'.")
+                emsg = (
+                    "The shape of 'charges' is incompatible with " "that of 'groups'."
+                )
                 raise ValueError(emsg)
             if self._reduced and not is_unitless(charges):
                 emsg = "'charges' cannot have units when 'reduced=True'."
@@ -1374,6 +1458,5 @@ class Onsager(SerialAnalysisBase):
             raise ValueError("No charge number information available.")
 
         self.results.transference_numbers = calculate_transference_numbers(
-            self.results.L_ij, 
-            self._charges
+            self.results.L_ij, self._charges
         )

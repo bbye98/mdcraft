@@ -6,6 +6,7 @@ numba
 numpy
 pandas
 pint
+psutil
 scipy
 sympy
 

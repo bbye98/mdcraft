@@ -10,5 +10,4 @@ with :func:`scipy.optimize.curve_fit`.
 
 from . import distribution, exponential, fourier, gaussian, polynomial, power
 
-__all__ = ["distribution", "exponential", "fourier", "gaussian", "polynomial",
-           "power"]
+__all__ = ["distribution", "exponential", "fourier", "gaussian", "polynomial", "power"]

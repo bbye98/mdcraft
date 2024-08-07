@@ -30,12 +30,18 @@ from ..algorithm.utility import get_closest_factors
 if FOUND_OPENMM:
     from openmm import unit
 
-def radial_histogram(
-        positions_a: np.ndarray[float], positions_b: np.ndarray[float], /,
-        n_bins: int, range_: np.ndarray[float], dimensions: np.ndarray[float],
-        bin_edges: np.ndarray[float] = None, *, exclusion: tuple[int] = None
-    ) -> np.ndarray[float]:
 
+def radial_histogram(
+    positions_a: np.ndarray[float],
+    positions_b: np.ndarray[float],
+    /,
+    n_bins: int,
+    range_: np.ndarray[float],
+    dimensions: np.ndarray[float],
+    bin_edges: np.ndarray[float] = None,
+    *,
+    exclusion: tuple[int] = None,
+) -> np.ndarray[float]:
     r"""
     Computes the radial histogram of distances between particles of
     the same species :math:`\alpha` or two different species
@@ -105,28 +111,29 @@ def radial_histogram(
         positions_b,
         range_[1],
         range_[0] - np.finfo(np.float64).eps,
-        box=dimensions
+        box=dimensions,
     )
 
     # Exclude atom pairs with the same atoms or atoms from the
     # same residue
     if exclusion is not None:
-        distances = distances[np.where(pairs[:, 0] // exclusion[0]
-                                       != pairs[:, 1] // exclusion[1])[0]]
+        distances = distances[
+            np.where(pairs[:, 0] // exclusion[0] != pairs[:, 1] // exclusion[1])[0]
+        ]
 
     return accelerated.numba_histogram(
         distances,
         n_bins,
-        bin_edges or accelerated.numba_histogram_bin_edges(
-            np.asarray(range_, dtype=float),
-            n_bins
-        )
+        bin_edges
+        or accelerated.numba_histogram_bin_edges(
+            np.asarray(range_, dtype=float), n_bins
+        ),
     )
 
-def zeroth_order_hankel_transform(
-        r: np.ndarray[float], f: np.ndarray[float], q: np.ndarray[float]
-    ) -> np.ndarray[float]:
 
+def zeroth_order_hankel_transform(
+    r: np.ndarray[float], f: np.ndarray[float], q: np.ndarray[float]
+) -> np.ndarray[float]:
     r"""
     Computes the Hankel transform :math:`F_0(q)` of discrete data
     :math:`f(r)` using the zeroth-order Bessel function :math:`J_0`.
@@ -165,10 +172,10 @@ def zeroth_order_hankel_transform(
         ht[q == 0] = 2 * np.pi * simpson(f * r, r)
     return ht
 
-def radial_fourier_transform(
-        r: np.ndarray[float], f: np.ndarray[float], q: np.ndarray[float]
-    ) -> np.ndarray[float]:
 
+def radial_fourier_transform(
+    r: np.ndarray[float], f: np.ndarray[float], q: np.ndarray[float]
+) -> np.ndarray[float]:
     r"""
     Computes the radial Fourier transform :math:`\hat{f}(q)` of
     discrete data :math:`f(r)`.
@@ -204,14 +211,19 @@ def radial_fourier_transform(
 
     rft = 4 * np.pi * np.divide(simpson(f * r * np.sin(np.outer(q, r)), x=r), q)
     if 0 in q:
-        rft[q == 0] = 4 * np.pi * simpson(f * r ** 2, x=r)
+        rft[q == 0] = 4 * np.pi * simpson(f * r**2, x=r)
     return rft
 
-def calculate_coordination_numbers(
-        bins: np.ndarray[float], rdf: np.ndarray[float], rho: float, *,
-        n_coord_nums: int = 2, n_dims: int = 3, threshold: float = 0.1
-    ) -> np.ndarray[float]:
 
+def calculate_coordination_numbers(
+    bins: np.ndarray[float],
+    rdf: np.ndarray[float],
+    rho: float,
+    *,
+    n_coord_nums: int = 2,
+    n_dims: int = 3,
+    threshold: float = 0.1,
+) -> np.ndarray[float]:
     r"""
     Calculates coordination numbers :math:`n_k` from a radial
     distribution function :math:`g_{\alpha\beta}(r)`.
@@ -277,10 +289,11 @@ def calculate_coordination_numbers(
     if n_dims not in {2, 3}:
         raise ValueError("Invalid number of dimensions.")
 
-    def f(r: np.ndarray[float], rdf: np.ndarray[float], rho: float, start: int,
-          stop: int) -> np.ndarray[float]:
+    def f(
+        r: np.ndarray[float], rdf: np.ndarray[float], rho: float, start: int, stop: int
+    ) -> np.ndarray[float]:
         if n_dims == 3:
-            return 4 * np.pi * rho * simpson(r ** 2 * rdf[start:stop], r)
+            return 4 * np.pi * rho * simpson(r**2 * rdf[start:stop], r)
         else:
             return 2 * np.pi * rho * simpson(r * rdf[start:stop], r)
 
@@ -288,30 +301,39 @@ def calculate_coordination_numbers(
     coord_nums[:] = np.nan
 
     # Find indices of minima in the radial distribution function
-    i_min, = argrelextrema(rdf, np.less)
+    (i_min,) = argrelextrema(rdf, np.less)
     i_min = i_min[rdf[i_min] >= threshold]
     n_min = len(i_min)
 
     # Integrate the radial distribution function to get the coordination
     # number(s)
     if n_min:
-        r = bins[:i_min[0] + 1]
+        r = bins[: i_min[0] + 1]
         coord_nums[0] = f(r, rdf, rho, None, i_min[0] + 1)
         for i in range(min(n_coord_nums, n_min) - 1):
-            r = bins[i_min[i]:i_min[i + 1] + 1]
+            r = bins[i_min[i] : i_min[i + 1] + 1]
             coord_nums[i + 1] = f(r, rdf, rho, i_min[i], i_min[i + 1] + 1)
     else:
         warnings.warn("No local minima found.")
 
     return coord_nums
 
-def calculate_structure_factor(
-        r: np.ndarray[float], g: np.ndarray[float], equal: bool, rho: float,
-        x_a: float = 1, x_b: float = None, q: np.ndarray[float] = None, *,
-        q_lower: float = None, q_upper: float = None, n_q: int = 1_000,
-        n_dims: int = 3, formalism: str = "FZ"
-    ) -> tuple[np.ndarray[float], np.ndarray[float]]:
 
+def calculate_structure_factor(
+    r: np.ndarray[float],
+    g: np.ndarray[float],
+    equal: bool,
+    rho: float,
+    x_a: float = 1,
+    x_b: float = None,
+    q: np.ndarray[float] = None,
+    *,
+    q_lower: float = None,
+    q_upper: float = None,
+    n_q: int = 1_000,
+    n_dims: int = 3,
+    formalism: str = "FZ",
+) -> tuple[np.ndarray[float], np.ndarray[float]]:
     r"""
     Calculates the static or partial structure factor
     :math:`S_{\alpha\beta}(q)` using the radial histogram bins :math:`r`
@@ -444,9 +466,9 @@ def calculate_structure_factor(
             q_lower = 2 * np.pi / r[-1]
         if q_upper is None:
             q_upper = 2 * np.pi / r[0]
-        q = np.linspace(q_lower, q_upper,
-                        int((q_upper - q_lower) / q_lower)
-                        if n_q is None else n_q)
+        q = np.linspace(
+            q_lower, q_upper, int((q_upper - q_lower) / q_lower) if n_q is None else n_q
+        )
 
     if n_dims == 3:
         _transform = radial_fourier_transform
@@ -465,8 +487,8 @@ def calculate_structure_factor(
             return q, 1 + x_a * x_b * rho_sft
     raise ValueError("Invalid formalism.")
 
-class RadialDistributionFunction(DynamicAnalysisBase):
 
+class RadialDistributionFunction(DynamicAnalysisBase):
     """
     Serial and parallel implementations to calculate the radial
     distribution function (RDF) :math:`g_{\\alpha\\beta}(r)` between
@@ -763,26 +785,38 @@ class RadialDistributionFunction(DynamicAnalysisBase):
     """
 
     def __init__(
-            self, group_a: mda.AtomGroup, group_b: mda.AtomGroup = None,
-            n_bins: int = 201, range_: tuple[float] = (0.0, 15.0), *,
-            exclusion: tuple[int] = None,
-            groupings: Union[str, tuple[str]] = "atoms",
-            drop_axis: Union[int, str] = None, norm: str = "rdf",
-            n_batches: int = None, reduced: bool = False,
-            parallel: bool = False, verbose: bool = True, **kwargs) -> None:
+        self,
+        group_a: mda.AtomGroup,
+        group_b: mda.AtomGroup = None,
+        n_bins: int = 201,
+        range_: tuple[float] = (0.0, 15.0),
+        *,
+        exclusion: tuple[int] = None,
+        groupings: Union[str, tuple[str]] = "atoms",
+        drop_axis: Union[int, str] = None,
+        norm: str = "rdf",
+        n_batches: int = None,
+        reduced: bool = False,
+        parallel: bool = False,
+        verbose: bool = True,
+        **kwargs,
+    ) -> None:
 
         self._groups = (group_a, group_a if group_b is None else group_b)
         self.universe = self._groups[0].universe
         if self.universe.dimensions is None:
-            raise ValueError("Trajectory does not contain system "
-                             "dimension information.")
+            raise ValueError(
+                "Trajectory does not contain system " "dimension information."
+            )
         super().__init__(self.universe.trajectory, parallel, verbose, **kwargs)
 
         GROUPINGS = {"atoms", "residues", "segments"}
         if isinstance(groupings, str):
             if groupings not in GROUPINGS:
-                emsg = (f"Invalid grouping '{groupings}'. Valid values: "
-                        "'" + "', '".join(GROUPINGS) + "'.")
+                emsg = (
+                    f"Invalid grouping '{groupings}'. Valid values: "
+                    "'" + "', '".join(GROUPINGS) + "'."
+                )
                 raise ValueError(emsg)
             self._groupings = 2 * [groupings]
         else:
@@ -791,13 +825,16 @@ class RadialDistributionFunction(DynamicAnalysisBase):
                 raise ValueError(emsg)
             for gr in groupings:
                 if gr not in GROUPINGS:
-                    emsg = (f"Invalid grouping '{gr}'. Valid values: "
-                            "'" + "', '".join(GROUPINGS) + "'.")
+                    emsg = (
+                        f"Invalid grouping '{gr}'. Valid values: "
+                        "'" + "', '".join(GROUPINGS) + "'."
+                    )
                     raise ValueError(emsg)
             self._groupings = groupings
 
-        self._drop_axis = (ord(drop_axis) - 120 if isinstance(drop_axis, str)
-                           else drop_axis)
+        self._drop_axis = (
+            ord(drop_axis) - 120 if isinstance(drop_axis, str) else drop_axis
+        )
         if self._drop_axis not in {0, 1, 2, None}:
             raise ValueError("Invalid axis in 'drop_axis'.")
 
@@ -817,17 +854,16 @@ class RadialDistributionFunction(DynamicAnalysisBase):
 
         # Preallocate arrays to store results
         self.results.bin_edges = accelerated.numba_histogram_bin_edges(
-            np.asarray(self._range, dtype=float),
-            self._n_bins
+            np.asarray(self._range, dtype=float), self._n_bins
         )
-        self.results.bins = (self.results.bin_edges[:-1]
-                             + self.results.bin_edges[1:]) / 2
+        self.results.bins = (
+            self.results.bin_edges[:-1] + self.results.bin_edges[1:]
+        ) / 2
         if not self._parallel:
             self.results.counts = np.zeros(self._n_bins, dtype=int)
 
         # Store reference units
-        self.results.units = Hash({"bins": ureg.angstrom,
-                                   "edges": ureg.angstrom})
+        self.results.units = Hash({"bins": ureg.angstrom, "edges": ureg.angstrom})
 
     def _single_frame(self) -> None:
 
@@ -835,8 +871,10 @@ class RadialDistributionFunction(DynamicAnalysisBase):
         dimensions = self._ts.dimensions
 
         # Get positions or centers of mass of entities in the groups
-        positions = [ag.positions if gr == "atoms" else center_of_mass(ag, gr)
-                     for ag, gr in zip(self._groups, self._groupings)]
+        positions = [
+            ag.positions if gr == "atoms" else center_of_mass(ag, gr)
+            for ag, gr in zip(self._groups, self._groupings)
+        ]
 
         # Add system volume or area analyzed in current frame
         if self._drop_axis is None:
@@ -846,23 +884,23 @@ class RadialDistributionFunction(DynamicAnalysisBase):
 
             # Apply corrections to avoid including periodic images in
             # the dimension to exclude
-            positions[0][:, self._drop_axis] \
-                = positions[1][:, self._drop_axis] = 0
+            positions[0][:, self._drop_axis] = positions[1][:, self._drop_axis] = 0
             dimensions[self._drop_axis] = dimensions[:3].max()
 
             if self._norm == "rdf":
-                self._area_or_volume += np.delete(dimensions[:3],
-                                                  self._drop_axis).prod()
+                self._area_or_volume += np.delete(
+                    dimensions[:3], self._drop_axis
+                ).prod()
 
         # Tally counts in each pair separation distance bin
         if self._n_batches:
             edges = np.array_split(self.results.bin_edges, self._n_batches)
             ranges_indices = {
-                e: np.where((self.results.bins > e[0])
-                            & (self.results.bins < e[1]))[0]
-                for e in [(self._range[0], edges[0][-1]),
-                          *((a[-1], b[-1])
-                            for a, b in zip(edges[:-1], edges[1:]))]
+                e: np.where((self.results.bins > e[0]) & (self.results.bins < e[1]))[0]
+                for e in [
+                    (self._range[0], edges[0][-1]),
+                    *((a[-1], b[-1]) for a, b in zip(edges[:-1], edges[1:])),
+                ]
             }
             for r, i in ranges_indices.items():
                 self.results.counts[i] += radial_histogram(
@@ -870,7 +908,7 @@ class RadialDistributionFunction(DynamicAnalysisBase):
                     n_bins=i.shape[0],
                     range_=r,
                     dimensions=dimensions,
-                    exclusion=self._exclusion
+                    exclusion=self._exclusion,
                 )
         else:
             self.results.counts += radial_histogram(
@@ -878,7 +916,7 @@ class RadialDistributionFunction(DynamicAnalysisBase):
                 n_bins=self._n_bins,
                 range_=self._range,
                 dimensions=dimensions,
-                exclusion=self._exclusion
+                exclusion=self._exclusion,
             )
 
     def _single_frame_parallel(self, index: int) -> np.ndarray[float]:
@@ -894,8 +932,10 @@ class RadialDistributionFunction(DynamicAnalysisBase):
         dimensions = ts.dimensions
 
         # Get positions or centers of mass of entities in the groups
-        positions = [ag.positions if gr == "atoms" else center_of_mass(ag, gr)
-                     for ag, gr in zip(self._groups, self._groupings)]
+        positions = [
+            ag.positions if gr == "atoms" else center_of_mass(ag, gr)
+            for ag, gr in zip(self._groups, self._groupings)
+        ]
 
         # Store system volume or area analyzed in current frame
         if self._drop_axis is None:
@@ -904,8 +944,7 @@ class RadialDistributionFunction(DynamicAnalysisBase):
 
             # Apply corrections to avoid including periodic images in
             # the dimension to exclude
-            positions[0][:, self._drop_axis] \
-                = positions[1][:, self._drop_axis] = 0
+            positions[0][:, self._drop_axis] = positions[1][:, self._drop_axis] = 0
             dimensions[self._drop_axis] = dimensions[:3].max()
 
             results[self._n_bins] = np.delete(dimensions[:3], self._drop_axis).prod()
@@ -914,11 +953,11 @@ class RadialDistributionFunction(DynamicAnalysisBase):
         if self._n_batches:
             edges = np.array_split(self.results.bin_edges, self._n_batches)
             ranges_indices = {
-                e: np.where((self.results.bins > e[0])
-                            & (self.results.bins < e[1]))[0]
-                for e in [(self._range[0], edges[0][-1]),
-                          *((a[-1], b[-1])
-                            for a, b in zip(edges[:-1], edges[1:]))]
+                e: np.where((self.results.bins > e[0]) & (self.results.bins < e[1]))[0]
+                for e in [
+                    (self._range[0], edges[0][-1]),
+                    *((a[-1], b[-1]) for a, b in zip(edges[:-1], edges[1:])),
+                ]
             }
             for r, i in ranges_indices.items():
                 results[i] = radial_histogram(
@@ -926,15 +965,15 @@ class RadialDistributionFunction(DynamicAnalysisBase):
                     n_bins=i.shape[0],
                     range_=r,
                     dimensions=dimensions,
-                    exclusion=self._exclusion
+                    exclusion=self._exclusion,
                 )
         else:
-            results[:self._n_bins] = radial_histogram(
+            results[: self._n_bins] = radial_histogram(
                 *positions,
                 n_bins=self._n_bins,
                 range_=self._range,
                 dimensions=dimensions,
-                exclusion=self._exclusion
+                exclusion=self._exclusion,
             )
 
         return results
@@ -945,29 +984,32 @@ class RadialDistributionFunction(DynamicAnalysisBase):
         # frames
         if self._parallel:
             self._results = np.vstack(self._results).sum(axis=0)
-            self.results.counts = self._results[:self._n_bins]
+            self.results.counts = self._results[: self._n_bins]
             self._area_or_volume = self._results[self._n_bins]
 
         # Compute the normalization factor
         norm = self.n_frames
         if self._norm is not None:
             if self._drop_axis is None:
-                norm *= 4 * np.pi * np.diff(self.results.bin_edges ** 3) / 3
+                norm *= 4 * np.pi * np.diff(self.results.bin_edges**3) / 3
             else:
-                norm *= np.pi * np.diff(self.results.bin_edges ** 2)
+                norm *= np.pi * np.diff(self.results.bin_edges**2)
             if self._norm == "rdf":
                 N_2 = getattr(self._groups[1], f"n_{self._groupings[1]}")
                 if self._exclusion:
                     N_2 -= self._exclusion[1]
-                norm *= (getattr(self._groups[0], f"n_{self._groupings[0]}")
-                         * N_2 * self.n_frames / self._area_or_volume)
+                norm *= (
+                    getattr(self._groups[0], f"n_{self._groupings[0]}")
+                    * N_2
+                    * self.n_frames
+                    / self._area_or_volume
+                )
 
         # Compute and store the radial distribution function, the single
         # particle density, or the raw radial pair counts
         self.results.rdf = self.results.counts / norm
 
     def _get_rdf(self) -> np.ndarray[float]:
-
         r"""
         Returns the existing radial distribution function (RDF) if
         :code:`norm="rdf"` was passed to the :class:`RDF` constructor.
@@ -986,18 +1028,24 @@ class RadialDistributionFunction(DynamicAnalysisBase):
         if self._exclusion:
             N_2 -= self._exclusion[1]
         if self._drop_axis is None:
-            norm = 4 * np.diff(self.results.bin_edges ** 3) / 3
+            norm = 4 * np.diff(self.results.bin_edges**3) / 3
         else:
-            norm = np.diff(self.results.bin_edges ** 2)
-        return self._area_or_volume * self.results.counts / (
-            np.pi * self.n_frames ** 2 * N_2 * norm
-            * getattr(self._groups[0], f"n_{self._groupings[0]}")
+            norm = np.diff(self.results.bin_edges**2)
+        return (
+            self._area_or_volume
+            * self.results.counts
+            / (
+                np.pi
+                * self.n_frames**2
+                * N_2
+                * norm
+                * getattr(self._groups[0], f"n_{self._groupings[0]}")
+            )
         )
 
     def calculate_coordination_numbers(
-            self, rho: float, *, n_coord_nums: int = 2, threshold: float = 0.1
-        ) -> None:
-
+        self, rho: float, *, n_coord_nums: int = 2, threshold: float = 0.1
+    ) -> None:
         r"""
         Calculates the coordination numbers :math:`n_k`.
 
@@ -1028,12 +1076,10 @@ class RadialDistributionFunction(DynamicAnalysisBase):
             rho,
             n_coord_nums=n_coord_nums,
             n_dims=2 + (self._drop_axis is None),
-            threshold=threshold
+            threshold=threshold,
         )
 
-    def calculate_pmf(
-            self, temperature: Union[float, "unit.Quantity", Q_]) -> None:
-
+    def calculate_pmf(self, temperature: Union[float, "unit.Quantity", Q_]) -> None:
         r"""
         Calculates the potential of mean force
         :math:`w_{\alpha\beta}(r)`.
@@ -1060,16 +1106,23 @@ class RadialDistributionFunction(DynamicAnalysisBase):
         self.results.units["pmf"] = ureg.kilojoule / ureg.mole
         kBT = strip_unit(temperature, "K")[0]
         if not self._reduced:
-            kBT *= (ureg.avogadro_constant * ureg.boltzmann_constant
-                    * ureg.kelvin).m_as(self.results.units["pmf"])
+            kBT *= (
+                ureg.avogadro_constant * ureg.boltzmann_constant * ureg.kelvin
+            ).m_as(self.results.units["pmf"])
         self.results.pmf = -kBT * np.log(self._get_rdf())
 
     def calculate_structure_factor(
-            self, rho: float, x_a: float = None, x_b: float = None,
-            q: np.ndarray[float] = None, *, q_lower: float = None,
-            q_upper: float = None, n_q: int = 1_000, formalism: str = "FZ"
-        ) -> None:
-
+        self,
+        rho: float,
+        x_a: float = None,
+        x_b: float = None,
+        q: np.ndarray[float] = None,
+        *,
+        q_lower: float = None,
+        q_upper: float = None,
+        n_q: int = 1_000,
+        formalism: str = "FZ",
+    ) -> None:
         r"""
         Computes the static or partial structure factor
         :math:`S_{\alpha\beta}(q)` using the radial histogram bins
@@ -1144,13 +1197,14 @@ class RadialDistributionFunction(DynamicAnalysisBase):
             q_upper=q_upper,
             n_q=n_q,
             n_dims=2 + (self._drop_axis is None),
-            formalism=formalism
+            formalism=formalism,
         )
+
 
 @numba.njit("c16(f8[:],f8[:])", fastmath=True)
 def numba_delta_fourier_transform(
-        q: np.ndarray[float], r: np.ndarray[float]) -> complex:
-
+    q: np.ndarray[float], r: np.ndarray[float]
+) -> complex:
     r"""
     Serial Numba-accelerated Fourier transform of a Dirac delta function
     involving two one-dimensional NumPy arrays :math:`\mathbf{q}` and
@@ -1182,9 +1236,10 @@ def numba_delta_fourier_transform(
 
     return np.exp(1j * accelerated.numba_dot(q, r))
 
-def delta_fourier_transform_sum(
-        qs: np.ndarray[float], rs: np.ndarray[float]) -> np.ndarray[complex]:
 
+def delta_fourier_transform_sum(
+    qs: np.ndarray[float], rs: np.ndarray[float]
+) -> np.ndarray[complex]:
     r"""
     Evaluates the Fourier transforms of Dirac delta functions involving
     all possible combinations of multiple one-dimensional NumPy arrays
@@ -1224,9 +1279,9 @@ def delta_fourier_transform_sum(
             F[i] += numba_delta_fourier_transform(qs[i], rs[j])
     return F
 
+
 @numba.njit("f8(f8[:])", fastmath=True)
 def numba_pythagorean_trigonometric_identity(r: np.ndarray[float]) -> float:
-
     r"""
     Serial Numba-accelerated evaluation of the Pythagorean trigonometric
     identity for a one-dimensional NumPy array :math:`\mathbf{r}`.
@@ -1254,12 +1309,13 @@ def numba_pythagorean_trigonometric_identity(r: np.ndarray[float]) -> float:
     for i in range(r.shape[0]):
         c += np.cos(r[i])
         s += np.sin(r[i])
-    return c ** 2 + s ** 2
+    return c**2 + s**2
+
 
 @numba.njit("f8(f8[:],f8[:])", fastmath=True)
 def numba_cross_pythagorean_trigonometric_identity(
-        r: np.ndarray[float], s: np.ndarray[float]) -> float:
-
+    r: np.ndarray[float], s: np.ndarray[float]
+) -> float:
     r"""
     Serial Numba-accelerated evaluation of the cross Pythagorean
     trigonometric identity for two one-dimensional NumPy arrays
@@ -1298,8 +1354,8 @@ def numba_cross_pythagorean_trigonometric_identity(
         s2 += np.sin(s[j])
     return 2 * (c1 * c2 + s1 * s2)
 
-def ssf_trigonometric(qrs: np.ndarray[float]) -> np.ndarray[float]:
 
+def ssf_trigonometric(qrs: np.ndarray[float]) -> np.ndarray[float]:
     r"""
     Computes the static structure factors using a two-dimensional NumPy
     array containing :math:`\mathbf{q}\cdot\mathbf{r}` using the
@@ -1332,9 +1388,10 @@ def ssf_trigonometric(qrs: np.ndarray[float]) -> np.ndarray[float]:
         ssf[i] = numba_pythagorean_trigonometric_identity(qrs[i])
     return ssf
 
-def psf_trigonometric(
-        qrs1: np.ndarray[float], qrs2: np.ndarray[float]) -> np.ndarray[float]:
 
+def psf_trigonometric(
+    qrs1: np.ndarray[float], qrs2: np.ndarray[float]
+) -> np.ndarray[float]:
     r"""
     Computes the partial structure factors given two two-dimensional
     NumPy arrays, each containing :math:`\mathbf{q}\cdot\mathbf{r}`,
@@ -1372,15 +1429,17 @@ def psf_trigonometric(
 
     ssf = np.empty(qrs1.shape[0])
     for i in numba.prange(qrs1.shape[0]):
-        ssf[i] = numba_cross_pythagorean_trigonometric_identity(qrs1[i],
-                                                                qrs2[i])
+        ssf[i] = numba_cross_pythagorean_trigonometric_identity(qrs1[i], qrs2[i])
     return ssf
 
-def generate_spherical_wavevectors(
-        dimensions: np.ndarray[float], *,
-        n_points: Union[int, tuple[int]] = 32, q_max: float = None,
-        wavenumbers: bool = False) -> np.ndarray[float]:
 
+def generate_spherical_wavevectors(
+    dimensions: np.ndarray[float],
+    *,
+    n_points: Union[int, tuple[int]] = 32,
+    q_max: float = None,
+    wavenumbers: bool = False,
+) -> np.ndarray[float]:
     r"""
     Generates spherical wavevectors :math:`\mathbf{q}` for a triclinic
     simulation box.
@@ -1433,10 +1492,10 @@ def generate_spherical_wavevectors(
             q_max * np.linalg.norm(np.linalg.inv(two_pi_over_Ls.T), axis=1)
         ).astype(int)
 
-    wavevectors = np.stack(
-        np.meshgrid(*[np.arange(n) for n in n_points]),
-        axis=-1
-    ).reshape(-1, 3) @ two_pi_over_Ls
+    wavevectors = (
+        np.stack(np.meshgrid(*[np.arange(n) for n in n_points]), axis=-1).reshape(-1, 3)
+        @ two_pi_over_Ls
+    )
     wavenumbers_ = np.linalg.norm(wavevectors, axis=1)
     if q_max is not None:
         keep_indices = wavenumbers_ <= q_max
@@ -1447,8 +1506,8 @@ def generate_spherical_wavevectors(
         return wavevectors, wavenumbers_
     return wavevectors
 
-class StructureFactor(NumbaAnalysisBase):
 
+class StructureFactor(NumbaAnalysisBase):
     """
     Serial and parallel implementations to calculate the static
     structure factor :math:`S(q)` or partial structure factor
@@ -1697,16 +1756,24 @@ class StructureFactor(NumbaAnalysisBase):
     """
 
     def __init__(
-            self, groups: Union[mda.AtomGroup, tuple[mda.AtomGroup]],
-            groupings: Union[str, tuple[str]] = "atoms", *,
-            mode: str = None, form: str = "exp",
-            dimensions: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
-            n_points: int = 32, n_surfaces: int = None,
-            n_surface_points: int = 8,
-            q_max: Union[float, "unit.Quantity", Q_] = None,
-            wavevectors: np.ndarray[float] = None, sort: bool = True,
-            unique: bool = True, parallel: bool = False, verbose: bool = True,
-            **kwargs) -> None:
+        self,
+        groups: Union[mda.AtomGroup, tuple[mda.AtomGroup]],
+        groupings: Union[str, tuple[str]] = "atoms",
+        *,
+        mode: str = None,
+        form: str = "exp",
+        dimensions: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
+        n_points: int = 32,
+        n_surfaces: int = None,
+        n_surface_points: int = 8,
+        q_max: Union[float, "unit.Quantity", Q_] = None,
+        wavevectors: np.ndarray[float] = None,
+        sort: bool = True,
+        unique: bool = True,
+        parallel: bool = False,
+        verbose: bool = True,
+        **kwargs,
+    ) -> None:
 
         self._groups = [groups] if isinstance(groups, mda.AtomGroup) else groups
         self.universe = self._groups[0].universe
@@ -1716,44 +1783,52 @@ class StructureFactor(NumbaAnalysisBase):
         self._n_groups = len(self._groups)
         if isinstance(groupings, str):
             if groupings not in GROUPINGS:
-                emsg = (f"Invalid grouping '{groupings}'. Valid values: "
-                        "'" + "', '".join(GROUPINGS) + "'.")
+                emsg = (
+                    f"Invalid grouping '{groupings}'. Valid values: "
+                    "'" + "', '".join(GROUPINGS) + "'."
+                )
                 raise ValueError(emsg)
             self._groupings = self._n_groups * [groupings]
         else:
             if self._n_groups != len(groupings):
-                emsg = ("The shape of 'groupings' is incompatible with "
-                        "that of 'groups'.")
+                emsg = (
+                    "The shape of 'groupings' is incompatible with " "that of 'groups'."
+                )
                 raise ValueError(emsg)
             for gr in groupings:
                 if gr not in GROUPINGS:
-                    emsg = (f"Invalid grouping '{gr}'. Valid values: "
-                            "'" + "', '".join(GROUPINGS) + "'.")
+                    emsg = (
+                        f"Invalid grouping '{gr}'. Valid values: "
+                        "'" + "', '".join(GROUPINGS) + "'."
+                    )
                     raise ValueError(emsg)
             self._groupings = groupings
 
         self._mode = mode
         if self._mode == "pair" and not 1 <= len(self._groups) <= 2:
-            emsg = ("There must be exactly one or two atom groups in "
-                    "'groups' when mode='pair'.")
+            emsg = (
+                "There must be exactly one or two atom groups in "
+                "'groups' when mode='pair'."
+            )
             raise ValueError(emsg)
         elif self._mode is None:
-            if sum(g.n_atoms for g in self._groups) \
-                    != self.universe.atoms.n_atoms:
-                emsg = ("The atom groups in 'groups' must contain all "
-                        "atoms in the simulation when 'mode=None'.")
+            if sum(g.n_atoms for g in self._groups) != self.universe.atoms.n_atoms:
+                emsg = (
+                    "The atom groups in 'groups' must contain all "
+                    "atoms in the simulation when 'mode=None'."
+                )
                 raise ValueError(emsg)
 
         if wavevectors is not None:
             self._wavevectors = wavevectors
             self._wavenumbers = np.linalg.norm(wavevectors, axis=1)
         else:
-            dimensions = strip_unit(
-                dimensions or self.universe.dimensions[:3], "Å"
-            )[0]
+            dimensions = strip_unit(dimensions or self.universe.dimensions[:3], "Å")[0]
             if dimensions is None:
-                emsg = ("System dimensions were not found, but are "
-                        "required when 'wavevectors' is not specified.")
+                emsg = (
+                    "System dimensions were not found, but are "
+                    "required when 'wavevectors' is not specified."
+                )
                 raise ValueError(emsg)
             elif len(dimensions) != 3:
                 raise ValueError("'dimensions' must have length 3.")
@@ -1761,36 +1836,47 @@ class StructureFactor(NumbaAnalysisBase):
 
             if np.allclose(dimensions, dimensions[0]):
                 grid = 2 * np.pi * np.arange(n_points) / dimensions[0]
-                self._wavevectors = (np.stack(np.meshgrid(grid, grid, grid), -1)
-                                    .reshape(-1, 3))
+                self._wavevectors = np.stack(np.meshgrid(grid, grid, grid), -1).reshape(
+                    -1, 3
+                )
                 if n_surfaces:
-                    n_theta, n_phi = get_closest_factors(n_surface_points, 2,
-                                                        reverse=True)
-                    theta = np.linspace(np.pi / (2 * n_theta + 4),
-                                        np.pi / 2 - np.pi / (2 * n_theta + 4),
-                                        n_theta)
-                    phi = np.linspace(np.pi / (2 * n_phi + 4),
-                                    np.pi / 2 - np.pi / (2 * n_phi + 4),
-                                    n_phi)
-                    self._wavevectors = np.vstack((
-                        self._wavevectors,
-                        np.einsum(
-                            "o,tpd->otpd",
-                            grid[1:n_surfaces + 1],
-                            np.stack(
-                                (np.sin(theta) * np.cos(phi)[:, None],
-                                np.sin(theta) * np.sin(phi)[:, None],
-                                np.tile(np.cos(theta)[None, :], (n_phi, 1))),
-                                axis=-1
-                            )
-                        ).reshape((n_surfaces * n_surface_points, 3))
-                    ))
+                    n_theta, n_phi = get_closest_factors(
+                        n_surface_points, 2, reverse=True
+                    )
+                    theta = np.linspace(
+                        np.pi / (2 * n_theta + 4),
+                        np.pi / 2 - np.pi / (2 * n_theta + 4),
+                        n_theta,
+                    )
+                    phi = np.linspace(
+                        np.pi / (2 * n_phi + 4),
+                        np.pi / 2 - np.pi / (2 * n_phi + 4),
+                        n_phi,
+                    )
+                    self._wavevectors = np.vstack(
+                        (
+                            self._wavevectors,
+                            np.einsum(
+                                "o,tpd->otpd",
+                                grid[1 : n_surfaces + 1],
+                                np.stack(
+                                    (
+                                        np.sin(theta) * np.cos(phi)[:, None],
+                                        np.sin(theta) * np.sin(phi)[:, None],
+                                        np.tile(np.cos(theta)[None, :], (n_phi, 1)),
+                                    ),
+                                    axis=-1,
+                                ),
+                            ).reshape((n_surfaces * n_surface_points, 3)),
+                        )
+                    )
                 self._wavenumbers = np.linalg.norm(self._wavevectors, axis=1)
             else:
                 self._wavevectors = np.stack(
-                    np.meshgrid(*[2 * np.pi * np.arange(n_points) / L
-                                for L in dimensions]),
-                    axis=-1
+                    np.meshgrid(
+                        *[2 * np.pi * np.arange(n_points) / L for L in dimensions]
+                    ),
+                    axis=-1,
                 ).reshape(-1, 3)
                 self._wavenumbers = np.linalg.norm(self._wavevectors, axis=1)
 
@@ -1801,30 +1887,28 @@ class StructureFactor(NumbaAnalysisBase):
             self._wavenumbers = self._wavenumbers[keep]
 
         self._Ns = np.fromiter(
-            (getattr(a, f"n_{g}")
-             for (a, g) in zip(self._groups, self._groupings)),
+            (getattr(a, f"n_{g}") for (a, g) in zip(self._groups, self._groupings)),
             dtype=int,
-            count=self._n_groups
+            count=self._n_groups,
         )
         self._N = self._Ns.sum()
         self._slices = []
         _ = 0
         for N in self._Ns:
-            self._slices.append(slice(_, _+ N))
+            self._slices.append(slice(_, _ + N))
             _ += N
 
         self._njit = lambda s: numba.njit(s, fastmath=True, parallel=parallel)
-        self._delta_fourier_transform_sum = self._njit(
-            "c16[:](f8[:,:],f8[:,:])"
-        )(delta_fourier_transform_sum)
-        self._ssf_trigonometric = self._njit(
-            "f8[:](f8[:,:])"
-        )(ssf_trigonometric)
-        self._psf_trigonometric = self._njit(
-            "f8[:](f8[:,:],f8[:,:])"
-        )(psf_trigonometric)
-        self._inner = (accelerated.numba_inner_parallel if parallel
-                       else accelerated.numba_inner)
+        self._delta_fourier_transform_sum = self._njit("c16[:](f8[:,:],f8[:,:])")(
+            delta_fourier_transform_sum
+        )
+        self._ssf_trigonometric = self._njit("f8[:](f8[:,:])")(ssf_trigonometric)
+        self._psf_trigonometric = self._njit("f8[:](f8[:,:],f8[:,:])")(
+            psf_trigonometric
+        )
+        self._inner = (
+            accelerated.numba_inner_parallel if parallel else accelerated.numba_inner
+        )
 
         self._form = form
         self._sort = sort
@@ -1837,8 +1921,7 @@ class StructureFactor(NumbaAnalysisBase):
         self.results.pairs = (
             tuple(combinations_with_replacement(range(self._n_groups), 2))
             if self._mode == "partial"
-            else ((0, self._n_groups - 1),) if self._mode == "pair"
-            else ((None, None),)
+            else ((0, self._n_groups - 1),) if self._mode == "pair" else ((None, None),)
         )
 
         # Create a persisting array to hold atom positions for a single
@@ -1846,29 +1929,31 @@ class StructureFactor(NumbaAnalysisBase):
         self._positions = np.empty((self._N, 3))
 
         # Preallocate arrays to store structure factors
-        self.results.ssf = np.zeros((len(self.results.pairs),
-                                     len(self._wavenumbers)))
+        self.results.ssf = np.zeros((len(self.results.pairs), len(self._wavenumbers)))
 
         # Determine the unique wavenumbers, if desired
-        self.results.wavenumbers = (np.unique(self._wavenumbers.round(11))
-                                    if self._unique else self._wavenumbers)
+        self.results.wavenumbers = (
+            np.unique(self._wavenumbers.round(11))
+            if self._unique
+            else self._wavenumbers
+        )
 
         # Store reference units
-        self.results.units = Hash({"wavenumbers": ureg.angstrom ** -1})
+        self.results.units = Hash({"wavenumbers": ureg.angstrom**-1})
 
     def _single_frame(self) -> None:
 
         # Store positions or centers of mass in the current frame
         for g, gr, s in zip(self._groups, self._groupings, self._slices):
-            self._positions[s] = (g.positions if gr == "atoms"
-                                  else center_of_mass(g, gr))
+            self._positions[s] = g.positions if gr == "atoms" else center_of_mass(g, gr)
 
         # Compute the structure factor by multiplying exp(iqr) by its
         # conjugates
         if self._form == "exp":
             if self._mode is None:
-                rhos = self._delta_fourier_transform_sum(self._wavevectors,
-                                                         self._positions)
+                rhos = self._delta_fourier_transform_sum(
+                    self._wavevectors, self._positions
+                )
                 self.results.ssf += (rhos * rhos.conj()).real
             else:
                 for i, (j, k) in enumerate(self.results.pairs):
@@ -1878,12 +1963,15 @@ class StructureFactor(NumbaAnalysisBase):
                     if j == k:
                         self.results.ssf[i] += (rhos_j * rhos_j.conj()).real
                     else:
-                        self.results.ssf[i] += 2 * (
-                            rhos_j * self._delta_fourier_transform_sum(
-                                self._wavevectors,
-                                self._positions[self._slices[k]]
-                            ).conj()
-                        ).real
+                        self.results.ssf[i] += (
+                            2
+                            * (
+                                rhos_j
+                                * self._delta_fourier_transform_sum(
+                                    self._wavevectors, self._positions[self._slices[k]]
+                                ).conj()
+                            ).real
+                        )
 
         # Compute the structure factor by summing cos(qr)^2 and sin(qr)^2
         elif self._form == "trig":
@@ -1893,15 +1981,17 @@ class StructureFactor(NumbaAnalysisBase):
                 )
             else:
                 for i, (j, k) in enumerate(self.results.pairs):
-                    qrs_j = self._inner(self._wavevectors,
-                                        self._positions[self._slices[j]])
+                    qrs_j = self._inner(
+                        self._wavevectors, self._positions[self._slices[j]]
+                    )
                     if j == k:
                         self.results.ssf[i] += self._ssf_trigonometric(qrs_j)
                     else:
                         self.results.ssf[i] += self._psf_trigonometric(
                             qrs_j,
-                            self._inner(self._wavevectors,
-                                        self._positions[self._slices[k]])
+                            self._inner(
+                                self._wavevectors, self._positions[self._slices[k]]
+                            ),
                         )
 
     def _conclude(self) -> None:
@@ -1913,9 +2003,12 @@ class StructureFactor(NumbaAnalysisBase):
         # Combine values sharing the same wavenumber, if desired
         if self._unique:
             self.results.ssf = np.hstack(
-                [self.results.ssf[:, np.isclose(q, self._wavenumbers)]
-                 .mean(axis=1, keepdims=True)
-                for q in self.results.wavenumbers]
+                [
+                    self.results.ssf[:, np.isclose(q, self._wavenumbers)].mean(
+                        axis=1, keepdims=True
+                    )
+                    for q in self.results.wavenumbers
+                ]
             )
 
         # Sort the results by wavenumber, if desired
@@ -1927,9 +2020,9 @@ class StructureFactor(NumbaAnalysisBase):
         # Clean up memory by deleting arrays that will not be reused
         del self._positions
 
+
 @numba.njit("f8(f8[:])", fastmath=True)
 def numba_cosine_sum(x: np.ndarray[float]) -> float:
-
     r"""
     Serial Numba-accelerated sum of the cosines of the elements in a
     one-dimensional NumPy array :math:`\mathbf{x}`.
@@ -1957,8 +2050,8 @@ def numba_cosine_sum(x: np.ndarray[float]) -> float:
         s += np.cos(x[i])
     return s
 
-def cosine_column_sum(xs: np.ndarray[float]) -> np.ndarray[float]:
 
+def cosine_column_sum(xs: np.ndarray[float]) -> np.ndarray[float]:
     r"""
     Evaluates the column-wise sum of the cosines of the elements in a
     two-dimensional NumPy array :math:`\mathbf{x}`.
@@ -1988,9 +2081,8 @@ def cosine_column_sum(xs: np.ndarray[float]) -> np.ndarray[float]:
         s[i] = numba_cosine_sum(xs[i])
     return s
 
-def cosine_column_sum_inplace(
-        xs: np.ndarray[float], s: np.ndarray[float]) -> None:
 
+def cosine_column_sum_inplace(xs: np.ndarray[float], s: np.ndarray[float]) -> None:
     r"""
     Evaluates the column-wise sum of the cosines of the elements in a
     two-dimensional NumPy array :math:`\mathbf{x}`.
@@ -2017,9 +2109,9 @@ def cosine_column_sum_inplace(
     for i in numba.prange(xs.shape[0]):
         s[i] = numba_cosine_sum(xs[i])
 
+
 @numba.njit("f8(f8[:])", fastmath=True)
 def numba_sine_sum(x: np.ndarray[float]) -> float:
-
     r"""
     Serial Numba-accelerated sum of the sines of the elements in a
     one-dimensional NumPy array :math:`\mathbf{x}`.
@@ -2047,8 +2139,8 @@ def numba_sine_sum(x: np.ndarray[float]) -> float:
         s += np.sin(x[i])
     return s
 
-def sine_column_sum(xs: np.ndarray[float]) -> None:
 
+def sine_column_sum(xs: np.ndarray[float]) -> None:
     r"""
     Evaluates the column-wise sum of the sines of the elements in a
     two-dimensional NumPy array :math:`\mathbf{x}`.
@@ -2078,9 +2170,8 @@ def sine_column_sum(xs: np.ndarray[float]) -> None:
         s[i] = numba_sine_sum(xs[i])
     return s
 
-def sine_column_sum_inplace(
-        xs: np.ndarray[float], s: np.ndarray[float]) -> None:
 
+def sine_column_sum_inplace(xs: np.ndarray[float], s: np.ndarray[float]) -> None:
     r"""
     Evaluates the column-wise sum of the sines of the elements in a
     two-dimensional NumPy array :math:`\mathbf{x}`.
@@ -2107,8 +2198,8 @@ def sine_column_sum_inplace(
     for i in numba.prange(xs.shape[0]):
         s[i] = numba_sine_sum(xs[i])
 
-class IntermediateScatteringFunction(StructureFactor):
 
+class IntermediateScatteringFunction(StructureFactor):
     """
     Serial and parallel implementations to calculate the coherent and
     incoherent (or self) parts of the intermediate scattering function,
@@ -2459,38 +2550,56 @@ class IntermediateScatteringFunction(StructureFactor):
     """
 
     def __init__(
-            self, groups: Union[mda.AtomGroup, tuple[mda.AtomGroup]],
-            groupings: Union[str, tuple[str]] = "atoms", *,
-            mode: str = None, form: str = "exp",
-            dimensions: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
-            dt: Union[float, "unit.Quantity", Q_] = None,
-            n_points: int = 32, n_surfaces: int = None,
-            n_surface_points: int = 8,
-            q_max: Union[float, "unit.Quantity", Q_] = None,
-            wavevectors: np.ndarray[float] = None, sort: bool = True,
-            unique: bool = True, n_lags: int = None, incoherent: bool = False,
-            parallel: bool = False, verbose: bool = True, **kwargs) -> None:
+        self,
+        groups: Union[mda.AtomGroup, tuple[mda.AtomGroup]],
+        groupings: Union[str, tuple[str]] = "atoms",
+        *,
+        mode: str = None,
+        form: str = "exp",
+        dimensions: Union[np.ndarray[float], "unit.Quantity", Q_] = None,
+        dt: Union[float, "unit.Quantity", Q_] = None,
+        n_points: int = 32,
+        n_surfaces: int = None,
+        n_surface_points: int = 8,
+        q_max: Union[float, "unit.Quantity", Q_] = None,
+        wavevectors: np.ndarray[float] = None,
+        sort: bool = True,
+        unique: bool = True,
+        n_lags: int = None,
+        incoherent: bool = False,
+        parallel: bool = False,
+        verbose: bool = True,
+        **kwargs,
+    ) -> None:
 
         super().__init__(
-            groups, groupings, mode=mode, form=form, dimensions=dimensions,
-            n_points=n_points, n_surfaces=n_surfaces,
-            n_surface_points=n_surface_points, q_max=q_max,
-            wavevectors=wavevectors, sort=sort, unique=unique,
-            parallel=parallel, verbose=verbose, **kwargs
+            groups,
+            groupings,
+            mode=mode,
+            form=form,
+            dimensions=dimensions,
+            n_points=n_points,
+            n_surfaces=n_surfaces,
+            n_surface_points=n_surface_points,
+            q_max=q_max,
+            wavevectors=wavevectors,
+            sort=sort,
+            unique=unique,
+            parallel=parallel,
+            verbose=verbose,
+            **kwargs,
         )
 
         self._dt = strip_unit(dt, "ps")[0] or self._trajectory.dt
 
-        self._cosine_column_sum = self._njit(
-            "f8[:](f8[:,:])"
-        )(cosine_column_sum)
-        self._cosine_column_sum_inplace = self._njit(
-            "void(f8[:,:],f8[:])"
-        )(cosine_column_sum_inplace)
+        self._cosine_column_sum = self._njit("f8[:](f8[:,:])")(cosine_column_sum)
+        self._cosine_column_sum_inplace = self._njit("void(f8[:,:],f8[:])")(
+            cosine_column_sum_inplace
+        )
         self._sine_column_sum = self._njit("f8[:](f8[:,:])")(sine_column_sum)
-        self._sine_column_sum_inplace = self._njit(
-            "void(f8[:,:],f8[:])"
-        )(sine_column_sum_inplace)
+        self._sine_column_sum_inplace = self._njit("void(f8[:,:],f8[:])")(
+            sine_column_sum_inplace
+        )
 
         self._n_lags = n_lags
         self._incoherent = incoherent
@@ -2505,8 +2614,10 @@ class IntermediateScatteringFunction(StructureFactor):
         if hasattr(self._sliced_trajectory, "frames"):
             dfs = np.diff(self._sliced_trajectory.frames)
             if (df := dfs[0]) <= 0 or not np.allclose(dfs, df):
-                emsg = ("The selected frames must be evenly spaced and "
-                        "proceed forward in time.")
+                emsg = (
+                    "The selected frames must be evenly spaced and "
+                    "proceed forward in time."
+                )
                 raise ValueError(emsg)
         elif (df := self.step) <= 0:
             raise ValueError("The analysis must proceed forward in time.")
@@ -2515,31 +2626,36 @@ class IntermediateScatteringFunction(StructureFactor):
         self.results.pairs = (
             tuple(combinations_with_replacement(range(self._n_groups), 2))
             if self._mode == "partial"
-            else ((0, self._n_groups - 1),) if self._mode == "pair"
-            else ((None, None),)
+            else ((0, self._n_groups - 1),) if self._mode == "pair" else ((None, None),)
         )
 
         # Preallocate arrays to store results
         self._positions = np.zeros((self._n_lags, self._N, 3))
-        shape = (self._n_lags,
-                 1 if self._mode is None else self._n_groups,
-                 len(self._wavenumbers))
+        shape = (
+            self._n_lags,
+            1 if self._mode is None else self._n_groups,
+            len(self._wavenumbers),
+        )
         if self._form == "exp":
             self._exp_sum = np.empty(shape, dtype=complex)
         elif self._form == "trig":
             self._cos_sum = np.empty(shape)
             self._sin_sum = np.empty(shape)
-        self.results.cisf = np.zeros((
-            self._n_lags,
-            1 if self._mode is None else len(self.results.pairs),
-            len(self._wavenumbers)
-        ))
-        if self._incoherent:
-            self.results.iisf = np.zeros((
+        self.results.cisf = np.zeros(
+            (
                 self._n_lags,
-                1 if self._mode is None else self._n_groups,
-                len(self._wavenumbers)
-            ))
+                1 if self._mode is None else len(self.results.pairs),
+                len(self._wavenumbers),
+            )
+        )
+        if self._incoherent:
+            self.results.iisf = np.zeros(
+                (
+                    self._n_lags,
+                    1 if self._mode is None else self._n_groups,
+                    len(self._wavenumbers),
+                )
+            )
         self.results.times = df * self._dt * np.arange(self._n_lags)
 
         # Determine the unique wavenumbers, if desired
@@ -2549,8 +2665,9 @@ class IntermediateScatteringFunction(StructureFactor):
             self.results.wavenumbers = self._wavenumbers
 
         # Store reference units
-        self.results.units = Hash({"times": ureg.picosecond,
-                                   "wavenumbers": ureg.angstrom ** -1})
+        self.results.units = Hash(
+            {"times": ureg.picosecond, "wavenumbers": ureg.angstrom**-1}
+        )
 
     def _single_frame(self) -> None:
 
@@ -2578,92 +2695,87 @@ class IntermediateScatteringFunction(StructureFactor):
                 self._exp_sum[rcfi] = self._delta_fourier_transform_sum(
                     self._wavevectors, self._positions[rcfi]
                 )
-                for time_lag in range(min(self._n_lags,
-                                          self._frame_index + 1)):
+                for time_lag in range(min(self._n_lags, self._frame_index + 1)):
                     rifi = (self._frame_index - time_lag) % self._n_lags
                     self.results.cisf[time_lag] += (
                         self._exp_sum[rifi] * self._exp_sum[rcfi].conj()
                     ).real
                     if self._incoherent:
-                        self.results.iisf[time_lag] \
-                            += self._delta_fourier_transform_sum(
-                                self._wavevectors,
-                                self._positions[rcfi] - self._positions[rifi]
-                            ).real
+                        self.results.iisf[
+                            time_lag
+                        ] += self._delta_fourier_transform_sum(
+                            self._wavevectors,
+                            self._positions[rcfi] - self._positions[rifi],
+                        ).real
             else:
                 for i in range(self._n_groups):
                     self._exp_sum[rcfi, i] = self._delta_fourier_transform_sum(
-                        self._wavevectors,
-                        self._positions[rcfi, self._slices[i]]
+                        self._wavevectors, self._positions[rcfi, self._slices[i]]
                     )
-                for time_lag in range(min(self._n_lags,
-                                          self._frame_index + 1)):
+                for time_lag in range(min(self._n_lags, self._frame_index + 1)):
                     rifi = (self._frame_index - time_lag) % self._n_lags
                     for i, (j, k) in enumerate(self.results.pairs):
                         if j == k:
                             self.results.cisf[time_lag, i] += (
-                                self._exp_sum[rifi, j]
-                                * self._exp_sum[rcfi, j].conj()
+                                self._exp_sum[rifi, j] * self._exp_sum[rcfi, j].conj()
                             ).real
                             if self._incoherent:
-                                self.results.iisf[time_lag, j] \
-                                    += self._delta_fourier_transform_sum(
-                                        self._wavevectors,
-                                        self._positions[rcfi, self._slices[j]]
-                                        - self._positions[rifi, self._slices[j]]
-                                    ).real
+                                self.results.iisf[
+                                    time_lag, j
+                                ] += self._delta_fourier_transform_sum(
+                                    self._wavevectors,
+                                    self._positions[rcfi, self._slices[j]]
+                                    - self._positions[rifi, self._slices[j]],
+                                ).real
                         else:
                             self.results.cisf[time_lag, i] += (
-                                (self._exp_sum[rifi, j]
-                                 * self._exp_sum[rcfi, k].conj()).real
-                                + (self._exp_sum[rifi, k]
-                                   * self._exp_sum[rcfi, j].conj()).real
-                            )
+                                self._exp_sum[rifi, j] * self._exp_sum[rcfi, k].conj()
+                            ).real + (
+                                self._exp_sum[rifi, k] * self._exp_sum[rcfi, j].conj()
+                            ).real
 
         # Calculate intermediate scattering functions using
         # trigonometric form
         elif self._form == "trig":
             if self._mode is None:
-                qrs = self._inner(self._wavevectors,
-                                  self._positions[rcfi])
+                qrs = self._inner(self._wavevectors, self._positions[rcfi])
                 self._cosine_column_sum_inplace(qrs, self._cos_sum[rcfi, 0])
                 self._sine_column_sum_inplace(qrs, self._sin_sum[rcfi, 0])
-                for time_lag in range(min(self._n_lags,
-                                          self._frame_index + 1)):
+                for time_lag in range(min(self._n_lags, self._frame_index + 1)):
                     rifi = (self._frame_index - time_lag) % self._n_lags
                     self.results.cisf[time_lag] += (
                         self._cos_sum[rifi] * self._cos_sum[rcfi]
                         + self._sin_sum[rifi] * self._sin_sum[rcfi]
                     )
                     if self._incoherent:
-                        qrs = self._inner(self._wavevectors,
-                                          self._positions[rcfi]
-                                          - self._positions[rifi])
+                        qrs = self._inner(
+                            self._wavevectors,
+                            self._positions[rcfi] - self._positions[rifi],
+                        )
                         self.results.iisf[time_lag] += (
                             self._cosine_column_sum(qrs)
                             - 1j * self._sine_column_sum(qrs)
                         ).real
             else:
                 for i in range(self._n_groups):
-                    qrs = self._inner(self._wavevectors,
-                                      self._positions[rcfi, self._slices[i]])
+                    qrs = self._inner(
+                        self._wavevectors, self._positions[rcfi, self._slices[i]]
+                    )
                     self._cosine_column_sum_inplace(qrs, self._cos_sum[rcfi, i])
                     self._sine_column_sum_inplace(qrs, self._sin_sum[rcfi, i])
-                for time_lag in range(min(self._n_lags,
-                                          self._frame_index + 1)):
+                for time_lag in range(min(self._n_lags, self._frame_index + 1)):
                     rifi = (self._frame_index - time_lag) % self._n_lags
                     for i, (j, k) in enumerate(self.results.pairs):
                         if j == k:
                             self.results.cisf[time_lag, i] += (
                                 self._cos_sum[rifi, j] * self._cos_sum[rcfi, j]
-                                + self._sin_sum[rifi, j]
-                                  * self._sin_sum[rcfi, j]
+                                + self._sin_sum[rifi, j] * self._sin_sum[rcfi, j]
                             )
                             if self._incoherent:
                                 qrs = self._inner(
                                     self._wavevectors,
                                     self._positions[rcfi, self._slices[j]]
-                                    - self._positions[rifi, self._slices[j]]
+                                    - self._positions[rifi, self._slices[j]],
                                 )
                                 self.results.iisf[time_lag, j] += (
                                     self._cosine_column_sum(qrs)
@@ -2672,12 +2784,9 @@ class IntermediateScatteringFunction(StructureFactor):
                         else:
                             self.results.cisf[time_lag, i] += (
                                 self._cos_sum[rifi, j] * self._cos_sum[rcfi, k]
-                                + self._sin_sum[rifi, j]
-                                  * self._sin_sum[rcfi, k]
-                                + self._cos_sum[rifi, k]
-                                  * self._cos_sum[rcfi, j]
-                                + self._sin_sum[rifi, k]
-                                  * self._sin_sum[rcfi, j]
+                                + self._sin_sum[rifi, j] * self._sin_sum[rcfi, k]
+                                + self._cos_sum[rifi, k] * self._cos_sum[rcfi, j]
+                                + self._sin_sum[rifi, k] * self._sin_sum[rcfi, j]
                             )
 
     def _conclude(self) -> None:
@@ -2686,8 +2795,7 @@ class IntermediateScatteringFunction(StructureFactor):
         # of particles and timesteps
         norm = (
             self._N
-            * np.arange(self.n_frames,
-                        self.n_frames - self._n_lags, -1)[:, None, None]
+            * np.arange(self.n_frames, self.n_frames - self._n_lags, -1)[:, None, None]
         )
         self.results.cisf /= norm
         if self._incoherent:
@@ -2696,15 +2804,23 @@ class IntermediateScatteringFunction(StructureFactor):
         # Combine values sharing the same wavenumber, if desired
         if self._unique:
             self.results.cisf = np.stack(
-                [self.results.cisf[:, :, np.isclose(q, self._wavenumbers)]
-                 .mean(axis=2) for q in self.results.wavenumbers],
-                axis=-1
+                [
+                    self.results.cisf[:, :, np.isclose(q, self._wavenumbers)].mean(
+                        axis=2
+                    )
+                    for q in self.results.wavenumbers
+                ],
+                axis=-1,
             )
             if self._incoherent:
                 self.results.iisf = np.stack(
-                    [self.results.iisf[:, :, np.isclose(q, self._wavenumbers)]
-                     .mean(axis=2) for q in self.results.wavenumbers],
-                    axis=-1
+                    [
+                        self.results.iisf[:, :, np.isclose(q, self._wavenumbers)].mean(
+                            axis=2
+                        )
+                        for q in self.results.wavenumbers
+                    ],
+                    axis=-1,
                 )
 
         # Sort the results by wavenumber, if desired
