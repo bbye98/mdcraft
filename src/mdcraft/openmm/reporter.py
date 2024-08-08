@@ -14,8 +14,8 @@ from openmm import app, unit
 
 from .file import NetCDFFile
 
-class NetCDFReporter():
 
+class NetCDFReporter:
     """
     A NetCDF trajectory reporter for OpenMM that can report velocities
     and forces in addition to time and coordinates for all particles in
@@ -58,25 +58,34 @@ class NetCDFReporter():
     """
 
     def __init__(
-            self, file: str, interval: int, append: bool = False,
-            periodic: bool = None, *, velocities: bool = False,
-            forces: bool = False,
-            subset: Union[slice, np.ndarray[int], app.Topology] = None) -> None:
+        self,
+        file: str,
+        interval: int,
+        append: bool = False,
+        periodic: bool = None,
+        *,
+        velocities: bool = False,
+        forces: bool = False,
+        subset: Union[slice, np.ndarray[int], app.Topology] = None,
+    ) -> None:
 
         self._out = NetCDFFile(file, "a" if append else "w")
         self._interval = interval
         self._periodic = periodic
-        self._subset = np.fromiter((a.index for a in subset.atoms()), dtype=int) \
-                       if isinstance(subset, app.Topology) else subset
+        self._subset = (
+            np.fromiter((a.index for a in subset.atoms()), dtype=int)
+            if isinstance(subset, app.Topology)
+            else subset
+        )
         self._velocities = velocities
         self._forces = forces
 
     def __del__(self) -> None:
         self._out._nc.close()
 
-    def describeNextReport(self, simulation: app.Simulation) \
-        -> tuple[int, bool, bool, bool, bool, bool]:
-
+    def describeNextReport(
+        self, simulation: app.Simulation
+    ) -> tuple[int, bool, bool, bool, bool, bool]:
         """
         Get information about the next report this NetCDF reporter will
         generate.
@@ -102,11 +111,16 @@ class NetCDFReporter():
                   single periodic box.
         """
 
-        return (self._interval - simulation.currentStep % self._interval,
-                True, self._velocities, self._forces, False, self._periodic)
+        return (
+            self._interval - simulation.currentStep % self._interval,
+            True,
+            self._velocities,
+            self._forces,
+            False,
+            self._periodic,
+        )
 
     def report(self, simulation: app.Simulation, state: openmm.State) -> None:
-
         """
         Generate a report.
 
@@ -122,51 +136,52 @@ class NetCDFReporter():
         # Get all requested state data from OpenMM State
         data = {}
         if self._subset is None:
-            data["coordinates"] \
-                = state.getPositions(asNumpy=True).value_in_unit(unit.angstrom)
+            data["coordinates"] = state.getPositions(asNumpy=True).value_in_unit(
+                unit.angstrom
+            )
             if self._velocities:
-                data["velocities"] \
-                    = state.getVelocities(asNumpy=True).value_in_unit(
-                        unit.angstrom / unit.picosecond
-                    )
+                data["velocities"] = state.getVelocities(asNumpy=True).value_in_unit(
+                    unit.angstrom / unit.picosecond
+                )
             if self._forces:
                 data["forces"] = state.getForces(asNumpy=True).value_in_unit(
                     unit.kilocalorie_per_mole / unit.angstrom
                 )
         else:
-            data["coordinates"] \
-                = state.getPositions(asNumpy=True)[self._subset].value_in_unit(
-                    unit.angstrom
-                )
+            data["coordinates"] = state.getPositions(asNumpy=True)[
+                self._subset
+            ].value_in_unit(unit.angstrom)
             if self._velocities:
-                data["velocities"] \
-                    = state.getVelocities(asNumpy=True)[self._subset].value_in_unit(
-                        unit.angstrom / unit.picosecond
-                    )
+                data["velocities"] = state.getVelocities(asNumpy=True)[
+                    self._subset
+                ].value_in_unit(unit.angstrom / unit.picosecond)
             if self._forces:
-                data["forces"] \
-                    = state.getForces(asNumpy=True)[self._subset].value_in_unit(
-                        unit.kilocalorie_per_mole / unit.angstrom
-                    )
+                data["forces"] = state.getForces(asNumpy=True)[
+                    self._subset
+                ].value_in_unit(unit.kilocalorie_per_mole / unit.angstrom)
 
         # Initialize NetCDF file headers, if not done already
         if not hasattr(self._out._nc, "Conventions"):
             self._out.write_header(
-                simulation.topology.getNumAtoms() if self._subset is None \
-                    else len(self._subset),
+                (
+                    simulation.topology.getNumAtoms()
+                    if self._subset is None
+                    else len(self._subset)
+                ),
                 simulation.topology.getPeriodicBoxVectors() is not None,
-                self._velocities, self._forces
+                self._velocities,
+                self._forces,
             )
 
         # Get the lengths and angles that define the size and shape of the
         # simulation box
         pbv = state.getPeriodicBoxVectors()
         if pbv is not None:
-            (a, b, c, alpha, beta, gamma) = \
+            (a, b, c, alpha, beta, gamma) = (
                 app.internal.unitcell.computeLengthsAndAngles(pbv)
+            )
             data["cell_lengths"] = 10 * np.array((a, b, c))
             data["cell_angles"] = 180 * np.array((alpha, beta, gamma)) / np.pi
 
         # Write current frame
-        self._out.write_model(state.getTime().value_in_unit(unit.picosecond),
-                              **data)
+        self._out.write_model(state.getTime().value_in_unit(unit.picosecond), **data)

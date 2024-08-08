@@ -16,8 +16,8 @@ the one- (:math:`c = 0`) and two-term power models in MATLAB,
 
 import numpy as np
 
-def power(x: np.ndarray, a: float, b: float, c: float = 0) -> np.ndarray:
 
+def power(x: np.ndarray, a: float, b: float, c: float = 0) -> np.ndarray:
     r"""
     General power model.
 
@@ -45,10 +45,10 @@ def power(x: np.ndarray, a: float, b: float, c: float = 0) -> np.ndarray:
         Fitted :math:`y`-values.
     """
 
-    return a * x ** b + c
+    return a * x**b + c
+
 
 def power1(x: np.ndarray, a: float, b: float) -> np.ndarray:
-
     r"""
     Convenience function for the :code:`power1` model from MATLAB.
 
@@ -75,8 +75,8 @@ def power1(x: np.ndarray, a: float, b: float) -> np.ndarray:
 
     return power(x, a, b)
 
-def power2(x: np.ndarray, a: float, b: float, c: float) -> np.ndarray:
 
+def power2(x: np.ndarray, a: float, b: float, c: float) -> np.ndarray:
     r"""
     Convenience function for the :code:`power2` model from MATLAB.
 

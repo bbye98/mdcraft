@@ -10,6 +10,7 @@ dependencies:
   - numpy
   - pandas
   - pint
+  - psutil
   - scipy
   - sympy
   # OPTIONAL DEPENDENCIES

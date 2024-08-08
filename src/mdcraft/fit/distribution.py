@@ -30,8 +30,8 @@ so only the scale parameter is fitted.
 
 import numpy as np
 
-def weibull(x: np.ndarray, a: float, b: float, c: float = 0) -> np.ndarray:
 
+def weibull(x: np.ndarray, a: float, b: float, c: float = 0) -> np.ndarray:
     r"""
     General three-parameter Weibull distribution.
 

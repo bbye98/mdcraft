@@ -21,12 +21,14 @@ import warnings
 try:
     import dask
     from dask import distributed
+
     FOUND_DASK = True
 except ImportError:
     FOUND_DASK = False
 
 try:
     import joblib
+
     FOUND_JOBLIB = True
 except ImportError:
     FOUND_JOBLIB = False
@@ -37,9 +39,9 @@ import numba
 import numpy as np
 from tqdm import tqdm
 
+
 @contextlib.contextmanager
 def _tqdm_joblib(tqdm_obj: tqdm) -> Generator:
-
     """
     A context manager for displaying a progress bar with Joblib.
 
@@ -62,8 +64,8 @@ def _tqdm_joblib(tqdm_obj: tqdm) -> Generator:
         joblib.parallel.BatchCompletionCallBack = old_batch_callback
         tqdm_obj.close()
 
-class Hash(dict):
 
+class Hash(dict):
     """
     A hash table, or an extension of the built-in `dict` with dot
     notation for accessing properties.
@@ -100,8 +102,8 @@ class Hash(dict):
         super().__delitem__(key)
         del self.__dict__[key]
 
-class SerialAnalysisBase(AnalysisBase):
 
+class SerialAnalysisBase(AnalysisBase):
     """
     A serial analysis base object.
 
@@ -118,15 +120,18 @@ class SerialAnalysisBase(AnalysisBase):
         :class:`MDAnalysis.analysis.base.AnalysisBase`.
     """
 
-    def __init__(
-            self, trajectory: ReaderBase, verbose: bool = False, **kwargs):
+    def __init__(self, trajectory: ReaderBase, verbose: bool = False, **kwargs):
         super().__init__(trajectory, verbose, **kwargs)
 
     def run(
-            self, start: int = None, stop: int = None, step: int = None,
-            frames: Union[slice, np.ndarray[int]] = None, verbose: bool = None,
-            **kwargs) -> "SerialAnalysisBase":
-
+        self,
+        start: int = None,
+        stop: int = None,
+        step: int = None,
+        frames: Union[slice, np.ndarray[int]] = None,
+        verbose: bool = None,
+        **kwargs,
+    ) -> "SerialAnalysisBase":
         """
         Performs the calculation in serial.
 
@@ -160,9 +165,12 @@ class SerialAnalysisBase(AnalysisBase):
         return super().run(start, stop, step, frames, verbose, **kwargs)
 
     def save(
-            self, file: Union[str, TextIO], archive: bool = True,
-            compress: bool = True, **kwargs) -> None:
-
+        self,
+        file: Union[str, TextIO],
+        archive: bool = True,
+        compress: bool = True,
+        **kwargs,
+    ) -> None:
         """
         Saves results to a binary or archive file in NumPy format.
 
@@ -197,8 +205,8 @@ class SerialAnalysisBase(AnalysisBase):
             for data in self.results:
                 np.save(f"{file}_{data}", self.results[data], **kwargs)
 
-class NumbaAnalysisBase(SerialAnalysisBase):
 
+class NumbaAnalysisBase(SerialAnalysisBase):
     """
     A Numba-accelerated analysis base object.
 
@@ -215,15 +223,20 @@ class NumbaAnalysisBase(SerialAnalysisBase):
         :class:`MDAnalysis.analysis.base.AnalysisBase`.
     """
 
-    def __init__(
-            self, trajectory: ReaderBase, verbose: bool = False, **kwargs):
+    def __init__(self, trajectory: ReaderBase, verbose: bool = False, **kwargs):
         super().__init__(trajectory, verbose, **kwargs)
 
     def run(
-            self, start: int = None, stop: int = None, step: int = None,
-            frames: Union[slice, np.ndarray[int]] = None, verbose: bool = None,
-            *, n_threads: int = None, **kwargs) -> "NumbaAnalysisBase":
-
+        self,
+        start: int = None,
+        stop: int = None,
+        step: int = None,
+        frames: Union[slice, np.ndarray[int]] = None,
+        verbose: bool = None,
+        *,
+        n_threads: int = None,
+        **kwargs,
+    ) -> "NumbaAnalysisBase":
         """
         Performs the calculation.
 
@@ -261,12 +274,11 @@ class NumbaAnalysisBase(SerialAnalysisBase):
             numba.set_num_threads(n_threads)
 
         return super().run(
-            start=start, stop=stop, step=step, frames=frames,
-            verbose=verbose, **kwargs
+            start=start, stop=stop, step=step, frames=frames, verbose=verbose, **kwargs
         )
 
-class ParallelAnalysisBase(SerialAnalysisBase):
 
+class ParallelAnalysisBase(SerialAnalysisBase):
     """
     A multithreaded analysis base object.
 
@@ -283,8 +295,7 @@ class ParallelAnalysisBase(SerialAnalysisBase):
         :class:`MDAnalysis.analysis.base.AnalysisBase`.
     """
 
-    def __init__(
-            self, trajectory: ReaderBase, verbose: bool = False, **kwargs):
+    def __init__(self, trajectory: ReaderBase, verbose: bool = False, **kwargs):
         super().__init__(trajectory, verbose, **kwargs)
 
     def _dask_job_block(self, indices: np.ndarray[int]) -> list:
@@ -295,12 +306,19 @@ class ParallelAnalysisBase(SerialAnalysisBase):
         pass
 
     def run(
-            self, start: int = None, stop: int = None, step: int = None,
-            frames: Union[slice, np.ndarray[int]] = None, verbose: bool = None,
-            *, n_jobs: int = None, module: str = "multiprocessing",
-            method: str = None, block: bool = True, **kwargs
-        ) -> "ParallelAnalysisBase":
-
+        self,
+        start: int = None,
+        stop: int = None,
+        step: int = None,
+        frames: Union[slice, np.ndarray[int]] = None,
+        verbose: bool = None,
+        *,
+        n_jobs: int = None,
+        module: str = "multiprocessing",
+        method: str = None,
+        block: bool = True,
+        **kwargs,
+    ) -> "ParallelAnalysisBase":
         """
         Performs the calculation in parallel.
 
@@ -358,17 +376,19 @@ class ParallelAnalysisBase(SerialAnalysisBase):
         """
 
         if verbose is None:
-            verbose = getattr(self, '_verbose', False)
-        logging.basicConfig(format="{asctime} | {levelname:^8s} | {message}",
-                            style="{",
-                            level=logging.INFO if verbose else logging.WARNING)
+            verbose = getattr(self, "_verbose", False)
+        logging.basicConfig(
+            format="{asctime} | {levelname:^8s} | {message}",
+            style="{",
+            level=logging.INFO if verbose else logging.WARNING,
+        )
 
-        self._setup_frames(self._trajectory, start=start, stop=stop,
-                           step=step, frames=frames)
+        self._setup_frames(
+            self._trajectory, start=start, stop=stop, step=step, frames=frames
+        )
         self._prepare()
 
-        n_jobs = min(n_jobs or np.inf, self.n_frames,
-                     len(os.sched_getaffinity(0)))
+        n_jobs = min(n_jobs or np.inf, self.n_frames, len(os.sched_getaffinity(0)))
         indices = np.arange(self.n_frames)
 
         if verbose:
@@ -376,40 +396,55 @@ class ParallelAnalysisBase(SerialAnalysisBase):
 
         if module == "dask" and FOUND_DASK:
             try:
-                config = {"scheduler": distributed.worker.get_client(),
-                          **kwargs}
-                n_jobs = min(len(config["scheduler"].get_worker_logs()),
-                             n_jobs)
+                config = {"scheduler": distributed.worker.get_client(), **kwargs}
+                n_jobs = min(len(config["scheduler"].get_worker_logs()), n_jobs)
             except ValueError:
                 if method is None:
                     method = "processes"
-                elif method not in {"distributed", "processes", "threading",
-                                    "threads", "single-threaded", "sync",
-                                    "synchronous"}:
+                elif method not in {
+                    "distributed",
+                    "processes",
+                    "threading",
+                    "threads",
+                    "single-threaded",
+                    "sync",
+                    "synchronous",
+                }:
                     raise ValueError("Invalid Dask scheduler.")
 
                 if method == "distributed":
-                    emsg = ("The Dask distributed client "
-                            "(client = dask.distributed.Client(...)) "
-                            "should be instantiated in the main "
-                            "program (__name__ = '__main__') of "
-                            "your script.")
+                    emsg = (
+                        "The Dask distributed client "
+                        "(client = dask.distributed.Client(...)) "
+                        "should be instantiated in the main "
+                        "program (__name__ = '__main__') of "
+                        "your script."
+                    )
                     raise RuntimeError(emsg)
                 elif method in {"threading", "threads"}:
-                    emsg = ("The threaded Dask scheduler is not "
-                            "compatible with MDAnalysis.")
+                    emsg = (
+                        "The threaded Dask scheduler is not "
+                        "compatible with MDAnalysis."
+                    )
                     raise ValueError(emsg)
-                elif n_jobs == 1 and method not in {"single-threaded", "sync",
-                                                    "synchronous"}:
+                elif n_jobs == 1 and method not in {
+                    "single-threaded",
+                    "sync",
+                    "synchronous",
+                }:
                     method = "synchronous"
-                    logging.warning(f"Since {n_jobs=}, the synchronous "
-                                    "Dask scheduler will be used instead.")
+                    logging.warning(
+                        f"Since {n_jobs=}, the synchronous "
+                        "Dask scheduler will be used instead."
+                    )
                 config = {"scheduler": method} | kwargs
                 if method == "processes":
                     config["num_workers"] = n_jobs
 
-            logging.info(f"Starting analysis using Dask ({n_jobs=}, "
-                         f"scheduler={config['scheduler']})...")
+            logging.info(
+                f"Starting analysis using Dask ({n_jobs=}, "
+                f"scheduler={config['scheduler']})..."
+            )
 
             jobs = []
             if block:
@@ -427,24 +462,33 @@ class ParallelAnalysisBase(SerialAnalysisBase):
                 self._results = [r for b in self._results for r in b]
 
         elif module == "joblib" and FOUND_JOBLIB:
-            if method is not None and method not in {"loky", "multiprocessing",
-                                                     "threading", None}:
+            if method is not None and method not in {
+                "loky",
+                "multiprocessing",
+                "threading",
+                None,
+            }:
                 raise ValueError("Invalid Joblib backend.")
 
-            logging.info("Starting analysis using Joblib "
-                         f"({n_jobs=}, backend={method})...")
-            with (_tqdm_joblib(tqdm(total=self.n_frames)) if verbose
-                  else contextlib.suppress()):
+            logging.info(
+                "Starting analysis using Joblib " f"({n_jobs=}, backend={method})..."
+            )
+            with (
+                _tqdm_joblib(tqdm(total=self.n_frames))
+                if verbose
+                else contextlib.suppress()
+            ):
                 self._results = joblib.Parallel(
                     n_jobs=n_jobs, backend=method, **kwargs
-                )(joblib.delayed(self._single_frame_parallel)(i)
-                  for i in indices)
+                )(joblib.delayed(self._single_frame_parallel)(i) for i in indices)
 
         else:
             if module != "multiprocessing":
-                wmsg = ("The Dask or Joblib library was not found, so "
-                        "the native multiprocessing module will be"
-                        "used instead.")
+                wmsg = (
+                    "The Dask or Joblib library was not found, so "
+                    "the native multiprocessing module will be"
+                    "used instead."
+                )
                 warnings.warn(wmsg)
 
             if method is None:
@@ -452,16 +496,19 @@ class ParallelAnalysisBase(SerialAnalysisBase):
             elif method not in {"fork", "forkserver", "spawn"}:
                 raise ValueError("Invalid multiprocessing start method.")
 
-            logging.info("Starting analysis using multiprocessing "
-                         f"({n_jobs=}, {method=})...")
+            logging.info(
+                "Starting analysis using multiprocessing " f"({n_jobs=}, {method=})..."
+            )
             with multiprocessing.get_context(method).Pool(n_jobs, **kwargs) as p:
                 self._results = (
                     tuple(
                         tqdm(
                             p.imap(self._single_frame_parallel, indices),
-                            total=self.n_frames
+                            total=self.n_frames,
                         )
-                    ) if verbose else p.map(self._single_frame_parallel, indices)
+                    )
+                    if verbose
+                    else p.map(self._single_frame_parallel, indices)
                 )
 
         if verbose:
@@ -470,8 +517,8 @@ class ParallelAnalysisBase(SerialAnalysisBase):
         self._conclude()
         return self
 
-class DynamicAnalysisBase(ParallelAnalysisBase, SerialAnalysisBase):
 
+class DynamicAnalysisBase(ParallelAnalysisBase, SerialAnalysisBase):
     """
     A dynamic analysis base object.
 
@@ -492,8 +539,8 @@ class DynamicAnalysisBase(ParallelAnalysisBase, SerialAnalysisBase):
     """
 
     def __init__(
-            self, trajectory: ReaderBase, parallel: bool,
-            verbose: bool = False, **kwargs) -> None:
+        self, trajectory: ReaderBase, parallel: bool, verbose: bool = False, **kwargs
+    ) -> None:
 
         self._parallel = parallel
         (ParallelAnalysisBase if parallel else SerialAnalysisBase).__init__(
@@ -501,11 +548,14 @@ class DynamicAnalysisBase(ParallelAnalysisBase, SerialAnalysisBase):
         )
 
     def run(
-            self, start: int = None, stop: int = None, step: int = None,
-            frames: Union[slice, np.ndarray[int]] = None,
-            verbose: bool = None, **kwargs
-        ) -> Union[SerialAnalysisBase, ParallelAnalysisBase]:
-
+        self,
+        start: int = None,
+        stop: int = None,
+        step: int = None,
+        frames: Union[slice, np.ndarray[int]] = None,
+        verbose: bool = None,
+        **kwargs,
+    ) -> Union[SerialAnalysisBase, ParallelAnalysisBase]:
         """
         Performs the calculation.
 
@@ -541,8 +591,12 @@ class DynamicAnalysisBase(ParallelAnalysisBase, SerialAnalysisBase):
             Analysis object with results.
         """
 
-        return (ParallelAnalysisBase if self._parallel
-                else SerialAnalysisBase).run(
-            self, start=start, stop=stop, step=step, frames=frames,
-            verbose=verbose, **kwargs
+        return (ParallelAnalysisBase if self._parallel else SerialAnalysisBase).run(
+            self,
+            start=start,
+            stop=stop,
+            step=step,
+            frames=frames,
+            verbose=verbose,
+            **kwargs,
         )

@@ -20,8 +20,8 @@ import numpy as np
 
 from ..algorithm.topology import convert_cell_representation
 
-class LAMMPSDumpTrajectoryReader(ReaderBase):
 
+class LAMMPSDumpTrajectoryReader(ReaderBase):
     r"""
     LAMMPS dump trajectory reader.
 
@@ -129,16 +129,43 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
         "dipole_moment_magnitudes": ("mu",),
         "angular_velocities": ("omegax", "omegay", "omegaz"),
         "angular_momentums": ("angmomx", "angmomy", "angmomz"),
-        "torques": ("tqx", "tqy", "tqz")
+        "torques": ("tqx", "tqy", "tqz"),
     }
 
     format = "LAMMPSDUMP"
 
     @staticmethod
     def _get_offsets(
-        file: Union[str, TextIO], start: int, end: int, grid: bool, parallel: bool
+        file: Union[str, Path, TextIO],
+        start: int,
+        end: int,
+        grid: bool,
+        parallel: bool,
     ) -> list[int]:
-        if close := isinstance(file, (str, Path)):
+        """
+        Finds the byte offsets for frames in a LAMMPS dump file.
+
+        Parameters
+        ----------
+        file : `str`, `pathlib.Path`, or `io.TextIO`
+            Filename, path, or handle to the LAMMPS dump file.
+
+        start : `int`
+            Byte offset to start reading from.
+
+        end : `int`
+            Byte offset to stop reading at.
+
+        grid : `bool`
+            Specifies whether the file uses the :code:`style grid`
+            format.
+
+        parallel : `bool`
+            Determines whether the file is read in parallel.
+        """
+
+        manual = isinstance(file, (str, Path))
+        if manual:
             file = open(file, "r")
         byte_counter = file.seek(start)
 
@@ -176,24 +203,33 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
                 line = file.readline()
                 line_counter += 1
 
-        if close:
+        if manual:
             file.close()
 
         return offsets
 
     @store_init_arguments
     def __init__(
-            self, filename: str, conventions: Union[str, tuple[str]] = None,
-            unwrap: bool = False, *, extras: list[str] = None,
-            parallel: bool = False, n_workers: int = None, **kwargs) -> None:
+        self,
+        filename: str,
+        conventions: Union[str, tuple[str]] = None,
+        unwrap: bool = False,
+        *,
+        extras: list[str] = None,
+        parallel: bool = False,
+        n_workers: int = None,
+        **kwargs,
+    ) -> None:
 
         super().__init__(filename, **kwargs)
 
         if conventions is not None:
             if isinstance(conventions, str):
                 if conventions not in self._CONVENTIONS:
-                    emsg = (f"Invalid convention '{conventions}'. Valid "
-                            "values: '" + "', '".join(self._CONVENTIONS) + "'.")
+                    emsg = (
+                        f"Invalid convention '{conventions}'. Valid "
+                        "values: '" + "', '".join(self._CONVENTIONS) + "'."
+                    )
                     raise ValueError(emsg)
                 self._conventions = 3 * [conventions]
             elif len(conventions) != 3:
@@ -202,8 +238,10 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
             else:
                 for c in conventions:
                     if c not in self._CONVENTIONS:
-                        emsg = (f"Invalid convention '{c}'. Valid values: "
-                                "'" + "', '".join(self._CONVENTIONS) + "'.")
+                        emsg = (
+                            f"Invalid convention '{c}'. Valid values: "
+                            "'" + "', '".join(self._CONVENTIONS) + "'."
+                        )
                         raise ValueError(emsg)
                 self._conventions = conventions
         else:
@@ -233,7 +271,7 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
                         i * chunk_size,
                         min((i + 1) * chunk_size, file_size),
                         self.is_style_grid,
-                        True
+                        True,
                     )
                     for i in range(n_workers)
                 ):
@@ -246,14 +284,16 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
             )
 
         if isinstance(extras, str):
-            if extras not in self._EXTRA_ATTRIBUTES \
-                    or not extras.startswith(self._CUSTOM_ATTRIBUTE_PREFIXES):
+            if extras not in self._EXTRA_ATTRIBUTES or not extras.startswith(
+                self._CUSTOM_ATTRIBUTE_PREFIXES
+            ):
                 raise ValueError(f"Invalid attribute '{extras}' in 'extras'.")
             extras = [extras]
         elif extras is not None:
             for attr in extras:
-                if attr not in self._EXTRA_ATTRIBUTES \
-                        or not attr.startswith(self._CUSTOM_ATTRIBUTE_PREFIXES):
+                if attr not in self._EXTRA_ATTRIBUTES or not attr.startswith(
+                    self._CUSTOM_ATTRIBUTE_PREFIXES
+                ):
                     raise ValueError(f"Invalid attribute '{attr}' in 'extras'.")
         self._extras = extras
 
@@ -263,7 +303,6 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
         self._read_next_timestep()
 
     def _reopen(self) -> None:
-
         """
         Reopens the LAMMPS dump file.
         """
@@ -274,7 +313,6 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
         self.ts.frame = -1
 
     def _read_frame(self, frame: int) -> ReaderBase._Timestep:
-
         """
         Reads a specific frame from the LAMMPS dump file.
 
@@ -295,7 +333,6 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
         return self._read_next_timestep()
 
     def _read_next_timestep(self, ts: int = None) -> ReaderBase._Timestep:
-
         """
         Reads the next timestep from the LAMMPS dump file.
 
@@ -317,25 +354,29 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
             ts = self.ts
         ts.frame += 1
         if ts.frame >= self.n_frames:
-            emsg = (f"'{self.filename}' only has {self.n_frames} frames "
-                    f"and does not contain a frame {ts.frame}.")
+            emsg = (
+                f"'{self.filename}' only has {self.n_frames} frames "
+                f"and does not contain a frame {ts.frame}."
+            )
             raise EOFError(emsg)
 
         # Get file and read timestep information
         f = self._file
-        f.readline()                            # ITEM: TIMESTEP
+        f.readline()  # ITEM: TIMESTEP
         ts.data["step"] = int(f.readline())
         ts.data["time"] = ts.data["step"] * ts.dt
 
         # Read number of atoms
-        f.readline()                            # ITEM: NUMBER OF ATOMS
+        f.readline()  # ITEM: NUMBER OF ATOMS
         if (n_atoms := int(f.readline())) != self.n_atoms:
-            emsg = (f"Timestep {ts.data['step']} has {n_atoms} atoms, "
-                    f"but the topology has {self.n_atoms} atoms.")
+            emsg = (
+                f"Timestep {ts.data['step']} has {n_atoms} atoms, "
+                f"but the topology has {self.n_atoms} atoms."
+            )
             raise RuntimeError(emsg)
 
         # Read box information
-        if "xy xz yz" in (_ := f.readline()):   # ITEM: BOX BOUNDS
+        if "xy xz yz" in (_ := f.readline()):  # ITEM: BOX BOUNDS
             xlo, xhi, xy = (float(v) for v in f.readline().split())
             ylo, yhi, xz = (float(v) for v in f.readline().split())
             zlo, zhi, yz = (float(v) for v in f.readline().split())
@@ -378,9 +419,11 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
                     self._axis_indices[i] = -1
                 else:
                     if (col := attributes.get(f"{ax}{c}")) is None:
-                        emsg = (f"No {ax}-coordinate information with the "
-                                f"specified convention '{c}' found in "
-                                f"'{self.filename}'.")
+                        emsg = (
+                            f"No {ax}-coordinate information with the "
+                            f"specified convention '{c}' found in "
+                            f"'{self.filename}'."
+                        )
                         raise RuntimeError(emsg)
                     self._axis_indices[i] = col
         else:
@@ -394,40 +437,34 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
                     self._axis_indices[i] = -1
                     self._conventions.append(None)
         self._scaled_where = np.asarray(
-            [i for i, c in enumerate(self._conventions) if "s" in c],
-            dtype=int
+            [i for i, c in enumerate(self._conventions) if "s" in c], dtype=int
         )
         self._has_scaled = np.any(self._scaled_where)
 
         # Get image flag indices if unwrapping is desired
         if self._unwrap:
             self._image_indices = np.fromiter(
-                (-1 if ai == -1 or "u" in c
-                 else (attributes.get(f"i{ax}") or -1)
-                 for ax, ai, c in zip("xyz", self._axis_indices,
-                                      self._conventions)),
+                (
+                    -1 if ai == -1 or "u" in c else (attributes.get(f"i{ax}") or -1)
+                    for ax, ai, c in zip("xyz", self._axis_indices, self._conventions)
+                ),
                 dtype=int,
-                count=3
+                count=3,
             )
             if np.any(self._image_indices >= 0):
                 self._image_where = np.where(self._image_indices >= 0)[0]
             else:
-                wmsg = ("No image flags found in dump file. "
-                        "Setting 'unwrap=False'.")
+                wmsg = "No image flags found in dump file. " "Setting 'unwrap=False'."
                 warnings.warn(wmsg)
                 self._unwrap = False
 
         # Check if velocity and force information is available
         self._velocity_indices = np.fromiter(
-            (attributes.get(f"v{ax}") or -1 for ax in "xyz"),
-            dtype=int,
-            count=3
+            (attributes.get(f"v{ax}") or -1 for ax in "xyz"), dtype=int, count=3
         )
         ts.has_velocities = np.any(self._velocity_indices)
         self._force_indices = np.fromiter(
-            (attributes.get(f"f{ax}") or -1 for ax in "xyz"),
-            dtype=int,
-            count=3
+            (attributes.get(f"f{ax}") or -1 for ax in "xyz"), dtype=int, count=3
         )
         ts.has_forces = np.any(self._force_indices)
 
@@ -438,28 +475,27 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
                 if attr.startswith(self._CUSTOM_ATTRIBUTE_PREFIXES):
                     la = len(attr)
                     self._extras_indices[attr] = [
-                        j for _, j in sorted(
-                            (int(a[a.find("[", la) + 1:a.find("]", la)]), i)
+                        j
+                        for _, j in sorted(
+                            (int(a[a.find("[", la) + 1 : a.find("]", la)]), i)
                             for a, i in attributes.items()
                             if a.startswith(attr)
                         )
                     ]
                     ts.data[attr] = np.empty(
                         (n_atoms, len(self._extras_indices[attr])),
-                        dtype=np.int64 if attr.startswith("i_") else np.float32
+                        dtype=np.int64 if attr.startswith("i_") else np.float32,
                     )
                 else:
                     self._extras_indices[attr] = [
-                        attributes.get(a) or -1
-                        for a in self._EXTRA_ATTRIBUTES[attr]
+                        attributes.get(a) or -1 for a in self._EXTRA_ATTRIBUTES[attr]
                     ]
                     ts.data[attr] = np.empty(
-                        (n_atoms, len(self._extras_indices[attr])),
-                        dtype=np.float32
+                        (n_atoms, len(self._extras_indices[attr])), dtype=np.float32
                     )
 
         # Iterate over atoms and read their information
-        if (has_id := "id" in attributes):
+        if has_id := "id" in attributes:
             atom_indices = np.empty(self.n_atoms, dtype=int)
         for i in range(self.n_atoms):
             values = f.readline().split()
@@ -469,8 +505,9 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
                 atom_indices[i] = values[attributes["id"]]
 
             # Store atom positions (missing dimensions are left as 0)
-            ts.positions[i] = tuple(0 if ai == -1 else values[ai]
-                                    for ai in self._axis_indices)
+            ts.positions[i] = tuple(
+                0 if ai == -1 else values[ai] for ai in self._axis_indices
+            )
 
             # Unscale coordinates before unwrapping, if necessary
             if self._has_scaled:
@@ -480,10 +517,10 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
 
             # Unwrap coordinates, if necessary
             if self._unwrap:
-                ts.positions[i, self._image_where] += (
-                    ts.dimensions[self._image_where]
-                    * tuple(int(values[ii])
-                            for ii in self._image_indices[self._image_where])
+                ts.positions[i, self._image_where] += ts.dimensions[
+                    self._image_where
+                ] * tuple(
+                    int(values[ii]) for ii in self._image_indices[self._image_where]
                 )
 
             # Shift unwrapped and/or unscaled coordinates by the origin
@@ -492,11 +529,13 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
 
             # Store atom velocities and forces, if available
             if ts.has_velocities:
-                ts.velocities[i] = tuple(0 if vi == -1 else values[vi]
-                                         for vi in self._velocity_indices)
+                ts.velocities[i] = tuple(
+                    0 if vi == -1 else values[vi] for vi in self._velocity_indices
+                )
             if ts.has_forces:
-                ts.forces[i] = tuple(0 if fi == -1 else values[fi]
-                                     for fi in self._force_indices)
+                ts.forces[i] = tuple(
+                    0 if fi == -1 else values[fi] for fi in self._force_indices
+                )
 
             # Store extra information, if requested
             if self._extras:
@@ -505,7 +544,7 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
                         ts.data[attr][i] = np.fromiter(
                             (values[ai] for ai in attribute_indices),
                             dtype=np.int64 if attr.startswith("i_") else np.float32,
-                            count=len(attribute_indices)
+                            count=len(attribute_indices),
                         )
                     else:
                         ts.data[attr][i] = tuple(
@@ -532,10 +571,9 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
         return len(self._offsets)
 
     def close(self) -> None:
-
         """
         Closes the LAMMPS dump file.
         """
 
-        if hasattr(self, '_file'):
+        if hasattr(self, "_file"):
             self._file.close()

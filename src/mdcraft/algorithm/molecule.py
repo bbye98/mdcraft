@@ -12,16 +12,20 @@ from typing import Union
 import MDAnalysis as mda
 import numpy as np
 
-def center_of_mass(
-        group: mda.AtomGroup = None, grouping: str = None, *,
-        masses: Union[np.ndarray[float], list[np.ndarray[float]]] = None,
-        positions: Union[np.ndarray[float], list[np.ndarray[float]]] = None,
-        images: Union[np.ndarray[int], list[np.ndarray[int]]] = None,
-        dimensions: np.ndarray[float] = None, n_groups: int = None,
-        raw: bool = False
-    ) -> Union[np.ndarray[float],
-               tuple[np.ndarray[float], np.ndarray[float], np.ndarray[float]]]:
 
+def center_of_mass(
+    group: mda.AtomGroup = None,
+    grouping: str = None,
+    *,
+    masses: Union[np.ndarray[float], list[np.ndarray[float]]] = None,
+    positions: Union[np.ndarray[float], list[np.ndarray[float]]] = None,
+    images: Union[np.ndarray[int], list[np.ndarray[int]]] = None,
+    dimensions: np.ndarray[float] = None,
+    n_groups: int = None,
+    raw: bool = False,
+) -> Union[
+    np.ndarray[float], tuple[np.ndarray[float], np.ndarray[float], np.ndarray[float]]
+]:
     r"""
     Computes the centers of mass :math:`\mathbf{R}_\mathrm{com}` for a
     collection of atoms.
@@ -316,8 +320,10 @@ def center_of_mass(
 
     # Check whether grouping is valid
     if grouping not in {None, "residues", "segments"}:
-        emsg = (f"Invalid grouping: '{grouping}'. Valid options are "
-                "None, 'residues', and 'segments'.")
+        emsg = (
+            f"Invalid grouping: '{grouping}'. Valid options are "
+            "None, 'residues', and 'segments'."
+        )
         raise ValueError(emsg)
 
     # Get system dimensions if image flags are provided
@@ -326,9 +332,11 @@ def center_of_mass(
             try:
                 dimensions = group.dimensions[:3]
             except (NameError, TypeError):
-                emsg = ("Image flags were provided, but no system "
-                        "dimensions were provided or found in the "
-                        "trajectory.")
+                emsg = (
+                    "Image flags were provided, but no system "
+                    "dimensions were provided or found in the "
+                    "trajectory."
+                )
                 raise ValueError(emsg)
         else:
             dimensions = np.asarray(dimensions)
@@ -338,8 +346,10 @@ def center_of_mass(
     missing = (masses is None, positions is None)
     if any(missing):
         if group is None:
-            emsg = ("Either a group of atoms or atom positions and "
-                    "masses must be provided.")
+            emsg = (
+                "Either a group of atoms or atom positions and "
+                "masses must be provided."
+            )
             raise ValueError(emsg)
 
         # Check whether the groups have equal numbers of atoms
@@ -351,8 +361,15 @@ def center_of_mass(
             # Calculate and return the centers of mass for different
             # groups here if unwrapping and the mass and position arrays
             # are not needed
-            if not (same := all(g.atoms.n_atoms == groups[0].atoms.n_atoms
-                            for g in groups)) and images is None and not raw:
+            if (
+                not (
+                    same := all(
+                        g.atoms.n_atoms == groups[0].atoms.n_atoms for g in groups
+                    )
+                )
+                and images is None
+                and not raw
+            ):
                 return np.array([g.atoms.center_of_mass() for g in groups])
 
         # Get and unwrap particle positions, if necessary
@@ -387,12 +404,16 @@ def center_of_mass(
         except ValueError:
             pass
         if type(masses) is not type(positions):
-            emsg = ("The shapes of the arrays containing the masses "
-                    "and positions are incompatible.")
+            emsg = (
+                "The shapes of the arrays containing the masses "
+                "and positions are incompatible."
+            )
             raise ValueError(emsg)
         if images is not None and type(images) is not type(positions):
-            emsg = ("The shapes of the arrays containing the positions "
-                    "and image flags are incompatible.")
+            emsg = (
+                "The shapes of the arrays containing the positions "
+                "and image flags are incompatible."
+            )
             raise ValueError(emsg)
 
     # Calculate the centers of mass for the specified grouping
@@ -404,14 +425,14 @@ def center_of_mass(
             masses = masses.reshape((n_groups, -1))
             positions = positions.reshape((n_groups, -1, 3))
 
-        com = (np.einsum("...a,...ad->...d", masses, positions)
-               / masses.sum(axis=-1, keepdims=True))
+        com = np.einsum("...a,...ad->...d", masses, positions) / masses.sum(
+            axis=-1, keepdims=True
+        )
     else:
         if images is not None:
             for j, (p, i) in enumerate(zip(positions, images)):
                 positions[j] = p + i * dimensions
-        com = np.array([np.dot(m, p) / m.sum()
-                        for m, p in zip(masses, positions)])
+        com = np.array([np.dot(m, p) / m.sum() for m, p in zip(masses, positions)])
 
     # Return raw masses and positions, if desired
     if raw:
@@ -419,15 +440,19 @@ def center_of_mass(
 
     return com
 
-def radius_of_gyration(
-        group: mda.AtomGroup = None, grouping: str = None, *,
-        masses: Union[np.ndarray[float], list[np.ndarray[float]]] = None,
-        positions: Union[np.ndarray[float], list[np.ndarray[float]]] = None,
-        com: np.ndarray[float] = None,
-        images: Union[np.ndarray[int], list[np.ndarray[int]]] = None,
-        dimensions: np.ndarray[float] = None, n_groups: int = None,
-        components: bool = False) -> Union[float, np.ndarray[float]]:
 
+def radius_of_gyration(
+    group: mda.AtomGroup = None,
+    grouping: str = None,
+    *,
+    masses: Union[np.ndarray[float], list[np.ndarray[float]]] = None,
+    positions: Union[np.ndarray[float], list[np.ndarray[float]]] = None,
+    com: np.ndarray[float] = None,
+    images: Union[np.ndarray[int], list[np.ndarray[int]]] = None,
+    dimensions: np.ndarray[float] = None,
+    n_groups: int = None,
+    components: bool = False,
+) -> Union[float, np.ndarray[float]]:
     r"""
     Computes the radii of gyration :math:`R_\mathrm{g}` for a collection
     of atoms.
@@ -730,8 +755,10 @@ def radius_of_gyration(
 
     # Check whether grouping is valid
     if grouping not in {None, "residues", "segments"}:
-        emsg = (f"Invalid grouping: '{grouping}'. Valid options are "
-                "None, 'residues', and 'segments'.")
+        emsg = (
+            f"Invalid grouping: '{grouping}'. Valid options are "
+            "None, 'residues', and 'segments'."
+        )
         raise ValueError(emsg)
 
     # Get particle masses and positions from the trajectory and the
@@ -746,7 +773,7 @@ def radius_of_gyration(
             images=images,
             dimensions=dimensions,
             n_groups=n_groups,
-            raw=True
+            raw=True,
         )
     elif missing[2]:
         com, masses, positions = center_of_mass(
@@ -755,23 +782,29 @@ def radius_of_gyration(
             images=images,
             dimensions=dimensions,
             n_groups=n_groups,
-            raw=True
+            raw=True,
         )
 
     if isinstance(positions, np.ndarray):
         if components:
-            cpos = (positions
-                    - np.expand_dims(com, axis=positions.ndim - 2)) ** 2
+            cpos = (positions - np.expand_dims(com, axis=positions.ndim - 2)) ** 2
 
             # Compute the radii of gyration in each direction for
             # equisized or identical groups
             if grouping or n_groups:
                 return np.sqrt(
-                    np.einsum("ga,gad->gd", masses,
-                              np.stack((cpos[:, :, (1, 2)].sum(axis=2),
-                                        cpos[:, :, (0, 2)].sum(axis=2),
-                                        cpos[:, :, (0, 1)].sum(axis=2)),
-                                       axis=2))
+                    np.einsum(
+                        "ga,gad->gd",
+                        masses,
+                        np.stack(
+                            (
+                                cpos[:, :, (1, 2)].sum(axis=2),
+                                cpos[:, :, (0, 2)].sum(axis=2),
+                                cpos[:, :, (0, 1)].sum(axis=2),
+                            ),
+                            axis=2,
+                        ),
+                    )
                     / masses.sum(axis=1, keepdims=True)
                 )
 
@@ -780,24 +813,29 @@ def radius_of_gyration(
             return np.sqrt(
                 np.dot(
                     masses,
-                    np.hstack((cpos[:, (1, 2)].sum(axis=1, keepdims=True),
-                               cpos[:, (0, 2)].sum(axis=1, keepdims=True),
-                               cpos[:, (0, 1)].sum(axis=1, keepdims=True)))
-                ) / masses.sum()
+                    np.hstack(
+                        (
+                            cpos[:, (1, 2)].sum(axis=1, keepdims=True),
+                            cpos[:, (0, 2)].sum(axis=1, keepdims=True),
+                            cpos[:, (0, 1)].sum(axis=1, keepdims=True),
+                        )
+                    ),
+                )
+                / masses.sum()
             )
 
         # Compute the overall radii of gyration for equisized or
         # identical groups
         elif grouping or n_groups:
             return np.sqrt(
-                np.einsum("ga,gad->gd", masses,
-                          (positions - com[:, None]) ** 2).sum(axis=1)
+                np.einsum("ga,gad->gd", masses, (positions - com[:, None]) ** 2).sum(
+                    axis=1
+                )
                 / masses.sum(axis=1)
             )
 
         # Compute the overall radius of gyration for all atoms
-        return np.sqrt(np.dot(masses, (positions - com) ** 2).sum()
-                       / masses.sum())
+        return np.sqrt(np.dot(masses, (positions - com) ** 2).sum() / masses.sum())
 
     # Compute the radii of gyration in each direction for asymmetric
     # groups
@@ -805,15 +843,22 @@ def radius_of_gyration(
         gyradii = np.empty(com.shape)
         for i, (m, p, c) in enumerate(zip(masses, positions, com)):
             cpos = (p - c) ** 2
-            gyradii[i] = np.array(
-                (np.dot(m, cpos[:, (1, 2)].sum(axis=1)),
-                 np.dot(m, cpos[:, (0, 2)].sum(axis=1)),
-                 np.dot(m, cpos[:, (0, 1)].sum(axis=1)))
-            ) / m.sum()
+            gyradii[i] = (
+                np.array(
+                    (
+                        np.dot(m, cpos[:, (1, 2)].sum(axis=1)),
+                        np.dot(m, cpos[:, (0, 2)].sum(axis=1)),
+                        np.dot(m, cpos[:, (0, 1)].sum(axis=1)),
+                    )
+                )
+                / m.sum()
+            )
         return np.sqrt(gyradii)
 
     # Compute the overall radii of gyration for asymmetric groups
     return np.sqrt(
-        [np.einsum("a,ad->d", m, (p - c) ** 2).sum() / m.sum()
-         for m, p, c in zip(masses, positions, com)]
+        [
+            np.einsum("a,ad->d", m, (p - c) ** 2).sum() / m.sum()
+            for m, p, c in zip(masses, positions, com)
+        ]
     )

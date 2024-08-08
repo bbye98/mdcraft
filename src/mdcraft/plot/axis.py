@@ -11,11 +11,18 @@ from typing import Any
 import matplotlib as mpl
 import numpy as np
 
-def set_up_tabular_legend(
-        rows: list[str], cols: list[str], *, hlabel: str = None,
-        vlabel: str = None, hla: str = "left", vla: str = "top",
-        condense: bool = False, **kwargs) -> tuple[dict[str, Any], int, int]:
 
+def set_up_tabular_legend(
+    rows: list[str],
+    cols: list[str],
+    *,
+    hlabel: str = None,
+    vlabel: str = None,
+    hla: str = "left",
+    vla: str = "top",
+    condense: bool = False,
+    **kwargs,
+) -> tuple[dict[str, Any], int, int]:
     r"""
     Sets up a tabular legend for a :class:`matplotlib.axes.Axes` object.
 
@@ -122,17 +129,23 @@ def set_up_tabular_legend(
     if vlabel:
         labels[vpad + (len(rows) // 2 if vla == "center" else -condense)] = vlabel
     iv = vpad + nrow * (bool(vlabel) - condense)
-    labels[iv:iv + len(rows)] = rows
+    labels[iv : iv + len(rows)] = rows
     if hlabel:
-        labels[
-            (2 + (hla == "center") * (int(np.ceil(len(cols) / 2)) - 1)) * nrow
-        ] = hlabel
-    labels[hpad * nrow + bool(hlabel)::nrow] = cols
+        labels[(2 + (hla == "center") * (int(np.ceil(len(cols) / 2)) - 1)) * nrow] = (
+            hlabel
+        )
+    labels[hpad * nrow + bool(hlabel) :: nrow] = cols
 
-    return {
-        "handles": [mpl.patches.Rectangle((0, 0), 0.1, 0.1, ec="none", fill=False)
-                    for _ in range(len(labels))],
-        "labels": labels,
-        "ncol": ncol,
-        **kwargs
-    }, nrow, iv + nrow
+    return (
+        {
+            "handles": [
+                mpl.patches.Rectangle((0, 0), 0.1, 0.1, ec="none", fill=False)
+                for _ in range(len(labels))
+            ],
+            "labels": labels,
+            "ncol": ncol,
+            **kwargs,
+        },
+        nrow,
+        iv + nrow,
+    )

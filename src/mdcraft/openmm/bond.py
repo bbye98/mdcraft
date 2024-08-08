@@ -16,11 +16,12 @@ from openmm import unit
 
 from .pair import wca as pwca
 
-def _setup_bond(
-        cbforce: openmm.CustomBondForce,
-        global_params: dict[str, Union[float, unit.Quantity]],
-        per_params: list[str]) -> None:
 
+def _setup_bond(
+    cbforce: openmm.CustomBondForce,
+    global_params: dict[str, Union[float, unit.Quantity]],
+    per_params: list[str],
+) -> None:
     """
     Sets up a :class:`openmm.CustomBondForce` object.
 
@@ -41,11 +42,12 @@ def _setup_bond(
     for param in per_params:
         cbforce.addPerBondParameter(param)
 
-def fene(
-        global_args: dict[str, Union[float, unit.Quantity]] = None,
-        wca: bool = True, **kwargs
-    ) -> tuple[openmm.CustomBondForce, openmm.CustomNonbondedForce]:
 
+def fene(
+    global_args: dict[str, Union[float, unit.Quantity]] = None,
+    wca: bool = True,
+    **kwargs,
+) -> tuple[openmm.CustomBondForce, openmm.CustomNonbondedForce]:
     r"""
     Implements the finite extensible nonlinear elastic (FENE) potential
     used for bead-spring polymer models.

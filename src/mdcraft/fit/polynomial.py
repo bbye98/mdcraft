@@ -31,8 +31,8 @@ Note that in MATLAB, the polynomial models have the form
 
 import numpy as np
 
-def poly(x: np.ndarray, *args: float) -> np.ndarray:
 
+def poly(x: np.ndarray, *args: float) -> np.ndarray:
     r"""
     General polynomial model.
 
@@ -79,8 +79,8 @@ def poly(x: np.ndarray, *args: float) -> np.ndarray:
 
     return args @ (x ** np.arange(len(args))[:, None])
 
-def poly1(x: np.ndarray, p1: float, p2: float) -> np.ndarray:
 
+def poly1(x: np.ndarray, p1: float, p2: float) -> np.ndarray:
     r"""
     Convenience function for the :code:`poly1` model from MATLAB:
 
@@ -107,8 +107,8 @@ def poly1(x: np.ndarray, p1: float, p2: float) -> np.ndarray:
 
     return poly(x, p2, p1)
 
-def poly2(x: np.ndarray, p1: float, p2: float, p3: float) -> np.ndarray:
 
+def poly2(x: np.ndarray, p1: float, p2: float, p3: float) -> np.ndarray:
     r"""
     Convenience function for the :code:`poly2` model from MATLAB:
 
@@ -138,10 +138,8 @@ def poly2(x: np.ndarray, p1: float, p2: float, p3: float) -> np.ndarray:
 
     return poly(x, p3, p2, p1)
 
-def poly3(
-        x: np.ndarray, p1: float, p2: float, p3: float, p4: float
-    ) -> np.ndarray:
 
+def poly3(x: np.ndarray, p1: float, p2: float, p3: float, p4: float) -> np.ndarray:
     r"""
     Convenience function for the :code:`poly3` model from MATLAB:
 
@@ -174,10 +172,10 @@ def poly3(
 
     return poly(x, p4, p3, p2, p1)
 
-def poly4(
-        x: np.ndarray, p1: float, p2: float, p3: float, p4: float, p5: float
-    ) -> np.ndarray:
 
+def poly4(
+    x: np.ndarray, p1: float, p2: float, p3: float, p4: float, p5: float
+) -> np.ndarray:
     r"""
     Convenience function for the :code:`poly4` model from MATLAB:
 
@@ -213,10 +211,10 @@ def poly4(
 
     return poly(x, p5, p4, p3, p2, p1)
 
-def poly5(
-        x: np.ndarray, p1: float, p2: float, p3: float, p4: float, p5: float,
-        p6: float) -> np.ndarray:
 
+def poly5(
+    x: np.ndarray, p1: float, p2: float, p3: float, p4: float, p5: float, p6: float
+) -> np.ndarray:
     r"""
     Convenience function for the :code:`poly5` model from MATLAB:
 
@@ -255,10 +253,17 @@ def poly5(
 
     return poly(x, p6, p5, p4, p3, p2, p1)
 
-def poly6(
-        x: np.ndarray, p1: float, p2: float, p3: float, p4: float, p5: float,
-        p6: float, p7: float) -> np.ndarray:
 
+def poly6(
+    x: np.ndarray,
+    p1: float,
+    p2: float,
+    p3: float,
+    p4: float,
+    p5: float,
+    p6: float,
+    p7: float,
+) -> np.ndarray:
     r"""
     Convenience function for the :code:`poly6` model from MATLAB:
 
@@ -300,10 +305,18 @@ def poly6(
 
     return poly(x, p7, p6, p5, p4, p3, p2, p1)
 
-def poly7(
-        x: np.ndarray, p1: float, p2: float, p3: float, p4: float, p5: float,
-        p6: float, p7: float, p8: float) -> np.ndarray:
 
+def poly7(
+    x: np.ndarray,
+    p1: float,
+    p2: float,
+    p3: float,
+    p4: float,
+    p5: float,
+    p6: float,
+    p7: float,
+    p8: float,
+) -> np.ndarray:
     r"""
     Convenience function for the :code:`poly7` model from MATLAB:
 
@@ -348,10 +361,19 @@ def poly7(
 
     return poly(x, p8, p7, p6, p5, p4, p3, p2, p1)
 
-def poly8(
-        x: np.ndarray, p1: float, p2: float, p3: float, p4: float, p5: float,
-        p6: float, p7: float, p8: float, p9: float) -> np.ndarray:
 
+def poly8(
+    x: np.ndarray,
+    p1: float,
+    p2: float,
+    p3: float,
+    p4: float,
+    p5: float,
+    p6: float,
+    p7: float,
+    p8: float,
+    p9: float,
+) -> np.ndarray:
     r"""
     Convenience function for the :code:`poly8` model from MATLAB:
 
@@ -399,10 +421,20 @@ def poly8(
 
     return poly(x, p9, p8, p7, p6, p5, p4, p3, p2, p1)
 
-def poly9(
-        x: np.ndarray, p1: float, p2: float, p3: float, p4: float, p5: float,
-        p6: float, p7: float, p8: float, p9: float, p10: float) -> np.ndarray:
 
+def poly9(
+    x: np.ndarray,
+    p1: float,
+    p2: float,
+    p3: float,
+    p4: float,
+    p5: float,
+    p6: float,
+    p7: float,
+    p8: float,
+    p9: float,
+    p10: float,
+) -> np.ndarray:
     r"""
     Convenience function for the :code:`poly9` model from MATLAB:
 

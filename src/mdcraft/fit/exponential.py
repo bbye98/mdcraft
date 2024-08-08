@@ -41,8 +41,8 @@ density function for the normal distribution is obtained.
 
 import numpy as np
 
-def exp(x: np.ndarray, *args: float) -> np.ndarray:
 
+def exp(x: np.ndarray, *args: float) -> np.ndarray:
     r"""
     General exponential model.
 
@@ -96,8 +96,8 @@ def exp(x: np.ndarray, *args: float) -> np.ndarray:
         raise ValueError(emsg)
     return np.exp(args[1::2] * x[:, None]) @ args[::2]
 
-def exp1(x: np.ndarray, a: float, b: float) -> np.ndarray:
 
+def exp1(x: np.ndarray, a: float, b: float) -> np.ndarray:
     r"""
     Convenience function for the :code:`exp1` model from MATLAB.
 
@@ -125,8 +125,8 @@ def exp1(x: np.ndarray, a: float, b: float) -> np.ndarray:
 
     return exp(x, a, b)
 
-def exp2(x: np.ndarray, a: float, b: float, c: float, d: float) -> np.ndarray:
 
+def exp2(x: np.ndarray, a: float, b: float, c: float, d: float) -> np.ndarray:
     r"""
     Convenience function for the :code:`exp2` model from MATLAB.
 
@@ -161,10 +161,10 @@ def exp2(x: np.ndarray, a: float, b: float, c: float, d: float) -> np.ndarray:
 
     return exp(x, a, b, c, d)
 
-def biexp(
-        x: np.ndarray, y0: float, a: float, b: float, c: float, d: float
-    ) -> np.ndarray:
 
+def biexp(
+    x: np.ndarray, y0: float, a: float, b: float, c: float, d: float
+) -> np.ndarray:
     r"""
     Bi-exponential function.
 
@@ -202,8 +202,8 @@ def biexp(
 
     return y0 + a * np.exp(-x / b) + c * np.exp(-x / d)
 
-def stretched_exp(x: np.ndarray, alpha: float, beta: float) -> np.ndarray:
 
+def stretched_exp(x: np.ndarray, alpha: float, beta: float) -> np.ndarray:
     r"""
     Stretched exponential function.
 
@@ -228,4 +228,4 @@ def stretched_exp(x: np.ndarray, alpha: float, beta: float) -> np.ndarray:
         Fitted :math:`y`-values.
     """
 
-    return np.exp(-(x / alpha) ** beta)
+    return np.exp(-((x / alpha) ** beta))

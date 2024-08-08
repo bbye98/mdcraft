@@ -9,5 +9,4 @@ toolkit.
 
 from . import bond, file, pair, reporter, system, topology, unit, utility
 
-__all__ = ["bond", "file", "pair", "reporter", "system", "topology", "unit",
-           "utility"]
+__all__ = ["bond", "file", "pair", "reporter", "system", "topology", "unit", "utility"]
