@@ -15,5 +15,6 @@
         "orcid": "0000-0002-3361-6114"
     }],
     "access_right": "open",
-    "license": "GNU General Public License v3.0"
+    "description": "MDCraft is a Python assistant for performing and analyzing molecular dynamics simulations of soft matter systems. It is designed to provide comprehensive support throughout the entire simulation process, from initialization to post-processing.",
+    "license": "GPL-3.0-or-later"
 }
