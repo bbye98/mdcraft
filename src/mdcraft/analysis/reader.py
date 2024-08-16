@@ -217,7 +217,7 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
         *,
         extras: list[str] = None,
         parallel: bool = False,
-        n_workers: int = None,
+        n_threads: int = None,
         **kwargs,
     ) -> None:
 
@@ -258,11 +258,11 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
 
         file_size = os.path.getsize(filename)
         if parallel:
-            n_workers = n_workers or psutil.cpu_count()
-            chunk_size = np.ceil(file_size / n_workers).astype(int)
+            n_threads = n_threads or psutil.cpu_count()
+            chunk_size = np.ceil(file_size / n_threads).astype(int)
             self._offsets = []
             with concurrent.futures.ProcessPoolExecutor(
-                max_workers=n_workers
+                max_workers=n_threads
             ) as executor:
                 for future in concurrent.futures.as_completed(
                     executor.submit(
@@ -273,7 +273,7 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
                         self.is_style_grid,
                         True,
                     )
-                    for i in range(n_workers)
+                    for i in range(n_threads)
                 ):
                     self._offsets.extend(future.result())
             self._offsets.sort()
