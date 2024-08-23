@@ -55,12 +55,11 @@ class NetCDFFile:
             self._nc = file
         self._nc.set_always_mask(False)
 
-        if mode == "r":
-            self._frame = self._nc.variables["time"].shape[0]
-            self._restart = self._nc.Conventions == "AMBERRESTART"
-        else:
-            self._frame = 0
+        if mode in {"a", "r+", "w"}:
             self._restart = restart
+        else:
+            self._restart = self._nc.Conventions == "AMBERRESTART"
+        self._frame = self.get_num_frames()
 
     def get_dimensions(
         self, frames: Union[int, list[int], slice] = None, units: bool = True
