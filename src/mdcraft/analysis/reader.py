@@ -284,14 +284,14 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
             )
 
         if isinstance(extras, str):
-            if extras not in self._EXTRA_ATTRIBUTES or not extras.startswith(
+            if extras not in self._EXTRA_ATTRIBUTES and not extras.startswith(
                 self._CUSTOM_ATTRIBUTE_PREFIXES
             ):
                 raise ValueError(f"Invalid attribute '{extras}' in 'extras'.")
             extras = [extras]
         elif extras is not None:
             for attr in extras:
-                if attr not in self._EXTRA_ATTRIBUTES or not attr.startswith(
+                if attr not in self._EXTRA_ATTRIBUTES and not attr.startswith(
                     self._CUSTOM_ATTRIBUTE_PREFIXES
                 ):
                     raise ValueError(f"Invalid attribute '{attr}' in 'extras'.")
@@ -332,15 +332,9 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
         self.ts.frame = frame - 1
         return self._read_next_timestep()
 
-    def _read_next_timestep(self, ts: int = None) -> ReaderBase._Timestep:
+    def _read_next_timestep(self) -> ReaderBase._Timestep:
         """
         Reads the next timestep from the LAMMPS dump file.
-
-        Parameters
-        ----------
-        ts : `int`, optional
-            Timestep number to read. If not provided, the next timestep
-            is read.
 
         Returns
         -------
@@ -350,8 +344,7 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
         """
 
         # Set up timestep
-        if ts is None:
-            ts = self.ts
+        ts = self.ts
         ts.frame += 1
         if ts.frame >= self.n_frames:
             emsg = (

@@ -417,8 +417,8 @@ def gauss(
        u_\mathrm{Gauss}(r_{12})=\alpha_{12}\exp{(-\beta_{12}r_{12}^2)}
 
     where :math:`\alpha_{12}` is a magnitude scaling constant in
-    :math:`\mathrm{kJ/mol}` and :math:`\beta_{12}` is a screening length
-    in :math:`\mathrm{nm}`.
+    :math:`\mathrm{kJ/mol}` and :math:`\beta_{12}` is an exponential 
+    prefactor in :math:`\mathrm{nm}^{-2}`.
 
     In addition to arithmetic and geometric mixing rules for
     :math:`\alpha_{12}` and :math:`\beta_{12}`, an implementation of the
