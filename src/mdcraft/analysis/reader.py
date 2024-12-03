@@ -332,7 +332,7 @@ class LAMMPSDumpTrajectoryReader(ReaderBase):
         self.ts.frame = frame - 1
         return self._read_next_timestep()
 
-    def _read_next_timestep(self) -> ReaderBase._Timestep:
+    def _read_next_timestep(self, ts: int = None) -> ReaderBase._Timestep:
         """
         Reads the next timestep from the LAMMPS dump file.
 
