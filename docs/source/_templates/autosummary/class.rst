@@ -1,6 +1,5 @@
 {% set no_inheritance_classes = [
-   'mdcraft.analysis.base.Hash',
-   'mdcraft.analysis.reader.LAMMPSDumpTrajectoryReader'
+   
 ] %}
 
 {{ objname | escape | underline }}

@@ -1,14 +1,3 @@
-**/build/
 **/__pycache__/
-**/.pytest_cache/
-.ruff_cache/
-.vscode/
-.coverage
-dist/
-docs/build/
-docs/jupyter_execute/
-docs/source/api/
-lib/**/CMakeFiles
-lib/**/CMakeCache.txt
-src/mdcraft.egg-info
-tests/data/
+docs/build
+docs/source/api

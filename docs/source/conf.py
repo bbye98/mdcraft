@@ -8,7 +8,7 @@ import pathlib
 import sys
 
 sys.path.insert(0, f"{pathlib.Path(__file__).resolve().parents[2]}/src")
-from mdcraft import VERSION # noqa: E402
+from mdcraft import __version__  # noqa: E402
 
 now = datetime.now()
 
@@ -18,7 +18,7 @@ now = datetime.now()
 project = "MDCraft"
 copyright = f"2023–{now.year} Benjamin Ye, Pierre Walker"
 author = "Benjamin Ye, Pierre Walker"
-version = release = VERSION
+version = release = __version__
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -35,10 +35,10 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
     "sphinx.ext.napoleon",
-    "sphinx.ext.viewcode"
+    "sphinx.ext.viewcode",
 ]
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
-templates_path = ['_templates']
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+templates_path = ["_templates"]
 
 autosummary_generate = True
 intersphinx_mapping = {
@@ -46,12 +46,12 @@ intersphinx_mapping = {
     "joblib": ("https://joblib.readthedocs.io/en/latest/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "mdanalysis": ("https://docs.mdanalysis.org/stable/", None),
-    "numba": ("https://numba.pydata.org/numba-doc/latest/", None),
+    "numba": ("https://numba.readthedocs.io/en/stable/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "openmm": ("http://docs.openmm.org/latest/api-python/", None),
     "pint": ("https://pint.readthedocs.io/en/stable/", None),
     "python": ("https://docs.python.org/3/", None),
-    "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None)
+    "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
 }
 myst_enable_extensions = ["amsmath", "dollarmath"]
 myst_heading_anchors = 6
@@ -65,8 +65,8 @@ toc_object_entries_show_parents = "hide"
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_css_files = ["custom.css"]
-html_favicon = "../../assets/favicon.ico"
-html_logo = "../../assets/logo.png"
+html_favicon = "_static/assets/favicon.ico"
+html_logo = "_static/assets/logo.png"
 html_show_sourcelink = False
 html_static_path = ["_static"]
 html_theme = "furo"

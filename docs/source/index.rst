@@ -9,15 +9,11 @@ MDCraft Documentation
    User Guide <user_guide>
    API Reference <api/mdcraft>
 
-.. highlights::
-
-   MDCraft is a Python assistant for performing and analyzing molecular dynamics simulations of soft matter systems. It is designed to provide comprehensive support throughout the entire simulation process, from initialization to post-processing. 
-
 .. grid:: 1 1 2 2
    :gutter: 1 2 3 4
 
    .. grid-item-card::
-      :img-top: _static/index/getting_started.svg
+      :img-top: _static/assets/getting_started.svg
       :text-align: center
 
       **Setup**
@@ -35,13 +31,13 @@ MDCraft Documentation
          Getting started
 
    .. grid-item-card::
-      :img-top: _static/index/user_guide.svg
+      :img-top: _static/assets/user_guide.svg
       :text-align: center
 
       **Tutorials**
       ^^^
 
-      Want to see how MDCraft can be used? Explore a selection of curated examples. *Work in progress.*
+      Want to see how MDCraft can be used? Explore a selection of curated examples.
 
       +++
 
@@ -53,7 +49,7 @@ MDCraft Documentation
          User guide
 
    .. grid-item-card::
-      :img-top: _static/index/api_reference.svg
+      :img-top: _static/assets/api_reference.svg
       :text-align: center
 
       **Features**
@@ -71,7 +67,7 @@ MDCraft Documentation
          API reference
 
    .. grid-item-card::
-      :img-top: _static/index/contribution_guidelines.svg
+      :img-top: _static/assets/contribution_guidelines.svg
       :text-align: center
 
       **Contributing**
