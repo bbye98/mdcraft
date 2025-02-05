@@ -31,15 +31,12 @@ namespace OpenMM {
     private:
         DPDMethod dpdMethod;
         NeighborList *neighborList;
-        int numParticles, numTypePairs, num14;
         bool exceptionsArePeriodic;
+        int numParticles, numTypePairs;
         double nonbondedCutoff;
-        std::map<int, int> nb14Index;
         std::vector<int> particleTypes;
-        std::vector<std::vector<int>> bonded14IndexArray;
-        std::vector<std::vector<double>> particleParamArray, bonded14ParamArray;
-        std::vector<std::array<double, 3>> baseExceptionParams;
-        std::vector<std::set<int>> exclusions;
+        std::vector<std::set<int>> perParticleExclusions;
+        std::vector<std::vector<double>> pairParams;
 
         void computeParameters(ContextImpl &context);
     };

@@ -29,22 +29,23 @@ void OpenMM::DPDForceImpl::initialize(ContextImpl &context) {
             "DPDForce must have exactly as many particles as the System it "
             "belongs to.");
 
-    std::unordered_set<int> uniqueTypes;
+    std::unordered_set<int> uniqueTypesSet;
     for (int i = 0; i < owner.getNumParticles(); i++) {
         int typeIndex = owner.getParticleType(i);
         if (typeIndex != 0)
-            uniqueTypes.insert(typeIndex);
+            uniqueTypesSet.insert(typeIndex);
     }
-    std::vector<int> uniqueTypeVector(uniqueTypes.begin(), uniqueTypes.end());
-    for (int i = 0; i < uniqueTypeVector.size(); i++) {
-        int type1 = uniqueTypeVector[i];
+    std::vector<int> uniqueTypesVector(uniqueTypesSet.begin(),
+                                       uniqueTypesSet.end());
+    std::sort(uniqueTypesVector.begin(), uniqueTypesVector.end());
+    for (int i = 0; i < uniqueTypesVector.size(); i++) {
+        int type1 = uniqueTypesVector[i];
         if (type1 == 0)
             continue;
-        for (int j = i; j < uniqueTypeVector.size(); j++) {
-            int type2 = uniqueTypeVector[j];
+        for (int j = i; j < uniqueTypesVector.size(); j++) {
+            int type2 = uniqueTypesVector[j];
             if (type2 == 0)
                 continue;
-            std::tie(type1, type2) = std::minmax(type1, type2);
             if (owner.getTypePairIndex(type1, type2) == -1) {
                 throw OpenMM::OpenMMException(
                     "DPDForce: No DPD parameters defined for particles of "

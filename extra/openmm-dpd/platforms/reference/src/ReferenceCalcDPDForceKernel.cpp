@@ -11,41 +11,35 @@ OpenMM::ReferenceCalcDPDForceKernel::~ReferenceCalcDPDForceKernel() {
 void OpenMM::ReferenceCalcDPDForceKernel::initialize(const System& system,
                                                      const DPDForce& force) {
     numParticles = force.getNumParticles();
-    exclusions.resize(numParticles);
-    std::vector<int> nb14s;
+    perParticleExclusions.resize(numParticles);
     for (int i = 0; i < force.getNumExceptions(); i++) {
         int particle1, particle2;
         double A, gamma, rCut;
         force.getExceptionParameters(i, particle1, particle2, A, gamma, rCut);
-        exclusions[particle1].insert(particle2);
-        exclusions[particle2].insert(particle1);
-        if (A != 0.0) {
-            nb14Index[i] = nb14s.size();
-            nb14s.push_back(i);
-        }
+        perParticleExclusions[particle1].insert(particle2);
+        perParticleExclusions[particle2].insert(particle1);
+        // TODO: Handle exceptions (exclusions where A != 0).
     }
 
     numTypePairs = force.getNumTypePairs();
-    particleParamArray.resize(numParticles, std::vector<double>(3));
+    pairParams.resize(numTypePairs * (numTypePairs + 1) / 2,
+                      std::vector<double>(3));  // N * (N + 1) / 2
     for (int i = 0; i < numTypePairs; ++i) {
         int type1, type2;
         double A, gamma, rCut;
         force.getTypePairParameters(i, type1, type2, A, gamma, rCut);
-        particleParamArray[type1 * (type1 + 1) / 2 + type2] = {A, gamma, rCut};
+        pairParams[type1 * (type1 + 1) / 2 + type2] = {
+            A, gamma, rCut};  // i * (i + 1) / 2 + j
     }
 
-    num14 = nb14s.size();
-    bonded14IndexArray.resize(num14, std::vector<int>(2));
-    bonded14ParamArray.resize(num14, std::vector<double>(3));
-    baseExceptionParams.resize(num14, std::array<double, 3>());
-    for (int i = 0; i < num14; ++i) {
-        int particle1, particle2;
-        force.getExceptionParameters(
-            nb14s[i], particle1, particle2, baseExceptionParams[i][0],
-            baseExceptionParams[i][1], baseExceptionParams[i][2]);
-        bonded14IndexArray[i][0] = particle1;
-        bonded14IndexArray[i][1] = particle2;
-    }
+    dpdMethod = CalcDPDForceKernel::DPDMethod(force.getDPDMethod());
+    nonbondedCutoff = force.getCutoffDistance();
+    neighborList = new NeighborList();
+    if (dpdMethod == CutoffNonPeriodic)
+        exceptionsArePeriodic = false;
+    else
+        exceptionsArePeriodic =
+            force.getExceptionsUsePeriodicBoundaryConditions();
 }
 
 double OpenMM::ReferenceCalcDPDForceKernel::execute(ContextImpl& context,

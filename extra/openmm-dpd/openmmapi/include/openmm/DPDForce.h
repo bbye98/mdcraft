@@ -17,7 +17,7 @@ namespace OpenMM {
         enum DPDMethod { CutoffNonPeriodic = 1, CutoffPeriodic = 2 };
 
         DPDForce(double A = 0.0, double Gamma = 0.0, double rCut = 0.0,
-                 bool conservative = true);
+                 double cutoff = 1.0, bool conservative = true);
 
         DPDMethod getDPDMethod() const { return dpdMethod; }
 
@@ -34,6 +34,10 @@ namespace OpenMM {
         double getRCut() const { return globalRCut; }
 
         void setRCut(double rCut) { globalRCut = rCut; }
+
+        double getCutoffDistance() const { return cutoffDistance; }
+
+        void setCutoffDistance(double distance) { cutoffDistance = distance; }
 
         int getNumParticles() const { return particleTypes.size(); }
 
@@ -120,7 +124,7 @@ namespace OpenMM {
 
         DPDMethod dpdMethod;
         bool exceptionsUsePeriodic, includeConservative;
-        double globalA, globalGamma, globalRCut;
+        double globalA, globalGamma, globalRCut, cutoffDistance;
         void addExclusionsToSet(const std::vector<std::set<int>> &bonded12,
                                 std::set<int> &exclusions, int baseParticle,
                                 int fromParticle, int currentLevel) const;

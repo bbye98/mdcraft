@@ -8,7 +8,7 @@
 #include "openmm/internal/AssertionUtilities.h"
 #include "openmm/internal/DPDForceImpl.h"
 
-OpenMM::DPDForce::DPDForce(double A, double Gamma, double rCut,
+OpenMM::DPDForce::DPDForce(double A, double Gamma, double rCut, double cutoff,
                            bool conservative) {
     globalA = A;
     if (Gamma < 0.0)
@@ -19,6 +19,7 @@ OpenMM::DPDForce::DPDForce(double A, double Gamma, double rCut,
         throw OpenMM::OpenMMException(
             "DPDForce: rCut must be greater than or equal to 0");
     globalRCut = rCut;
+    cutoffDistance = cutoff;
     includeConservative = conservative;
 }
 
@@ -77,7 +78,6 @@ int OpenMM::DPDForce::addTypePair(int type1, int type2, double A, double gamma,
 }
 
 int OpenMM::DPDForce::getTypePairIndex(int type1, int type2) const {
-    // TODO: To be removed.
     if (type1 == 0 || type2 == 0)
         return -1;
     auto iter = typePairMap.find(std::minmax(type1, type2));
