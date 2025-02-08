@@ -80,9 +80,9 @@ void OpenMM::DPDForceImpl::initialize(ContextImpl &context) {
         if (gamma < 0)
             throw OpenMM::OpenMMException(
                 "DPDForce: gamma for an exception cannot be negative");
-        if (rCut < 0)
+        if (rCut <= 0)
             throw OpenMM::OpenMMException(
-                "DPDForce: rCut for an exception cannot be negative");
+                "DPDForce: rCut for an exception must be positive");
     }
 }
 

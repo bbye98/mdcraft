@@ -1,13 +1,13 @@
 #ifndef OPENMM_REFERENCECALCDPDFORCEKERNEL_H_
 #define OPENMM_REFERENCECALCDPDFORCEKERNEL_H_
 
-#include "ReferenceNeighborList.h"
-#include "ReferencePlatform.h"
 #include "openmm/CalcDPDForceKernel.h"
 #include "openmm/DPDForce.h"
 #include "openmm/System.h"
 #include "openmm/internal/ContextImpl.h"
 #include "openmm/internal/windowsExport.h"
+#include "openmm/reference/ReferenceNeighborList.h"
+#include "openmm/reference/ReferencePlatform.h"
 
 namespace OpenMM {
 
@@ -32,11 +32,13 @@ namespace OpenMM {
         DPDMethod dpdMethod;
         NeighborList *neighborList;
         bool exceptionsArePeriodic;
-        int numParticles, numTypePairs;
-        double nonbondedCutoff;
+        int numParticles, numTypePairs, numExceptions;
+        double defaultA, defaultGamma, defaultRCut, nonbondedCutoff;
         std::vector<int> particleTypes;
-        std::vector<std::set<int>> perParticleExclusions;
         std::vector<std::vector<double>> pairParams;
+        std::vector<std::set<int>> perParticleExclusions;
+        std::vector<std::vector<int>> exceptionParticlePairs;
+        std::vector<std::array<double, 3>> exceptionParams;
 
         void computeParameters(ContextImpl &context);
     };
