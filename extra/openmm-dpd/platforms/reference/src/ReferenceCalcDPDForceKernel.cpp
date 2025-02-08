@@ -17,7 +17,7 @@ void OpenMM::ReferenceCalcDPDForceKernel::initialize(const System& system,
     std::vector<int> exceptionIndices;
     numParticles = force.getNumParticles();
     perParticleExclusions.resize(numParticles);
-    for (int i = 0; i < force.getNumExceptions(); i++) {
+    for (int i = 0; i < force.getNumExceptions(); ++i) {
         int particle1, particle2;
         double A, gamma, rCut;
         force.getExceptionParameters(i, particle1, particle2, A, gamma, rCut);

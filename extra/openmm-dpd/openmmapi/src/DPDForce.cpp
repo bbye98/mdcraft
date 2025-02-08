@@ -16,8 +16,7 @@ OpenMM::DPDForce::DPDForce(double A, double Gamma, double rCut, double cutoff,
             "DPDForce: gamma must be greater than or equal to 0");
     globalGamma = Gamma;
     if (rCut <= 0.0)
-        throw OpenMM::OpenMMException(
-            "DPDForce: rCut must be greater than 0");
+        throw OpenMM::OpenMMException("DPDForce: rCut must be greater than 0");
     globalRCut = rCut;
     cutoffDistance = cutoff;
     includeConservative = conservative;
@@ -59,7 +58,7 @@ int OpenMM::DPDForce::addTypePair(int type1, int type2, double A, double gamma,
             "DPDForce.addTypePair: rCut must be greater than 0");
 
     auto types = std::minmax(type1, type2);
-    auto [iter, inserted] = typePairMap.try_emplace(types, typePairs.size());
+    auto [iter, inserted] = typePairMap.emplace(types, typePairs.size());
     if (inserted)
         typePairs.emplace_back(
             TypePairInfo(types.first, types.second, A, gamma, rCut));
@@ -139,8 +138,7 @@ int OpenMM::DPDForce::addException(int particle1, int particle2, double A,
             "DPDForce.addException: rCut must be greater than 0");
 
     auto particles = std::minmax(particle1, particle2);
-    auto [iter, inserted] =
-        exceptionMap.try_emplace(particles, exceptions.size());
+    auto [iter, inserted] = exceptionMap.emplace(particles, exceptions.size());
     if (inserted)
         exceptions.emplace_back(
             ExceptionInfo(particle1, particle2, A, gamma, rCut));

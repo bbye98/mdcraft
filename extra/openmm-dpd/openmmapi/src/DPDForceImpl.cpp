@@ -30,7 +30,7 @@ void OpenMM::DPDForceImpl::initialize(ContextImpl &context) {
             "belongs to.");
 
     std::unordered_set<int> uniqueTypesSet;
-    for (int i = 0; i < owner.getNumParticles(); i++) {
+    for (int i = 0; i < owner.getNumParticles(); ++i) {
         int typeIndex = owner.getParticleType(i);
         if (typeIndex != 0)
             uniqueTypesSet.insert(typeIndex);
@@ -38,11 +38,11 @@ void OpenMM::DPDForceImpl::initialize(ContextImpl &context) {
     std::vector<int> uniqueTypesVector(uniqueTypesSet.begin(),
                                        uniqueTypesSet.end());
     std::sort(uniqueTypesVector.begin(), uniqueTypesVector.end());
-    for (int i = 0; i < uniqueTypesVector.size(); i++) {
+    for (int i = 0; i < uniqueTypesVector.size(); ++i) {
         int type1 = uniqueTypesVector[i];
         if (type1 == 0)
             continue;
-        for (int j = i; j < uniqueTypesVector.size(); j++) {
+        for (int j = i; j < uniqueTypesVector.size(); ++j) {
             int type2 = uniqueTypesVector[j];
             if (type2 == 0)
                 continue;
@@ -56,25 +56,25 @@ void OpenMM::DPDForceImpl::initialize(ContextImpl &context) {
     }
 
     std::vector<std::set<int>> exceptions(owner.getNumParticles());
-    for (int i = 0; i < owner.getNumExceptions(); i++) {
-        int particle[2];
+    for (int i = 0; i < owner.getNumExceptions(); ++i) {
+        int particles[2];
         double A, gamma, rCut;
-        owner.getExceptionParameters(i, particle[0], particle[1], A, gamma,
+        owner.getExceptionParameters(i, particles[0], particles[1], A, gamma,
                                      rCut);
-        int minp = std::min(particle[0], particle[1]);
-        int maxp = std::max(particle[0], particle[1]);
-        for (int j = 0; j < 2; j++) {
-            if (particle[j] < 0 || particle[j] >= owner.getNumParticles()) {
+        int minp = std::min(particles[0], particles[1]);
+        int maxp = std::max(particles[0], particles[1]);
+        for (int particle : particles) {
+            if (particle < 0 || particle >= owner.getNumParticles()) {
                 throw OpenMM::OpenMMException(
                     "DPDForce: Illegal particle index for an exception: " +
-                    std::to_string(particle[j]));
+                    std::to_string(particle));
             }
         }
         if (exceptions[minp].count(maxp) > 0) {
             throw OpenMM::OpenMMException(
                 "DPDForce: Multiple exceptions are specified for particles " +
-                std::to_string(particle[0]) + " and " +
-                std::to_string(particle[1]));
+                std::to_string(particles[0]) + " and " +
+                std::to_string(particles[1]));
         }
         exceptions[minp].insert(maxp);
         if (gamma < 0)
