@@ -29,16 +29,14 @@ void OpenMM::ReferenceCalcDPDForceKernel::initialize(const System& system,
 
     numTypePairs = force.getNumTypePairs();
     numExceptions = exceptionIndices.size();
-    pairParams.resize(numTypePairs * (numTypePairs + 1) / 2,
-                      std::vector<double>(3));  // N * (N + 1) / 2
-    exceptionParticlePairs.resize(numExceptions, std::vector<int>(2));
-    exceptionParams.resize(numExceptions, std::array<double, 3>());
+    pairParams.resize(numTypePairs * (numTypePairs + 1) / 2);
+    exceptionParticlePairs.resize(numExceptions);
+    exceptionParams.resize(numExceptions);
     for (int i = 0; i < numTypePairs; ++i) {
         int type1, type2;
         double A, gamma, rCut;
         force.getTypePairParameters(i, type1, type2, A, gamma, rCut);
-        pairParams[type1 * (type1 + 1) / 2 + type2] = {
-            A, gamma, rCut};  // i * (i + 1) / 2 + j
+        pairParams[type1 * (type1 + 1) / 2 + type2] = {A, gamma, rCut};
     }
     for (int i = 0; i < numExceptions; ++i) {
         int particle1, particle2;

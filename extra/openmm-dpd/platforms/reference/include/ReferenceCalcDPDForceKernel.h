@@ -35,10 +35,9 @@ namespace OpenMM {
         int numParticles, numTypePairs, numExceptions;
         double defaultA, defaultGamma, defaultRCut, nonbondedCutoff;
         std::vector<int> particleTypes;
-        std::vector<std::vector<double>> pairParams;
+        std::vector<std::array<int, 2>> exceptionParticlePairs;
+        std::vector<std::array<double, 3>> pairParams, exceptionParams;
         std::vector<std::set<int>> perParticleExclusions;
-        std::vector<std::vector<int>> exceptionParticlePairs;
-        std::vector<std::array<double, 3>> exceptionParams;
 
         void computeParameters(ContextImpl &context);
     };
