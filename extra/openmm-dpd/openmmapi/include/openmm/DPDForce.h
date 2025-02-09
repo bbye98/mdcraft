@@ -3,6 +3,7 @@
 
 #include <set>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -17,27 +18,27 @@ namespace OpenMM {
         enum DPDMethod { CutoffNonPeriodic = 1, CutoffPeriodic = 2 };
 
         DPDForce(double A = 0.0, double Gamma = 0.0, double rCut = 0.0,
-                 double cutoff = 1.0, bool conservative = true);
+                 double cutoff = 0.0, bool conservative = true);
 
         DPDMethod getDPDMethod() const { return dpdMethod; }
 
         void setDPDMethod(DPDMethod method) { dpdMethod = method; }
 
-        double getA() const { return globalA; }
+        double getA() const { return defaultA; }
 
-        void setA(double A) { globalA = A; }
+        void setA(double A) { defaultA = A; }
 
-        double getGamma() const { return globalGamma; }
+        double getGamma() const { return defaultGamma; }
 
-        void setGamma(double gamma) { globalGamma = gamma; }
+        void setGamma(double gamma);
 
-        double getRCut() const { return globalRCut; }
+        double getRCut() const { return defaultRCut; }
 
-        void setRCut(double rCut) { globalRCut = rCut; }
+        void setRCut(double rCut);
 
         double getCutoffDistance() const { return cutoffDistance; }
 
-        void setCutoffDistance(double distance) { cutoffDistance = distance; }
+        void setCutoffDistance(double cutoff);
 
         int getNumParticles() const { return particleTypes.size(); }
 
@@ -124,10 +125,7 @@ namespace OpenMM {
 
         DPDMethod dpdMethod;
         bool exceptionsUsePeriodic, includeConservative;
-        double globalA, globalGamma, globalRCut, cutoffDistance;
-        void addExclusionsToSet(const std::vector<std::set<int>> &bonded12,
-                                std::set<int> &exclusions, int baseParticle,
-                                int fromParticle, int currentLevel) const;
+        double defaultA, defaultGamma, defaultRCut, cutoffDistance;
         std::vector<int> particleTypes;
         std::vector<TypePairInfo> typePairs;
         std::vector<ExceptionInfo> exceptions;
@@ -135,6 +133,10 @@ namespace OpenMM {
         std::unordered_map<std::pair<int, int>, int, PairHash> exceptionMap;
         mutable int numContexts, firstChangedParticle, lastChangedParticle,
             firstChangedException, lastChangedException;
+
+        void addExclusionsToSet(const std::vector<std::set<int>> &bonded12,
+                                std::set<int> &exclusions, int baseParticle,
+                                int fromParticle, int currentLevel) const;
     };
 
 }  // namespace OpenMM

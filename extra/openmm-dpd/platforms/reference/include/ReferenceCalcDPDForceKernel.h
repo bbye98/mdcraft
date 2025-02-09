@@ -20,26 +20,24 @@ namespace OpenMM {
 
         void initialize(const System &system, const DPDForce &force) override;
 
-        double execute(ContextImpl &context, bool includeForces,
-                       bool includeEnergy, bool includeConservative) override;
-
         void copyParametersToContext(ContextImpl &context,
                                      const DPDForce &force, int firstParticle,
                                      int lastParticle, int firstException,
                                      int lastException) override;
 
+        double execute(ContextImpl &context, bool includeForces,
+                       bool includeEnergy, bool includeConservative) override;
+
     private:
         DPDMethod dpdMethod;
         NeighborList *neighborList;
         bool exceptionsArePeriodic;
-        int numParticles, numTypePairs, numExceptions;
+        int numParticles, numTypePairs, numExceptions, numTotalExceptions;
         double defaultA, defaultGamma, defaultRCut, nonbondedCutoff;
         std::vector<int> particleTypes;
         std::vector<std::array<int, 2>> exceptionParticlePairs;
         std::vector<std::array<double, 3>> pairParams, exceptionParams;
         std::vector<std::set<int>> perParticleExclusions;
-
-        void computeParameters(ContextImpl &context);
     };
 }
 

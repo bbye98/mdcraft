@@ -8,21 +8,36 @@
 #include "openmm/internal/AssertionUtilities.h"
 #include "openmm/internal/DPDForceImpl.h"
 
-OpenMM::DPDForce::DPDForce(double A, double Gamma, double rCut, double cutoff,
+OpenMM::DPDForce::DPDForce(double A, double gamma, double rCut, double cutoff,
                            bool conservative) {
-    globalA = A;
-    if (Gamma < 0.0)
-        throw OpenMM::OpenMMException(
-            "DPDForce: gamma must be greater than or equal to 0");
-    globalGamma = Gamma;
-    if (rCut <= 0.0)
-        throw OpenMM::OpenMMException("DPDForce: rCut must be greater than 0");
-    globalRCut = rCut;
-    cutoffDistance = cutoff;
+    defaultA = A;
+    setGamma(gamma);
+    setRCut(rCut);
+    setCutoffDistance(cutoff);
     includeConservative = conservative;
 }
 
-int OpenMM::DPDForce::addParticle(int typeIndex = 0) {
+void OpenMM::DPDForce::setGamma(double gamma) {
+    if (gamma < 0.0)
+        throw OpenMM::OpenMMException(
+            "DPDForce: gamma must be greater than or equal to 0");
+    defaultGamma = gamma;
+}
+
+void OpenMM::DPDForce::setRCut(double rCut) {
+    if (rCut <= 0.0)
+        throw OpenMM::OpenMMException("DPDForce: rCut must be greater than 0");
+    defaultRCut = rCut;
+}
+
+void OpenMM::DPDForce::setCutoffDistance(double cutoff) {
+    if (cutoff <= 0.0)
+        throw OpenMM::OpenMMException(
+            "DPDForce: cutoff must be greater than 0");
+    cutoffDistance = cutoff;
+}
+
+int OpenMM::DPDForce::addParticle(int typeIndex) {
     particleTypes.push_back(typeIndex);
     return particleTypes.size() - 1;
 }
@@ -239,8 +254,8 @@ void OpenMM::DPDForce::createExceptionsFromBonds(
                                      typePairs[typePairIndex].gamma,
                                      typePairs[typePairIndex].rCut);
                     } else
-                        addException(j, i, A14Scale * globalA, globalGamma,
-                                     globalRCut);
+                        addException(j, i, A14Scale * defaultA, defaultGamma,
+                                     defaultRCut);
                 } else
                     addException(j, i, 0.0, 0.0, 0.0);
             }
