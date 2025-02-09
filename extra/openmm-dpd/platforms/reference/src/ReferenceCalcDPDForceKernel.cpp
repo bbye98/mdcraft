@@ -141,4 +141,10 @@ void OpenMM::ReferenceCalcDPDForceKernel::copyParametersToContext(
 double OpenMM::ReferenceCalcDPDForceKernel::execute(ContextImpl& context,
                                                     bool includeForces,
                                                     bool includeEnergy,
-                                                    bool includeConservative) {}
+                                                    bool includeConservative) {
+    ReferencePlatform::PlatformData* data =
+        reinterpret_cast<ReferencePlatform::PlatformData*>(
+            context.getPlatformData());
+    std::vector<Vec3>& particlePositions = *data->positions;
+    std::vector<Vec3>& particleForces = *data->forces;
+}
