@@ -33,7 +33,8 @@ namespace OpenMM {
         NeighborList *neighborList;
         bool exceptionsArePeriodic;
         int numParticles, numTypePairs, numExceptions, numTotalExceptions;
-        double defaultA, defaultGamma, defaultRCut, nonbondedCutoff;
+        double defaultA, defaultGamma, defaultRCut, temperature,
+            nonbondedCutoff;
         std::vector<int> particleTypes;
         std::vector<std::array<int, 2>> exceptionParticlePairs;
         std::vector<std::array<double, 3>> pairParams, exceptionParams;
@@ -43,8 +44,8 @@ namespace OpenMM {
                              const std::vector<OpenMM::Vec3> &positions,
                              const std::vector<OpenMM::Vec3> &velocities,
                              std::vector<OpenMM::Vec3> &forces,
-                             double &totalEnergy, bool includeConservative,
-                             bool periodic,
+                             double &totalEnergy, const double dt,
+                             bool includeConservative, bool periodic,
                              const OpenMM::Vec3 *boxVectors = nullptr);
     };
 }

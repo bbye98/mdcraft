@@ -8,11 +8,13 @@
 #include "openmm/internal/AssertionUtilities.h"
 #include "openmm/internal/DPDForceImpl.h"
 
-OpenMM::DPDForce::DPDForce(double A, double gamma, double rCut, double cutoff,
+OpenMM::DPDForce::DPDForce(double A, double gamma, double rCut,
+                           double temperature, double cutoff,
                            bool conservative) {
     defaultA = A;
     setGamma(gamma);
     setRCut(rCut);
+    setTemperature(temperature);
     setCutoffDistance(cutoff);
     includeConservative = conservative;
 }
@@ -28,6 +30,13 @@ void OpenMM::DPDForce::setRCut(double rCut) {
     if (rCut <= 0.0)
         throw OpenMM::OpenMMException("DPDForce: rCut must be greater than 0");
     defaultRCut = rCut;
+}
+
+void OpenMM::DPDForce::setTemperature(double temp) {
+    if (temp <= 0.0)
+        throw OpenMM::OpenMMException(
+            "DPDForce: temperature must be greater than 0");
+    temperature = temp;
 }
 
 void OpenMM::DPDForce::setCutoffDistance(double cutoff) {

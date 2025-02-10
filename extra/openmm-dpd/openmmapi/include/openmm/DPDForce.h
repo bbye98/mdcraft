@@ -21,8 +21,9 @@ namespace OpenMM {
             CutoffPeriodic = 2
         };
 
-        DPDForce(double A = 0.0, double Gamma = 0.0, double rCut = 0.0,
-                 double cutoff = 0.0, bool conservative = true);
+        DPDForce(double A = 0.0, double gamma = 0.0, double rCut = 0.0,
+                 double temperature = 298.15, double cutoff = 0.0,
+                 bool conservative = true);
 
         DPDMethod getDPDMethod() const { return dpdMethod; }
 
@@ -39,6 +40,10 @@ namespace OpenMM {
         double getRCut() const { return defaultRCut; }
 
         void setRCut(double rCut);
+
+        void setTemperature(double temperature);
+
+        double getTemperature() const { return temperature; }
 
         double getCutoffDistance() const { return cutoffDistance; }
 
@@ -129,7 +134,7 @@ namespace OpenMM {
 
         DPDMethod dpdMethod;
         bool exceptionsUsePeriodic, includeConservative;
-        double defaultA, defaultGamma, defaultRCut, cutoffDistance;
+        double defaultA, defaultGamma, defaultRCut, temperature, cutoffDistance;
         std::vector<int> particleTypes;
         std::vector<TypePairInfo> typePairs;
         std::vector<ExceptionInfo> exceptions;

@@ -2,8 +2,10 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <vector>
 
+#include "SimTKOpenMMUtilities.h"
 #include "openmm/reference/ReferenceForce.h"
 
 static constexpr double EPSILON = 1.0e-10;
@@ -18,6 +20,7 @@ void OpenMM::ReferenceCalcDPDForceKernel::initialize(const System& system,
     defaultA = force.getA();
     defaultGamma = force.getGamma();
     defaultRCut = force.getRCut();
+    temperature = force.getTemperature();
 
     numParticles = force.getNumParticles();
     particleTypes.resize(numParticles);
@@ -89,6 +92,7 @@ void OpenMM::ReferenceCalcDPDForceKernel::copyParametersToContext(
     defaultA = force.getA();
     defaultGamma = force.getGamma();
     defaultRCut = force.getRCut();
+    temperature = force.getTemperature();
 
     std::unordered_set<int> uniqueTypesSet;
     for (int i = 0; i < numParticles; i++) {
@@ -173,16 +177,14 @@ double OpenMM::ReferenceCalcDPDForceKernel::execute(ContextImpl& context,
                 "nonbonded cutoff.");
     }
 
+    // TODO: Ensure that the integrator used is valid for DPD?
     double dt{context.getIntegrator().getStepSize()};
-    // TODO: Find some way to get the temperature.
-    // double temperature{
-    //     context.getState(OpenMM::State::Energy).getTemperature()};
     double totalEnergy{0.0};
     if (cutoff)
         for (auto& pair : *neighborList) {
             calculateOneIxn(pair.first, pair.second, positions, velocities,
-                            forces, totalEnergy, includeConservative, periodic,
-                            boxVectors);
+                            forces, totalEnergy, dt, includeConservative,
+                            periodic, boxVectors);
         }
     else
         for (int ii = 0; ii < numParticles; ii++) {
@@ -190,8 +192,8 @@ double OpenMM::ReferenceCalcDPDForceKernel::execute(ContextImpl& context,
                 if (perParticleExclusions[jj].find(ii) ==
                     perParticleExclusions[jj].end()) {
                     calculateOneIxn(ii, jj, positions, velocities, forces,
-                                    totalEnergy, includeConservative, periodic,
-                                    boxVectors);
+                                    totalEnergy, dt, includeConservative,
+                                    periodic, boxVectors);
                 }
         }
 
@@ -203,7 +205,7 @@ double OpenMM::ReferenceCalcDPDForceKernel::execute(ContextImpl& context,
 void OpenMM::ReferenceCalcDPDForceKernel::calculateOneIxn(
     int ii, int jj, const std::vector<OpenMM::Vec3>& positions,
     const std::vector<OpenMM::Vec3>& velocities,
-    std::vector<OpenMM::Vec3>& forces, double& totalEnergy,
+    std::vector<OpenMM::Vec3>& forces, double& totalEnergy, const double dt,
     bool includeConservative, bool periodic, const OpenMM::Vec3* boxVectors) {
     int type1 = particleTypes[ii];
     int type2 = particleTypes[jj];
@@ -245,29 +247,25 @@ void OpenMM::ReferenceCalcDPDForceKernel::calculateOneIxn(
                             dr[OpenMM::ReferenceForce::RIndex]};
     }
     OpenMM::Vec3 dv = velocities[ii] - velocities[jj];
-    // TODO: Calculate sigma.
-    // double sigma = 2 * gamma * k_B * T;
+    double sigma = sqrt(2 * gamma * BOLTZ * temperature);
 
     if (dr[OpenMM::ReferenceForce::RIndex] < rCut) {
-        if (includeConservative) {
-            if (!overlap) {
-                double A_weight = A * weight;
-                for (int kk = 0; kk < 3; ++kk) {
-                    double fc = A_weight * drUnitVector[kk];
-                    forces[ii][kk] += fc;
-                    forces[jj][kk] -= fc;
-                }
+        if (!overlap) {
+            double forceMag =
+                -gamma * weight2 * drUnitVector.dot(dv) +
+                sigma * weight *
+                    SimTKOpenMMUtilities::getNormallyDistributedRandomNumber() /
+                    sqrt(dt);
+            if (includeConservative)
+                forceMag += A * weight;
+            for (int kk = 0; kk < 3; ++kk) {
+                double fkk = forceMag * drUnitVector[kk];
+                forces[ii][kk] += fkk;
+                forces[jj][kk] -= fkk;
             }
-            if (totalEnergy)
-                totalEnergy += 0.5 * A * rCut * weight2;
         }
 
-        // TODO: Add random forces.
-        double fdrMag = -gamma * weight2 * drUnitVector.dot(dv);
-        for (int kk = 0; kk < 3; ++kk) {
-            double fdr = fdrMag * drUnitVector[kk];
-            forces[ii][kk] += fdr;
-            forces[jj][kk] -= fdr;
-        }
+        if (includeConservative && totalEnergy)
+            totalEnergy += 0.5 * A * rCut * weight2;
     }
 }
