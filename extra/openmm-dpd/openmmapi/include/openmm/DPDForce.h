@@ -15,7 +15,11 @@ namespace OpenMM {
 
     class OPENMM_EXPORT DPDForce : public Force {
     public:
-        enum DPDMethod { CutoffNonPeriodic = 1, CutoffPeriodic = 2 };
+        enum DPDMethod {
+            NoCutoff = 0,
+            CutoffNonPeriodic = 1,
+            CutoffPeriodic = 2
+        };
 
         DPDForce(double A = 0.0, double Gamma = 0.0, double rCut = 0.0,
                  double cutoff = 0.0, bool conservative = true);

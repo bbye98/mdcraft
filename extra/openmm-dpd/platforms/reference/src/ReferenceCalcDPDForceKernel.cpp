@@ -4,6 +4,10 @@
 #include <array>
 #include <vector>
 
+#include "openmm/reference/ReferenceForce.h"
+
+static constexpr double EPSILON = 1.0e-10;
+
 OpenMM::ReferenceCalcDPDForceKernel::~ReferenceCalcDPDForceKernel() {
     if (neighborList != NULL)
         delete neighborList;
@@ -55,12 +59,15 @@ void OpenMM::ReferenceCalcDPDForceKernel::initialize(const System& system,
 
     dpdMethod = CalcDPDForceKernel::DPDMethod(force.getDPDMethod());
     nonbondedCutoff = force.getCutoffDistance();
-    neighborList = new NeighborList();
-    if (dpdMethod == CutoffNonPeriodic)
-        exceptionsArePeriodic = false;
+    if (dpdMethod == NoCutoff)
+        neighborList = NULL;
     else
+        neighborList = new NeighborList();
+    if (dpdMethod == CutoffPeriodic)
         exceptionsArePeriodic =
             force.getExceptionsUsePeriodicBoundaryConditions();
+    else
+        exceptionsArePeriodic = false;
 }
 
 void OpenMM::ReferenceCalcDPDForceKernel::copyParametersToContext(
@@ -125,7 +132,7 @@ void OpenMM::ReferenceCalcDPDForceKernel::copyParametersToContext(
             exceptionIndices.push_back(i);
     }
     if (exceptionIndices.size() != numExceptions)
-        throw OpenMMException(
+        throw OpenMM::OpenMMException(
             "DPDForce.updateParametersInContext: The number of non-excluded "
             "exceptions has changed");
 
@@ -145,6 +152,122 @@ double OpenMM::ReferenceCalcDPDForceKernel::execute(ContextImpl& context,
     ReferencePlatform::PlatformData* data =
         reinterpret_cast<ReferencePlatform::PlatformData*>(
             context.getPlatformData());
-    std::vector<Vec3>& particlePositions = *data->positions;
-    std::vector<Vec3>& particleForces = *data->forces;
+    std::vector<Vec3>& positions = *data->positions;
+    std::vector<Vec3>& velocities = *data->velocities;
+    std::vector<Vec3>& forces = *data->forces;
+
+    bool cutoff{dpdMethod != NoCutoff};
+    bool periodic{dpdMethod == CutoffPeriodic};
+    OpenMM::Vec3* boxVectors{data->periodicBoxVectors};
+    if (dpdMethod != NoCutoff)
+        computeNeighborListVoxelHash(*neighborList, numParticles, positions,
+                                     perParticleExclusions, boxVectors,
+                                     periodic, nonbondedCutoff);
+    if (periodic) {
+        double minAllowedSize = 1.999999 * nonbondedCutoff;
+        if (boxVectors[0][0] < minAllowedSize ||
+            boxVectors[1][1] < minAllowedSize ||
+            boxVectors[2][2] < minAllowedSize)
+            throw OpenMM::OpenMMException(
+                "The periodic box size has decreased to less than twice the "
+                "nonbonded cutoff.");
+    }
+
+    double dt{context.getIntegrator().getStepSize()};
+    // TODO: Find some way to get the temperature.
+    // double temperature{
+    //     context.getState(OpenMM::State::Energy).getTemperature()};
+    double totalEnergy{0.0};
+    if (cutoff)
+        for (auto& pair : *neighborList) {
+            calculateOneIxn(pair.first, pair.second, positions, velocities,
+                            forces, totalEnergy, includeConservative, periodic,
+                            boxVectors);
+        }
+    else
+        for (int ii = 0; ii < numParticles; ii++) {
+            for (int jj = ii + 1; jj < numParticles; jj++)
+                if (perParticleExclusions[jj].find(ii) ==
+                    perParticleExclusions[jj].end()) {
+                    calculateOneIxn(ii, jj, positions, velocities, forces,
+                                    totalEnergy, includeConservative, periodic,
+                                    boxVectors);
+                }
+        }
+
+    // TODO: Handle exceptions.
+
+    return totalEnergy;
+}
+
+void OpenMM::ReferenceCalcDPDForceKernel::calculateOneIxn(
+    int ii, int jj, const std::vector<OpenMM::Vec3>& positions,
+    const std::vector<OpenMM::Vec3>& velocities,
+    std::vector<OpenMM::Vec3>& forces, double& totalEnergy,
+    bool includeConservative, bool periodic, const OpenMM::Vec3* boxVectors) {
+    int type1 = particleTypes[ii];
+    int type2 = particleTypes[jj];
+    double A, gamma, rCut;
+    if (type1 == 0 || type2 == 0) {
+        A = defaultA;
+        gamma = defaultGamma;
+        rCut = defaultRCut;
+    } else {
+        if (type1 > type2)
+            std::swap(type1, type2);
+        int pairParamsIndex = type1 * (type1 + 1) / 2 + type2;
+        A = pairParams[pairParamsIndex][0];
+        gamma = pairParams[pairParamsIndex][1];
+        rCut = pairParams[pairParamsIndex][2];
+    }
+
+    double dr[ReferenceForce::LastDeltaRIndex];
+    if (periodic)
+        OpenMM::ReferenceForce::getDeltaRPeriodic(positions[ii], positions[jj],
+                                                  boxVectors, dr);
+    else
+        OpenMM::ReferenceForce::getDeltaR(positions[ii], positions[jj], dr);
+
+    bool overlap = dr[OpenMM::ReferenceForce::RIndex] < EPSILON;
+    double weight, weight2;
+    OpenMM::Vec3 drUnitVector;
+    if (overlap) {
+        weight = 1.0;
+        weight2 = 1.0;
+    } else {
+        weight = 1.0 - dr[OpenMM::ReferenceForce::RIndex] / rCut;
+        weight2 = weight * weight;
+        drUnitVector = {dr[OpenMM::ReferenceForce::XIndex] /
+                            dr[OpenMM::ReferenceForce::RIndex],
+                        dr[OpenMM::ReferenceForce::YIndex] /
+                            dr[OpenMM::ReferenceForce::RIndex],
+                        dr[OpenMM::ReferenceForce::ZIndex] /
+                            dr[OpenMM::ReferenceForce::RIndex]};
+    }
+    OpenMM::Vec3 dv = velocities[ii] - velocities[jj];
+    // TODO: Calculate sigma.
+    // double sigma = 2 * gamma * k_B * T;
+
+    if (dr[OpenMM::ReferenceForce::RIndex] < rCut) {
+        if (includeConservative) {
+            if (!overlap) {
+                double A_weight = A * weight;
+                for (int kk = 0; kk < 3; ++kk) {
+                    double fc = A_weight * drUnitVector[kk];
+                    forces[ii][kk] += fc;
+                    forces[jj][kk] -= fc;
+                }
+            }
+            if (totalEnergy)
+                totalEnergy += 0.5 * A * rCut * weight2;
+        }
+
+        // TODO: Add random forces.
+        double fdrMag = -gamma * weight2 * drUnitVector.dot(dv);
+        for (int kk = 0; kk < 3; ++kk) {
+            double fdr = fdrMag * drUnitVector[kk];
+            forces[ii][kk] += fdr;
+            forces[jj][kk] -= fdr;
+        }
+    }
 }

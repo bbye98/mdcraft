@@ -14,7 +14,11 @@ namespace OpenMM {
 
     class CalcDPDForceKernel : public KernelImpl {
     public:
-        enum DPDMethod { CutoffNonPeriodic = 1, CutoffPeriodic = 2 };
+        enum DPDMethod {
+            NoCutoff = 0,
+            CutoffNonPeriodic = 1,
+            CutoffPeriodic = 2
+        };
 
         static std::string Name() { return "CalcDPDForce"; }
 

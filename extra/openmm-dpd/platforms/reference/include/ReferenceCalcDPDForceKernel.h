@@ -38,6 +38,14 @@ namespace OpenMM {
         std::vector<std::array<int, 2>> exceptionParticlePairs;
         std::vector<std::array<double, 3>> pairParams, exceptionParams;
         std::vector<std::set<int>> perParticleExclusions;
+
+        void calculateOneIxn(int ii, int jj,
+                             const std::vector<OpenMM::Vec3> &positions,
+                             const std::vector<OpenMM::Vec3> &velocities,
+                             std::vector<OpenMM::Vec3> &forces,
+                             double &totalEnergy, bool includeConservative,
+                             bool periodic,
+                             const OpenMM::Vec3 *boxVectors = nullptr);
     };
 }
 
