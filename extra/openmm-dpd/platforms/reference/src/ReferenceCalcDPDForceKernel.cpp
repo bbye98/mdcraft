@@ -8,11 +8,13 @@
 #include "SimTKOpenMMUtilities.h"
 #include "openmm/reference/ReferenceForce.h"
 
-static constexpr double EPSILON = 1.0e-10;
+static constexpr double EPSILON = 1.0e-12;
 
 OpenMM::ReferenceCalcDPDForceKernel::~ReferenceCalcDPDForceKernel() {
-    if (neighborList != NULL)
+    if (neighborList != nullptr) {
         delete neighborList;
+        neighborList = nullptr;
+    }
 }
 
 void OpenMM::ReferenceCalcDPDForceKernel::initialize(const System& system,
@@ -63,7 +65,7 @@ void OpenMM::ReferenceCalcDPDForceKernel::initialize(const System& system,
     dpdMethod = CalcDPDForceKernel::DPDMethod(force.getDPDMethod());
     nonbondedCutoff = force.getCutoffDistance();
     if (dpdMethod == NoCutoff)
-        neighborList = NULL;
+        neighborList = nullptr;
     else
         neighborList = new NeighborList();
     if (dpdMethod == CutoffPeriodic)
@@ -79,14 +81,6 @@ void OpenMM::ReferenceCalcDPDForceKernel::copyParametersToContext(
     if (force.getNumParticles() != numParticles)
         throw OpenMMException(
             "DPDForce.updateParametersInContext: The number of particles has "
-            "changed");
-    if (force.getNumTypePairs() != numTypePairs)
-        throw OpenMMException(
-            "DPDForce.updateParametersInContext: The number of type pairs has "
-            "changed");
-    if (force.getNumExceptions() != numTotalExceptions)
-        throw OpenMMException(
-            "DPDForce.updateParametersInContext: The number of exceptions has "
             "changed");
 
     defaultA = force.getA();
@@ -120,6 +114,8 @@ void OpenMM::ReferenceCalcDPDForceKernel::copyParametersToContext(
         }
     }
 
+    numTypePairs = force.getNumTypePairs();
+    pairParams.resize(numTypePairs * (numTypePairs + 1) / 2);
     for (int i = 0; i < numTypePairs; ++i) {
         int type1, type2;
         double A, gamma, rCut;
@@ -128,18 +124,24 @@ void OpenMM::ReferenceCalcDPDForceKernel::copyParametersToContext(
     }
 
     std::vector<int> exceptionIndices;
+    perParticleExclusions.clear();
+    perParticleExclusions.resize(numParticles);
     for (int i = 0; i < force.getNumExceptions(); ++i) {
         int particle1, particle2;
         double A, gamma, rCut;
         force.getExceptionParameters(i, particle1, particle2, A, gamma, rCut);
+        perParticleExclusions[particle1].insert(particle2);
+        perParticleExclusions[particle2].insert(particle1);
         if (A != 0)
             exceptionIndices.push_back(i);
     }
-    if (exceptionIndices.size() != numExceptions)
-        throw OpenMM::OpenMMException(
-            "DPDForce.updateParametersInContext: The number of non-excluded "
-            "exceptions has changed");
 
+    numExceptions = exceptionIndices.size();
+    numTotalExceptions = force.getNumExceptions();
+    exceptionParticlePairs.clear();
+    exceptionParticlePairs.resize(numExceptions);
+    exceptionParams.clear();
+    exceptionParams.resize(numExceptions);
     for (int i = 0; i < numExceptions; ++i) {
         int particle1, particle2;
         force.getExceptionParameters(
@@ -177,7 +179,6 @@ double OpenMM::ReferenceCalcDPDForceKernel::execute(ContextImpl& context,
                 "nonbonded cutoff.");
     }
 
-    // TODO: Ensure that the integrator used is valid for DPD?
     double dt{context.getIntegrator().getStepSize()};
     double totalEnergy{0.0};
     if (cutoff)
@@ -197,7 +198,12 @@ double OpenMM::ReferenceCalcDPDForceKernel::execute(ContextImpl& context,
                 }
         }
 
-    // TODO: Handle exceptions.
+    for (int i = 0; i < numExceptions; ++i) {
+        calculateOneIxn(exceptionParticlePairs[i][0],
+                        exceptionParticlePairs[i][1], positions, velocities,
+                        forces, totalEnergy, dt, includeConservative,
+                        exceptionsArePeriodic, boxVectors, &exceptionParams[i]);
+    }
 
     return totalEnergy;
 }
@@ -206,21 +212,28 @@ void OpenMM::ReferenceCalcDPDForceKernel::calculateOneIxn(
     int ii, int jj, const std::vector<OpenMM::Vec3>& positions,
     const std::vector<OpenMM::Vec3>& velocities,
     std::vector<OpenMM::Vec3>& forces, double& totalEnergy, const double dt,
-    bool includeConservative, bool periodic, const OpenMM::Vec3* boxVectors) {
-    int type1 = particleTypes[ii];
-    int type2 = particleTypes[jj];
+    bool includeConservative, bool periodic, const OpenMM::Vec3* boxVectors,
+    const std::array<double, 3>* params) {
     double A, gamma, rCut;
-    if (type1 == 0 || type2 == 0) {
-        A = defaultA;
-        gamma = defaultGamma;
-        rCut = defaultRCut;
+    if (params != nullptr) {
+        A = (*params)[0];
+        gamma = (*params)[1];
+        rCut = (*params)[2];
     } else {
-        if (type1 > type2)
-            std::swap(type1, type2);
-        int pairParamsIndex = type1 * (type1 + 1) / 2 + type2;
-        A = pairParams[pairParamsIndex][0];
-        gamma = pairParams[pairParamsIndex][1];
-        rCut = pairParams[pairParamsIndex][2];
+        int type1 = particleTypes[ii];
+        int type2 = particleTypes[jj];
+        if (type1 == 0 || type2 == 0) {
+            A = defaultA;
+            gamma = defaultGamma;
+            rCut = defaultRCut;
+        } else {
+            if (type1 > type2)
+                std::swap(type1, type2);
+            int pairParamsIndex = type1 * (type1 + 1) / 2 + type2;
+            A = pairParams[pairParamsIndex][0];
+            gamma = pairParams[pairParamsIndex][1];
+            rCut = pairParams[pairParamsIndex][2];
+        }
     }
 
     double dr[ReferenceForce::LastDeltaRIndex];
@@ -230,26 +243,24 @@ void OpenMM::ReferenceCalcDPDForceKernel::calculateOneIxn(
     else
         OpenMM::ReferenceForce::getDeltaR(positions[ii], positions[jj], dr);
 
-    bool overlap = dr[OpenMM::ReferenceForce::RIndex] < EPSILON;
+    double r = dr[OpenMM::ReferenceForce::RIndex];
+    bool overlap = r < EPSILON;
     double weight, weight2;
     OpenMM::Vec3 drUnitVector;
     if (overlap) {
         weight = 1.0;
         weight2 = 1.0;
     } else {
-        weight = 1.0 - dr[OpenMM::ReferenceForce::RIndex] / rCut;
+        weight = 1.0 - r / rCut;
         weight2 = weight * weight;
-        drUnitVector = {dr[OpenMM::ReferenceForce::XIndex] /
-                            dr[OpenMM::ReferenceForce::RIndex],
-                        dr[OpenMM::ReferenceForce::YIndex] /
-                            dr[OpenMM::ReferenceForce::RIndex],
-                        dr[OpenMM::ReferenceForce::ZIndex] /
-                            dr[OpenMM::ReferenceForce::RIndex]};
+        drUnitVector = {dr[OpenMM::ReferenceForce::XIndex] / r,
+                        dr[OpenMM::ReferenceForce::YIndex] / r,
+                        dr[OpenMM::ReferenceForce::ZIndex] / r};
     }
     OpenMM::Vec3 dv = velocities[ii] - velocities[jj];
     double sigma = sqrt(2 * gamma * BOLTZ * temperature);
 
-    if (dr[OpenMM::ReferenceForce::RIndex] < rCut) {
+    if (r < rCut) {
         if (!overlap) {
             double forceMag =
                 -gamma * weight2 * drUnitVector.dot(dv) +

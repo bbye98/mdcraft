@@ -46,7 +46,8 @@ namespace OpenMM {
                              std::vector<OpenMM::Vec3> &forces,
                              double &totalEnergy, const double dt,
                              bool includeConservative, bool periodic,
-                             const OpenMM::Vec3 *boxVectors = nullptr);
+                             const OpenMM::Vec3 *boxVectors = nullptr,
+                             const std::array<double, 3> *params = nullptr);
     };
 }
 

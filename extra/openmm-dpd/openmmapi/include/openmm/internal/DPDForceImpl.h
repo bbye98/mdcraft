@@ -24,10 +24,11 @@ namespace OpenMM {
 
         void initialize(ContextImpl &context);
 
-        std::vector<std::string> getKernelNames();
+        std::vector<std::string> getKernelNames() {
+            return {OpenMM::CalcDPDForceKernel::Name()};
+        }
 
-        std::map<std::string, double>
-        OpenMM::DPDForceImpl::getDefaultParameters();
+        std::map<std::string, double> getDefaultParameters();
 
         void updateParametersInContext(ContextImpl &context, int firstParticle,
                                        int lastParticle, int firstException,

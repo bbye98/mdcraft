@@ -4,7 +4,6 @@
 #include <cmath>
 #include <map>
 #include <string>
-#include <unordered_set>
 
 #include "openmm/CalcDPDForceKernel.h"
 #include "openmm/OpenMMException.h"
@@ -29,7 +28,7 @@ void OpenMM::DPDForceImpl::initialize(ContextImpl &context) {
             "DPDForce must have exactly as many particles as the System it "
             "belongs to.");
 
-    std::unordered_set<int> uniqueTypesSet;
+    std::set<int> uniqueTypesSet;
     for (int i = 0; i < owner.getNumParticles(); ++i) {
         int typeIndex = owner.getParticleType(i);
         if (typeIndex != 0)
@@ -37,7 +36,6 @@ void OpenMM::DPDForceImpl::initialize(ContextImpl &context) {
     }
     std::vector<int> uniqueTypesVector(uniqueTypesSet.begin(),
                                        uniqueTypesSet.end());
-    std::sort(uniqueTypesVector.begin(), uniqueTypesVector.end());
     for (int i = 0; i < uniqueTypesVector.size(); ++i) {
         int type1 = uniqueTypesVector[i];
         if (type1 == 0)
@@ -84,12 +82,6 @@ void OpenMM::DPDForceImpl::initialize(ContextImpl &context) {
             throw OpenMM::OpenMMException(
                 "DPDForce: rCut for an exception must be positive");
     }
-}
-
-std::vector<std::string> OpenMM::DPDForceImpl::getKernelNames() {
-    std::vector<std::string> names;
-    names.push_back(OpenMM::CalcDPDForceKernel::Name());
-    return names;
 }
 
 std::map<std::string, double> OpenMM::DPDForceImpl::getDefaultParameters() {
