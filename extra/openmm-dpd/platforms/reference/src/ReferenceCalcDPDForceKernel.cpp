@@ -1,9 +1,8 @@
 #include "ReferenceCalcDPDForceKernel.h"
 
 #include <algorithm>
-#include <array>
 #include <cmath>
-#include <vector>
+#include <unordered_set>
 
 #include "SimTKOpenMMUtilities.h"
 #include "openmm/reference/ReferenceForce.h"
@@ -29,13 +28,18 @@ void OpenMM::ReferenceCalcDPDForceKernel::initialize(const System& system,
     for (int i = 0; i < numParticles; ++i)
         particleTypes[i] = force.getParticleType(i);
 
-    numTypePairs = force.getNumTypePairs();
-    pairParams.resize(numTypePairs * (numTypePairs + 1) / 2);
-    for (int i = 0; i < numTypePairs; ++i) {
-        int type1, type2;
+    for (const auto& typeNumber : force.getUniqueParticleTypes())
+        typeIndexMap[typeNumber] = typeIndexMap.size();
+    numTypes = typeIndexMap.size();
+    pairParams.resize(numTypes * (numTypes + 1) / 2);
+    for (int i = 0; i < force.getNumTypePairs(); ++i) {
+        int type1, type2, pairIndex;
         double A, gamma, rCut;
         force.getTypePairParameters(i, type1, type2, A, gamma, rCut);
-        pairParams[type1 * (type1 + 1) / 2 + type2] = {A, gamma, rCut};
+        type1 = typeIndexMap[type1];
+        type2 = typeIndexMap[type2];
+        pairParams[type1 * numTypes - (type1 * (type1 - 1)) / 2 + type2 -
+                   type1] = {A, gamma, rCut};
     }
 
     std::vector<int> exceptionIndices;
@@ -76,8 +80,7 @@ void OpenMM::ReferenceCalcDPDForceKernel::initialize(const System& system,
 }
 
 void OpenMM::ReferenceCalcDPDForceKernel::copyParametersToContext(
-    ContextImpl& context, const DPDForce& force, int firstParticle,
-    int lastParticle, int firstException, int lastException) {
+    ContextImpl& context, const DPDForce& force) {
     if (force.getNumParticles() != numParticles)
         throw OpenMMException(
             "DPDForce.updateParametersInContext: The number of particles has "
@@ -88,7 +91,7 @@ void OpenMM::ReferenceCalcDPDForceKernel::copyParametersToContext(
     defaultRCut = force.getRCut();
     temperature = force.getTemperature();
 
-    std::unordered_set<int> uniqueTypesSet;
+    std::set<int> uniqueTypesSet;
     for (int i = 0; i < numParticles; i++) {
         particleTypes[i] = force.getParticleType(i);
         if (particleTypes[i] != 0)
@@ -96,7 +99,6 @@ void OpenMM::ReferenceCalcDPDForceKernel::copyParametersToContext(
     }
     std::vector<int> uniqueTypesVector(uniqueTypesSet.begin(),
                                        uniqueTypesSet.end());
-    std::sort(uniqueTypesVector.begin(), uniqueTypesVector.end());
     for (int i = 0; i < uniqueTypesVector.size(); ++i) {
         int type1 = uniqueTypesVector[i];
         if (type1 == 0)
@@ -114,13 +116,18 @@ void OpenMM::ReferenceCalcDPDForceKernel::copyParametersToContext(
         }
     }
 
-    numTypePairs = force.getNumTypePairs();
-    pairParams.resize(numTypePairs * (numTypePairs + 1) / 2);
-    for (int i = 0; i < numTypePairs; ++i) {
+    for (const auto& typeNumber : uniqueTypesSet)
+        typeIndexMap[typeNumber] = typeIndexMap.size();
+    numTypes = typeIndexMap.size();
+    pairParams.resize(numTypes * (numTypes + 1) / 2);
+    for (int i = 0; i < force.getNumTypePairs(); ++i) {
         int type1, type2;
         double A, gamma, rCut;
         force.getTypePairParameters(i, type1, type2, A, gamma, rCut);
-        pairParams[type1 * (type1 + 1) / 2 + type2] = {A, gamma, rCut};
+        type1 = typeIndexMap[type1];
+        type2 = typeIndexMap[type2];
+        pairParams[type1 * numTypes - (type1 * (type1 - 1)) / 2 + type2 -
+                   type1] = {A, gamma, rCut};
     }
 
     std::vector<int> exceptionIndices;
@@ -229,7 +236,10 @@ void OpenMM::ReferenceCalcDPDForceKernel::calculateOneIxn(
         } else {
             if (type1 > type2)
                 std::swap(type1, type2);
-            int pairParamsIndex = type1 * (type1 + 1) / 2 + type2;
+            type1 = typeIndexMap[type1];
+            type2 = typeIndexMap[type2];
+            int pairParamsIndex =
+                type1 * numTypes - (type1 * (type1 - 1)) / 2 + type2 - type1;
             A = pairParams[pairParamsIndex][0];
             gamma = pairParams[pairParamsIndex][1];
             rCut = pairParams[pairParamsIndex][2];

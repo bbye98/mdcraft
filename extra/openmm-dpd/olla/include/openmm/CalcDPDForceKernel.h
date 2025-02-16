@@ -28,13 +28,12 @@ namespace OpenMM {
         virtual void initialize(const System &system,
                                 const DPDForce &force) = 0;
 
+        virtual void copyParametersToContext(ContextImpl &context,
+                                             const DPDForce &force) = 0;
+
         virtual double execute(ContextImpl &context, bool includeForces,
                                bool includeEnergy,
                                bool includeConservative) = 0;
-
-        virtual void copyParametersToContext(
-            ContextImpl &context, const DPDForce &force, int firstParticle,
-            int lastParticle, int firstException, int lastException) = 0;
     };
 
 }  // namespace OpenMM

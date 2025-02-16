@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 #include <map>
-#include <string>
 
 #include "openmm/CalcDPDForceKernel.h"
 #include "openmm/OpenMMException.h"
@@ -11,9 +10,8 @@
 #include "openmm/internal/Messages.h"
 
 OpenMM::DPDForceImpl::DPDForceImpl(const OpenMM::DPDForce &owner)
-    : owner(owner) {
+    : owner(owner), includeConservative(owner.getIncludeConservative()) {
     forceGroup = owner.getForceGroup();
-    includeConservative = owner.getIncludeConservative();
 }
 
 OpenMM::DPDForceImpl::~DPDForceImpl() {}
@@ -28,12 +26,7 @@ void OpenMM::DPDForceImpl::initialize(ContextImpl &context) {
             "DPDForce must have exactly as many particles as the System it "
             "belongs to.");
 
-    std::set<int> uniqueTypesSet;
-    for (int i = 0; i < owner.getNumParticles(); ++i) {
-        int typeIndex = owner.getParticleType(i);
-        if (typeIndex != 0)
-            uniqueTypesSet.insert(typeIndex);
-    }
+    std::set<int> uniqueTypesSet{owner.getUniqueParticleTypes()};
     std::vector<int> uniqueTypesVector(uniqueTypesSet.begin(),
                                        uniqueTypesSet.end());
     for (int i = 0; i < uniqueTypesVector.size(); ++i) {
@@ -92,14 +85,9 @@ std::map<std::string, double> OpenMM::DPDForceImpl::getDefaultParameters() {
     return parameters;
 }
 
-void OpenMM::DPDForceImpl::updateParametersInContext(ContextImpl &context,
-                                                     int firstParticle,
-                                                     int lastParticle,
-                                                     int firstException,
-                                                     int lastException) {
-    kernel.getAs<OpenMM::CalcDPDForceKernel>().copyParametersToContext(
-        context, owner, firstParticle, lastParticle, firstException,
-        lastException);
+void OpenMM::DPDForceImpl::updateParametersInContext(ContextImpl &context) {
+    kernel.getAs<OpenMM::CalcDPDForceKernel>().copyParametersToContext(context,
+                                                                       owner);
     context.systemChanged();
 }
 

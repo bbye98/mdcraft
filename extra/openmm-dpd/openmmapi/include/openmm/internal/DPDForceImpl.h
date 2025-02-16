@@ -1,11 +1,14 @@
 #ifndef OPENMM_DPDFORCEIMPL_H_
 #define OPENMM_DPDFORCEIMPL_H_
 
+#include <map>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "ForceImpl.h"
+#include "openmm/CalcDPDForceKernel.h"
 #include "openmm/DPDForce.h"
 #include "openmm/Kernel.h"
 #include "openmm/internal/windowsExport.h"
@@ -25,14 +28,12 @@ namespace OpenMM {
         void initialize(ContextImpl &context);
 
         std::vector<std::string> getKernelNames() {
-            return {OpenMM::CalcDPDForceKernel::Name()};
+            return {CalcDPDForceKernel::Name()};
         }
 
         std::map<std::string, double> getDefaultParameters();
 
-        void updateParametersInContext(ContextImpl &context, int firstParticle,
-                                       int lastParticle, int firstException,
-                                       int lastException);
+        void updateParametersInContext(ContextImpl &context);
 
         void updateContextState(ContextImpl &context, bool &forcesInvalid) {}
 

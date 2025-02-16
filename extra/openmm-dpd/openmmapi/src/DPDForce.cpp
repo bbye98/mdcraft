@@ -2,21 +2,18 @@
 
 #include <algorithm>
 #include <map>
-#include <utility>
 
 #include "openmm/OpenMMException.h"
 #include "openmm/internal/AssertionUtilities.h"
 #include "openmm/internal/DPDForceImpl.h"
 
 OpenMM::DPDForce::DPDForce(double A, double gamma, double rCut,
-                           double temperature, double cutoff,
-                           bool conservative) {
-    defaultA = A;
+                           double temperature, double cutoff, bool conservative)
+    : defaultA(A), includeConservative(conservative) {
     setGamma(gamma);
     setRCut(rCut);
     setTemperature(temperature);
     setCutoffDistance(cutoff);
-    includeConservative = conservative;
 }
 
 void OpenMM::DPDForce::setGamma(double gamma) {
@@ -43,11 +40,11 @@ void OpenMM::DPDForce::setCutoffDistance(double cutoff) {
     if (cutoff <= 0.0)
         throw OpenMM::OpenMMException(
             "DPDForce: cutoff must be greater than 0");
-    cutoffDistance = cutoff;
+    nonbondedCutoff = cutoff;
 }
 
-int OpenMM::DPDForce::addParticle(int typeIndex) {
-    particleTypes.push_back(typeIndex);
+int OpenMM::DPDForce::addParticle(int typeNumber) {
+    particleTypes.push_back(typeNumber);
     return particleTypes.size() - 1;
 }
 
@@ -56,17 +53,23 @@ int OpenMM::DPDForce::getParticleType(int particleIndex) const {
     return particleTypes[particleIndex];
 }
 
-void OpenMM::DPDForce::setParticleType(int particleIndex, int typeIndex) {
+void OpenMM::DPDForce::setParticleType(int particleIndex, int typeNumber) {
     ASSERT_VALID_INDEX(particleIndex, particleTypes);
 
-    if (particleTypes[particleIndex] == typeIndex)
+    if (particleTypes[particleIndex] == typeNumber)
         return;
 
-    particleTypes[particleIndex] = typeIndex;
-    if (numContexts > 0) {
-        firstChangedParticle = std::min(firstChangedParticle, particleIndex);
-        lastChangedParticle = std::max(lastChangedParticle, particleIndex);
+    particleTypes[particleIndex] = typeNumber;
+}
+
+std::set<int> OpenMM::DPDForce::getUniqueParticleTypes() const {
+    std::set<int> uniqueTypesSet;
+    for (int i = 0; i < getNumParticles(); ++i) {
+        int typeNumber = getParticleType(i);
+        if (typeNumber != 0)
+            uniqueTypesSet.insert(typeNumber);
     }
+    return uniqueTypesSet;
 }
 
 int OpenMM::DPDForce::addTypePair(int type1, int type2, double A, double gamma,
@@ -144,11 +147,6 @@ void OpenMM::DPDForce::setTypePairParameters(int index, int type1, int type2,
     typePair.A = A;
     typePair.gamma = gamma;
     typePair.rCut = rCut;
-
-    if (numContexts > 0) {
-        firstChangedParticle = std::min(firstChangedParticle, index);
-        lastChangedParticle = std::max(lastChangedParticle, index);
-    }
 }
 
 int OpenMM::DPDForce::addException(int particle1, int particle2, double A,
@@ -214,11 +212,6 @@ void OpenMM::DPDForce::setExceptionParameters(int exceptionIndex, int particle1,
     exception.A = A;
     exception.gamma = gamma;
     exception.rCut = rCut;
-
-    if (numContexts > 0) {
-        firstChangedException = std::min(firstChangedException, exceptionIndex);
-        lastChangedException = std::max(lastChangedException, exceptionIndex);
-    }
 }
 
 void OpenMM::DPDForce::createExceptionsFromBonds(
@@ -286,24 +279,10 @@ void OpenMM::DPDForce::addExclusionsToSet(
 
 void OpenMM::DPDForce::updateParametersInContext(Context &context) {
     dynamic_cast<DPDForceImpl &>(getImplInContext(context))
-        .updateParametersInContext(getContextImpl(context),
-                                   firstChangedParticle, lastChangedParticle,
-                                   firstChangedException, lastChangedException);
-    if (numContexts == 1) {
-        firstChangedParticle = particleTypes.size();
-        lastChangedParticle = -1;
-        firstChangedException = exceptions.size();
-        lastChangedException = -1;
-    }
+        .updateParametersInContext(getContextImpl(context));
 }
 
 OpenMM::ForceImpl *OpenMM::DPDForce::createImpl() const {
-    if (numContexts == 0) {
-        firstChangedParticle = particleTypes.size();
-        lastChangedParticle = -1;
-        firstChangedException = exceptions.size();
-        lastChangedException = -1;
-    }
     numContexts++;
     return new OpenMM::DPDForceImpl(*this);
 }

@@ -3,8 +3,6 @@
 
 #include <set>
 #include <unordered_map>
-#include <unordered_set>
-#include <utility>
 #include <vector>
 
 #include "openmm/Context.h"
@@ -22,7 +20,7 @@ namespace OpenMM {
         };
 
         DPDForce(double A = 0.0, double gamma = 0.0, double rCut = 0.0,
-                 double temperature = 298.15, double cutoff = 0.0,
+                 double temperature = 298.15, double nonbondedCutoff = 0.0,
                  bool conservative = true);
 
         DPDMethod getDPDMethod() const { return dpdMethod; }
@@ -45,17 +43,21 @@ namespace OpenMM {
 
         double getTemperature() const { return temperature; }
 
-        double getCutoffDistance() const { return cutoffDistance; }
+        double getCutoffDistance() const { return nonbondedCutoff; }
 
         void setCutoffDistance(double cutoff);
 
         int getNumParticles() const { return particleTypes.size(); }
 
-        int addParticle(int typeIndex = 0);
+        int addParticle(int typeNumber = 0);
 
         int getParticleType(int particleIndex) const;
 
-        void setParticleType(int particleIndex, int typeIndex);
+        void setParticleType(int particleIndex, int typeNumber);
+
+        std::set<int> getUniqueParticleTypes() const;
+
+        int getNumTypes() const { return getUniqueParticleTypes().size(); }
 
         int getNumTypePairs() const { return typePairs.size(); }
 
@@ -134,14 +136,14 @@ namespace OpenMM {
 
         DPDMethod dpdMethod;
         bool exceptionsUsePeriodic, includeConservative;
-        double defaultA, defaultGamma, defaultRCut, temperature, cutoffDistance;
+        double defaultA, defaultGamma, defaultRCut, temperature,
+            nonbondedCutoff;
         std::vector<int> particleTypes;
         std::vector<TypePairInfo> typePairs;
         std::vector<ExceptionInfo> exceptions;
         std::unordered_map<std::pair<int, int>, int, PairHash> typePairMap;
         std::unordered_map<std::pair<int, int>, int, PairHash> exceptionMap;
-        mutable int numContexts, firstChangedParticle, lastChangedParticle,
-            firstChangedException, lastChangedException;
+        mutable int numContexts;
 
         void addExclusionsToSet(const std::vector<std::set<int>> &bonded12,
                                 std::set<int> &exclusions, int baseParticle,
