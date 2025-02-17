@@ -13,19 +13,21 @@ namespace OpenMM {
 
     class OPENMM_EXPORT DPDForce : public Force {
     public:
-        enum DPDMethod {
+        enum NonbondedMethod {
             NoCutoff = 0,
             CutoffNonPeriodic = 1,
             CutoffPeriodic = 2
         };
 
         DPDForce(double A = 0.0, double gamma = 0.0, double rCut = 0.0,
-                 double temperature = 298.15, double nonbondedCutoff = 0.0,
+                 double temperature = 300, double cutoff = 0.0,
                  bool conservative = true);
 
-        DPDMethod getDPDMethod() const { return dpdMethod; }
+        NonbondedMethod getNonbondedMethod() const { return nonbondedMethod; }
 
-        void setDPDMethod(DPDMethod method) { dpdMethod = method; }
+        void setNonbondedMethod(NonbondedMethod method) {
+            nonbondedMethod = method;
+        }
 
         double getA() const { return defaultA; }
 
@@ -49,15 +51,15 @@ namespace OpenMM {
 
         int getNumParticles() const { return particleTypes.size(); }
 
-        int addParticle(int typeNumber = 0);
+        int addParticle(int typeID = 0);
 
         int getParticleType(int particleIndex) const;
 
-        void setParticleType(int particleIndex, int typeNumber);
+        void setParticleType(int particleIndex, int typeID);
 
-        std::set<int> getUniqueParticleTypes() const;
+        std::set<int> getParticleTypes() const;
 
-        int getNumTypes() const { return getUniqueParticleTypes().size(); }
+        int getNumTypes() const { return getParticleTypes().size(); }
 
         int getNumTypePairs() const { return typePairs.size(); }
 
@@ -66,11 +68,12 @@ namespace OpenMM {
 
         int getTypePairIndex(int type1, int type2) const;
 
-        void getTypePairParameters(int index, int &type1, int &type2, double &A,
-                                   double &gamma, double &rCut) const;
+        void getTypePairParameters(int typePairIndex, int &type1, int &type2,
+                                   double &A, double &gamma,
+                                   double &rCut) const;
 
-        void setTypePairParameters(int index, int type1, int type2, double A,
-                                   double gamma, double rCut);
+        void setTypePairParameters(int typePairIndex, int type1, int type2,
+                                   double A, double gamma, double rCut);
 
         int getNumExceptions() const { return exceptions.size(); }
 
@@ -97,7 +100,7 @@ namespace OpenMM {
         void updateParametersInContext(Context &context);
 
         bool usesPeriodicBoundaryConditions() const {
-            return dpdMethod == DPDForce::CutoffPeriodic;
+            return nonbondedMethod == NonbondedMethod::CutoffPeriodic;
         }
 
         bool getExceptionsUsePeriodicBoundaryConditions() const {
@@ -122,28 +125,28 @@ namespace OpenMM {
             int type1, type2;
             double A, gamma, rCut;
 
-            TypePairInfo(int t1, int t2, double a, double g, double rc)
-                : type1(t1), type2(t2), A(a), gamma(g), rCut(rc) {}
+            TypePairInfo(int t1, int t2, double a, double g, double r)
+                : type1(t1), type2(t2), A(a), gamma(g), rCut(r) {}
         };
 
         struct ExceptionInfo {
             int particle1, particle2;
             double A, gamma, rCut;
 
-            ExceptionInfo(int p1, int p2, double a, double g, double rc)
-                : particle1(p1), particle2(p2), A(a), gamma(g), rCut(rc) {}
+            ExceptionInfo(int p1, int p2, double a, double g, double r)
+                : particle1(p1), particle2(p2), A(a), gamma(g), rCut(r) {}
         };
 
-        DPDMethod dpdMethod;
+        NonbondedMethod nonbondedMethod;
         bool exceptionsUsePeriodic, includeConservative;
+        mutable int numContexts;
         double defaultA, defaultGamma, defaultRCut, temperature,
             nonbondedCutoff;
         std::vector<int> particleTypes;
         std::vector<TypePairInfo> typePairs;
         std::vector<ExceptionInfo> exceptions;
-        std::unordered_map<std::pair<int, int>, int, PairHash> typePairMap;
-        std::unordered_map<std::pair<int, int>, int, PairHash> exceptionMap;
-        mutable int numContexts;
+        std::unordered_map<std::pair<int, int>, int, PairHash> typePairMap,
+            exceptionMap;
 
         void addExclusionsToSet(const std::vector<std::set<int>> &bonded12,
                                 std::set<int> &exclusions, int baseParticle,

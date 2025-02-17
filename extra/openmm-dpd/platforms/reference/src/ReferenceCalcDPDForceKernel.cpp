@@ -16,8 +16,8 @@ OpenMM::ReferenceCalcDPDForceKernel::~ReferenceCalcDPDForceKernel() {
     }
 }
 
-void OpenMM::ReferenceCalcDPDForceKernel::initialize(const System& system,
-                                                     const DPDForce& force) {
+void OpenMM::ReferenceCalcDPDForceKernel::initialize(
+    const OpenMM::System& system, const OpenMM::DPDForce& force) {
     defaultA = force.getA();
     defaultGamma = force.getGamma();
     defaultRCut = force.getRCut();
@@ -25,14 +25,14 @@ void OpenMM::ReferenceCalcDPDForceKernel::initialize(const System& system,
 
     numParticles = force.getNumParticles();
     particleTypes.resize(numParticles);
-    for (int i = 0; i < numParticles; ++i)
+    for (int i{0}; i < numParticles; ++i)
         particleTypes[i] = force.getParticleType(i);
 
-    for (const auto& typeNumber : force.getUniqueParticleTypes())
+    for (const auto& typeNumber : force.getParticleTypes())
         typeIndexMap[typeNumber] = typeIndexMap.size();
     numTypes = typeIndexMap.size();
     pairParams.resize(numTypes * (numTypes + 1) / 2);
-    for (int i = 0; i < force.getNumTypePairs(); ++i) {
+    for (int i{0}; i < force.getNumTypePairs(); ++i) {
         int type1, type2, pairIndex;
         double A, gamma, rCut;
         force.getTypePairParameters(i, type1, type2, A, gamma, rCut);
@@ -44,7 +44,7 @@ void OpenMM::ReferenceCalcDPDForceKernel::initialize(const System& system,
 
     std::vector<int> exceptionIndices;
     perParticleExclusions.resize(numParticles);
-    for (int i = 0; i < force.getNumExceptions(); ++i) {
+    for (int i{0}; i < force.getNumExceptions(); ++i) {
         int particle1, particle2;
         double A, gamma, rCut;
         force.getExceptionParameters(i, particle1, particle2, A, gamma, rCut);
@@ -58,7 +58,7 @@ void OpenMM::ReferenceCalcDPDForceKernel::initialize(const System& system,
     numTotalExceptions = force.getNumExceptions();
     exceptionParticlePairs.resize(numExceptions);
     exceptionParams.resize(numExceptions);
-    for (int i = 0; i < numExceptions; ++i) {
+    for (int i{0}; i < numExceptions; ++i) {
         int particle1, particle2;
         force.getExceptionParameters(
             exceptionIndices[i], exceptionParticlePairs[i][0],
@@ -66,13 +66,16 @@ void OpenMM::ReferenceCalcDPDForceKernel::initialize(const System& system,
             exceptionParams[i][1], exceptionParams[i][2]);
     }
 
-    dpdMethod = CalcDPDForceKernel::DPDMethod(force.getDPDMethod());
+    nonbondedMethod =
+        OpenMM::CalcDPDForceKernel::NonbondedMethod(force.getNonbondedMethod());
     nonbondedCutoff = force.getCutoffDistance();
-    if (dpdMethod == NoCutoff)
+    if (nonbondedMethod ==
+        OpenMM::CalcDPDForceKernel::NonbondedMethod::NoCutoff)
         neighborList = nullptr;
     else
-        neighborList = new NeighborList();
-    if (dpdMethod == CutoffPeriodic)
+        neighborList = new OpenMM::NeighborList();
+    if (nonbondedMethod ==
+        OpenMM::CalcDPDForceKernel::NonbondedMethod::CutoffPeriodic)
         exceptionsArePeriodic =
             force.getExceptionsUsePeriodicBoundaryConditions();
     else
@@ -80,9 +83,9 @@ void OpenMM::ReferenceCalcDPDForceKernel::initialize(const System& system,
 }
 
 void OpenMM::ReferenceCalcDPDForceKernel::copyParametersToContext(
-    ContextImpl& context, const DPDForce& force) {
+    OpenMM::ContextImpl& context, const OpenMM::DPDForce& force) {
     if (force.getNumParticles() != numParticles)
-        throw OpenMMException(
+        throw OpenMM::OpenMMException(
             "DPDForce.updateParametersInContext: The number of particles has "
             "changed");
 
@@ -92,19 +95,19 @@ void OpenMM::ReferenceCalcDPDForceKernel::copyParametersToContext(
     temperature = force.getTemperature();
 
     std::set<int> uniqueTypesSet;
-    for (int i = 0; i < numParticles; i++) {
+    for (int i{0}; i < numParticles; ++i) {
         particleTypes[i] = force.getParticleType(i);
         if (particleTypes[i] != 0)
             uniqueTypesSet.insert(particleTypes[i]);
     }
     std::vector<int> uniqueTypesVector(uniqueTypesSet.begin(),
                                        uniqueTypesSet.end());
-    for (int i = 0; i < uniqueTypesVector.size(); ++i) {
-        int type1 = uniqueTypesVector[i];
+    for (int i{0}; i < uniqueTypesVector.size(); ++i) {
+        int type1{uniqueTypesVector[i]};
         if (type1 == 0)
             continue;
-        for (int j = i; j < uniqueTypesVector.size(); ++j) {
-            int type2 = uniqueTypesVector[j];
+        for (int j{i}; j < uniqueTypesVector.size(); ++j) {
+            int type2{uniqueTypesVector[j]};
             if (type2 == 0)
                 continue;
             if (force.getTypePairIndex(type1, type2) == -1) {
@@ -120,7 +123,7 @@ void OpenMM::ReferenceCalcDPDForceKernel::copyParametersToContext(
         typeIndexMap[typeNumber] = typeIndexMap.size();
     numTypes = typeIndexMap.size();
     pairParams.resize(numTypes * (numTypes + 1) / 2);
-    for (int i = 0; i < force.getNumTypePairs(); ++i) {
+    for (int i{0}; i < force.getNumTypePairs(); ++i) {
         int type1, type2;
         double A, gamma, rCut;
         force.getTypePairParameters(i, type1, type2, A, gamma, rCut);
@@ -133,7 +136,7 @@ void OpenMM::ReferenceCalcDPDForceKernel::copyParametersToContext(
     std::vector<int> exceptionIndices;
     perParticleExclusions.clear();
     perParticleExclusions.resize(numParticles);
-    for (int i = 0; i < force.getNumExceptions(); ++i) {
+    for (int i{0}; i < force.getNumExceptions(); ++i) {
         int particle1, particle2;
         double A, gamma, rCut;
         force.getExceptionParameters(i, particle1, particle2, A, gamma, rCut);
@@ -149,7 +152,7 @@ void OpenMM::ReferenceCalcDPDForceKernel::copyParametersToContext(
     exceptionParticlePairs.resize(numExceptions);
     exceptionParams.clear();
     exceptionParams.resize(numExceptions);
-    for (int i = 0; i < numExceptions; ++i) {
+    for (int i{0}; i < numExceptions; ++i) {
         int particle1, particle2;
         force.getExceptionParameters(
             exceptionIndices[i], exceptionParticlePairs[i][0],
@@ -158,26 +161,28 @@ void OpenMM::ReferenceCalcDPDForceKernel::copyParametersToContext(
     }
 }
 
-double OpenMM::ReferenceCalcDPDForceKernel::execute(ContextImpl& context,
-                                                    bool includeForces,
-                                                    bool includeEnergy,
-                                                    bool includeConservative) {
-    ReferencePlatform::PlatformData* data =
-        reinterpret_cast<ReferencePlatform::PlatformData*>(
-            context.getPlatformData());
-    std::vector<Vec3>& positions = *data->positions;
-    std::vector<Vec3>& velocities = *data->velocities;
-    std::vector<Vec3>& forces = *data->forces;
+double OpenMM::ReferenceCalcDPDForceKernel::execute(
+    OpenMM::ContextImpl& context, bool includeForces, bool includeEnergy,
+    bool includeConservative) {
+    OpenMM::ReferencePlatform::PlatformData* data{
+        reinterpret_cast<OpenMM::ReferencePlatform::PlatformData*>(
+            context.getPlatformData())};
+    std::vector<Vec3>& positions{*data->positions};
+    std::vector<Vec3>& velocities{*data->velocities};
+    std::vector<Vec3>& forces{*data->forces};
 
-    bool cutoff{dpdMethod != NoCutoff};
-    bool periodic{dpdMethod == CutoffPeriodic};
+    bool cutoff{nonbondedMethod !=
+                OpenMM::CalcDPDForceKernel::NonbondedMethod::NoCutoff};
+    bool periodic{nonbondedMethod ==
+                  OpenMM::CalcDPDForceKernel::NonbondedMethod::CutoffPeriodic};
     OpenMM::Vec3* boxVectors{data->periodicBoxVectors};
-    if (dpdMethod != NoCutoff)
+    if (nonbondedMethod !=
+        OpenMM::CalcDPDForceKernel::NonbondedMethod::NoCutoff)
         computeNeighborListVoxelHash(*neighborList, numParticles, positions,
                                      perParticleExclusions, boxVectors,
                                      periodic, nonbondedCutoff);
     if (periodic) {
-        double minAllowedSize = 1.999999 * nonbondedCutoff;
+        double minAllowedSize{1.999999 * nonbondedCutoff};
         if (boxVectors[0][0] < minAllowedSize ||
             boxVectors[1][1] < minAllowedSize ||
             boxVectors[2][2] < minAllowedSize)
@@ -195,8 +200,8 @@ double OpenMM::ReferenceCalcDPDForceKernel::execute(ContextImpl& context,
                             periodic, boxVectors);
         }
     else
-        for (int ii = 0; ii < numParticles; ii++) {
-            for (int jj = ii + 1; jj < numParticles; jj++)
+        for (int ii{0}; ii < numParticles; ++ii) {
+            for (int jj{ii + 1}; jj < numParticles; ++jj)
                 if (perParticleExclusions[jj].find(ii) ==
                     perParticleExclusions[jj].end()) {
                     calculateOneIxn(ii, jj, positions, velocities, forces,
@@ -205,7 +210,7 @@ double OpenMM::ReferenceCalcDPDForceKernel::execute(ContextImpl& context,
                 }
         }
 
-    for (int i = 0; i < numExceptions; ++i) {
+    for (int i{0}; i < numExceptions; ++i) {
         calculateOneIxn(exceptionParticlePairs[i][0],
                         exceptionParticlePairs[i][1], positions, velocities,
                         forces, totalEnergy, dt, includeConservative,
@@ -246,7 +251,7 @@ void OpenMM::ReferenceCalcDPDForceKernel::calculateOneIxn(
         }
     }
 
-    double dr[ReferenceForce::LastDeltaRIndex];
+    double dr[OpenMM::ReferenceForce::LastDeltaRIndex];
     if (periodic)
         OpenMM::ReferenceForce::getDeltaRPeriodic(positions[ii], positions[jj],
                                                   boxVectors, dr);
@@ -272,11 +277,11 @@ void OpenMM::ReferenceCalcDPDForceKernel::calculateOneIxn(
 
     if (r < rCut) {
         if (!overlap) {
-            double forceMag =
-                -gamma * weight2 * drUnitVector.dot(dv) +
-                sigma * weight *
-                    SimTKOpenMMUtilities::getNormallyDistributedRandomNumber() /
-                    sqrt(dt);
+            double forceMag = -gamma * weight2 * drUnitVector.dot(dv) +
+                              sigma * weight *
+                                  OpenMM::SimTKOpenMMUtilities::
+                                      getNormallyDistributedRandomNumber() /
+                                  sqrt(dt);
             if (includeConservative)
                 forceMag += A * weight;
             for (int kk = 0; kk < 3; ++kk) {

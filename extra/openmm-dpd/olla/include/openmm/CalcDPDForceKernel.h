@@ -14,7 +14,7 @@ namespace OpenMM {
 
     class CalcDPDForceKernel : public KernelImpl {
     public:
-        enum DPDMethod {
+        enum NonbondedMethod {
             NoCutoff = 0,
             CutoffNonPeriodic = 1,
             CutoffPeriodic = 2

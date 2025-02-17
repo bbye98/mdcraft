@@ -30,26 +30,23 @@ namespace OpenMM {
                        bool includeEnergy, bool includeConservative) override;
 
     private:
-        DPDMethod dpdMethod;
+        CalcDPDForceKernel::NonbondedMethod nonbondedMethod;
         NeighborList *neighborList;
         bool exceptionsArePeriodic;
         int numParticles, numTypes, numExceptions, numTotalExceptions;
         double defaultA, defaultGamma, defaultRCut, temperature,
             nonbondedCutoff;
-        // (1, 2, 4, 5, 7, ...) --> (0, 1, 2, 3, 4, ...)
         std::map<int, int> typeIndexMap;
         std::vector<int> particleTypes;
         std::vector<std::array<int, 2>> exceptionParticlePairs;
         std::vector<std::array<double, 3>> pairParams, exceptionParams;
         std::vector<std::set<int>> perParticleExclusions;
 
-        void calculateOneIxn(int ii, int jj,
-                             const std::vector<OpenMM::Vec3> &positions,
-                             const std::vector<OpenMM::Vec3> &velocities,
-                             std::vector<OpenMM::Vec3> &forces,
-                             double &totalEnergy, const double dt,
-                             bool includeConservative, bool periodic,
-                             const OpenMM::Vec3 *boxVectors = nullptr,
+        void calculateOneIxn(int ii, int jj, const std::vector<Vec3> &positions,
+                             const std::vector<Vec3> &velocities,
+                             std::vector<Vec3> &forces, double &totalEnergy,
+                             const double dt, bool includeConservative,
+                             bool periodic, const Vec3 *boxVectors = nullptr,
                              const std::array<double, 3> *params = nullptr);
     };
 }

@@ -1,4 +1,5 @@
 #include <string>
+#include <tuple>
 
 #include "openmm/CalcDPDForceKernel.h"
 #include "openmm/Platform.h"
@@ -25,12 +26,24 @@ namespace OpenMM {
 
     private:
         class ForceInfo;
-        int numParticles, numTypes;
-        bool hasInitializedKernel;
+        class ReorderListener;
         ComputeContext &cc;
         ForceInfo *info;
         const System &system;
-        ComputeArray particleTypeIndices, pairParams;
+        DPDForce::NonbondedMethod nonbondedMethod;
+        bool hasInitializedKernel;
+        int numParticles, maxNeighborBlocks;
+        ComputeArray particleTypeIndices, pairParams, sortedParticles;
+        ComputeArray exclusions, exclusionStartIndex, exceptionParticles,
+            exceptionParams;
+        ComputeArray blockCenter, blockBoundingBox, sortedPositions, neighbors,
+            neighborIndex, neighborBlockCount;
+        ComputeEvent event;
+        // ComputeKernel framesKernel, blockBoundsKernel, neighborsKernel,
+        // forceKernel;
+        std::vector<std::pair<int, int>> exceptionPairs, excludedPairs;
+
+        void sortAtoms();
     };
 
 }  // namespace OpenMM

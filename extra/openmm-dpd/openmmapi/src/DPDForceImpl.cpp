@@ -2,7 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
-#include <map>
+#include <tuple>
 
 #include "openmm/CalcDPDForceKernel.h"
 #include "openmm/OpenMMException.h"
@@ -16,25 +16,25 @@ OpenMM::DPDForceImpl::DPDForceImpl(const OpenMM::DPDForce &owner)
 
 OpenMM::DPDForceImpl::~DPDForceImpl() {}
 
-void OpenMM::DPDForceImpl::initialize(ContextImpl &context) {
+void OpenMM::DPDForceImpl::initialize(OpenMM::ContextImpl &context) {
     kernel = context.getPlatform().createKernel(
         OpenMM::CalcDPDForceKernel::Name(), context);
 
-    const System &system = context.getSystem();
+    const OpenMM::System &system{context.getSystem()};
     if (owner.getNumParticles() != system.getNumParticles())
         throw OpenMM::OpenMMException(
             "DPDForce must have exactly as many particles as the System it "
             "belongs to.");
 
-    std::set<int> uniqueTypesSet{owner.getUniqueParticleTypes()};
+    std::set<int> uniqueTypesSet{owner.getParticleTypes()};
     std::vector<int> uniqueTypesVector(uniqueTypesSet.begin(),
                                        uniqueTypesSet.end());
-    for (int i = 0; i < uniqueTypesVector.size(); ++i) {
-        int type1 = uniqueTypesVector[i];
+    for (int i{0}; i < uniqueTypesVector.size(); ++i) {
+        int type1{uniqueTypesVector[i]};
         if (type1 == 0)
             continue;
-        for (int j = i; j < uniqueTypesVector.size(); ++j) {
-            int type2 = uniqueTypesVector[j];
+        for (int j{i}; j < uniqueTypesVector.size(); ++j) {
+            int type2{uniqueTypesVector[j]};
             if (type2 == 0)
                 continue;
             if (owner.getTypePairIndex(type1, type2) == -1) {
@@ -47,13 +47,12 @@ void OpenMM::DPDForceImpl::initialize(ContextImpl &context) {
     }
 
     std::vector<std::set<int>> exceptions(owner.getNumParticles());
-    for (int i = 0; i < owner.getNumExceptions(); ++i) {
-        int particles[2];
+    for (int i{0}; i < owner.getNumExceptions(); ++i) {
+        int particles[2], minp, maxp;
         double A, gamma, rCut;
         owner.getExceptionParameters(i, particles[0], particles[1], A, gamma,
                                      rCut);
-        int minp = std::min(particles[0], particles[1]);
-        int maxp = std::max(particles[0], particles[1]);
+        std::tie(minp, maxp) = std::minmax(particles[0], particles[1]);
         for (int particle : particles) {
             if (particle < 0 || particle >= owner.getNumParticles()) {
                 throw OpenMM::OpenMMException(
@@ -85,13 +84,14 @@ std::map<std::string, double> OpenMM::DPDForceImpl::getDefaultParameters() {
     return parameters;
 }
 
-void OpenMM::DPDForceImpl::updateParametersInContext(ContextImpl &context) {
+void OpenMM::DPDForceImpl::updateParametersInContext(
+    OpenMM::ContextImpl &context) {
     kernel.getAs<OpenMM::CalcDPDForceKernel>().copyParametersToContext(context,
                                                                        owner);
     context.systemChanged();
 }
 
-double OpenMM::DPDForceImpl::calcForcesAndEnergy(ContextImpl &context,
+double OpenMM::DPDForceImpl::calcForcesAndEnergy(OpenMM::ContextImpl &context,
                                                  bool includeForces,
                                                  bool includeEnergy,
                                                  int groups) {

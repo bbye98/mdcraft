@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <map>
+#include <tuple>
 
 #include "openmm/OpenMMException.h"
 #include "openmm/internal/AssertionUtilities.h"
@@ -18,33 +19,30 @@ OpenMM::DPDForce::DPDForce(double A, double gamma, double rCut,
 
 void OpenMM::DPDForce::setGamma(double gamma) {
     if (gamma < 0.0)
-        throw OpenMM::OpenMMException(
-            "DPDForce: gamma must be greater than or equal to 0");
+        throw OpenMM::OpenMMException("DPDForce: gamma cannot be negative");
     defaultGamma = gamma;
 }
 
 void OpenMM::DPDForce::setRCut(double rCut) {
     if (rCut <= 0.0)
-        throw OpenMM::OpenMMException("DPDForce: rCut must be greater than 0");
+        throw OpenMM::OpenMMException("DPDForce: rCut must be positive");
     defaultRCut = rCut;
 }
 
 void OpenMM::DPDForce::setTemperature(double temp) {
     if (temp <= 0.0)
-        throw OpenMM::OpenMMException(
-            "DPDForce: temperature must be greater than 0");
+        throw OpenMM::OpenMMException("DPDForce: temperature must be positive");
     temperature = temp;
 }
 
 void OpenMM::DPDForce::setCutoffDistance(double cutoff) {
     if (cutoff <= 0.0)
-        throw OpenMM::OpenMMException(
-            "DPDForce: cutoff must be greater than 0");
+        throw OpenMM::OpenMMException("DPDForce: cutoff must be positive");
     nonbondedCutoff = cutoff;
 }
 
-int OpenMM::DPDForce::addParticle(int typeNumber) {
-    particleTypes.push_back(typeNumber);
+int OpenMM::DPDForce::addParticle(int typeID) {
+    particleTypes.push_back(typeID);
     return particleTypes.size() - 1;
 }
 
@@ -53,19 +51,17 @@ int OpenMM::DPDForce::getParticleType(int particleIndex) const {
     return particleTypes[particleIndex];
 }
 
-void OpenMM::DPDForce::setParticleType(int particleIndex, int typeNumber) {
+void OpenMM::DPDForce::setParticleType(int particleIndex, int typeID) {
     ASSERT_VALID_INDEX(particleIndex, particleTypes);
-
-    if (particleTypes[particleIndex] == typeNumber)
+    if (particleTypes[particleIndex] == typeID)
         return;
-
-    particleTypes[particleIndex] = typeNumber;
+    particleTypes[particleIndex] = typeID;
 }
 
-std::set<int> OpenMM::DPDForce::getUniqueParticleTypes() const {
+std::set<int> OpenMM::DPDForce::getParticleTypes() const {
     std::set<int> uniqueTypesSet;
-    for (int i = 0; i < getNumParticles(); ++i) {
-        int typeNumber = getParticleType(i);
+    for (int i{0}; i < getNumParticles(); ++i) {
+        int typeNumber{getParticleType(i)};
         if (typeNumber != 0)
             uniqueTypesSet.insert(typeNumber);
     }
@@ -79,18 +75,18 @@ int OpenMM::DPDForce::addTypePair(int type1, int type2, double A, double gamma,
             "DPDForce.addTypePair: Particle type cannot be 0");
     if (gamma < 0.0)
         throw OpenMM::OpenMMException(
-            "DPDForce.addTypePair: gamma must be greater than or equal to 0");
+            "DPDForce.addTypePair: gamma cannot be negative");
     if (rCut <= 0.0)
         throw OpenMM::OpenMMException(
-            "DPDForce.addTypePair: rCut must be greater than 0");
+            "DPDForce.addTypePair: rCut must be positive");
 
-    auto types = std::minmax(type1, type2);
+    auto types{std::minmax(type1, type2)};
     auto [iter, inserted] = typePairMap.emplace(types, typePairs.size());
     if (inserted)
         typePairs.emplace_back(
             TypePairInfo(types.first, types.second, A, gamma, rCut));
     else if (replace) {
-        auto &typePair = typePairs[iter->second];
+        auto &typePair{typePairs[iter->second]};
         typePair.A = A;
         typePair.gamma = gamma;
         typePair.rCut = rCut;
@@ -106,37 +102,37 @@ int OpenMM::DPDForce::addTypePair(int type1, int type2, double A, double gamma,
 int OpenMM::DPDForce::getTypePairIndex(int type1, int type2) const {
     if (type1 == 0 || type2 == 0)
         return -1;
-    auto iter = typePairMap.find(std::minmax(type1, type2));
+    auto iter{typePairMap.find(std::minmax(type1, type2))};
     return (iter == typePairMap.end()) ? -1 : iter->second;
 }
 
-void OpenMM::DPDForce::getTypePairParameters(int index, int &type1, int &type2,
-                                             double &A, double &gamma,
+void OpenMM::DPDForce::getTypePairParameters(int typePairIndex, int &type1,
+                                             int &type2, double &A,
+                                             double &gamma,
                                              double &rCut) const {
-    ASSERT_VALID_INDEX(index, typePairs);
-    type1 = typePairs[index].type1;
-    type2 = typePairs[index].type2;
-    A = typePairs[index].A;
-    gamma = typePairs[index].gamma;
-    rCut = typePairs[index].rCut;
+    ASSERT_VALID_INDEX(typePairIndex, typePairs);
+    type1 = typePairs[typePairIndex].type1;
+    type2 = typePairs[typePairIndex].type2;
+    A = typePairs[typePairIndex].A;
+    gamma = typePairs[typePairIndex].gamma;
+    rCut = typePairs[typePairIndex].rCut;
 }
 
-void OpenMM::DPDForce::setTypePairParameters(int index, int type1, int type2,
-                                             double A, double gamma,
+void OpenMM::DPDForce::setTypePairParameters(int typePairIndex, int type1,
+                                             int type2, double A, double gamma,
                                              double rCut) {
-    ASSERT_VALID_INDEX(index, typePairs);
+    ASSERT_VALID_INDEX(typePairIndex, typePairs);
     if (type1 == 0 || type2 == 0)
         throw OpenMM::OpenMMException(
             "DPDForce.addTypePair: Particle type cannot be 0");
     if (gamma < 0.0)
         throw OpenMM::OpenMMException(
-            "DPDForce.setTypePairParameters: gamma must be greater than or "
-            "equal to 0");
+            "DPDForce.setTypePairParameters: gamma cannot be negative");
     if (rCut <= 0.0)
         throw OpenMM::OpenMMException(
-            "DPDForce.setTypePairParameters: rCut must be greater than 0");
+            "DPDForce.setTypePairParameters: rCut must be positive");
 
-    TypePairInfo &typePair = typePairs[index];
+    TypePairInfo &typePair{typePairs[typePairIndex]};
     std::tie(type1, type2) = std::minmax(type1, type2);
     if (typePair.type1 == type1 && typePair.type2 == type2 && typePair.A == A &&
         typePair.gamma == gamma && typePair.rCut == rCut)
@@ -154,18 +150,18 @@ int OpenMM::DPDForce::addException(int particle1, int particle2, double A,
                                    bool replace = false) {
     if (gamma < 0.0)
         throw OpenMM::OpenMMException(
-            "DPDForce.addException: gamma must be greater than or equal to 0");
+            "DPDForce.addException: gamma cannot be negative");
     if (rCut <= 0.0)
         throw OpenMM::OpenMMException(
-            "DPDForce.addException: rCut must be greater than 0");
+            "DPDForce.addException: rCut must be positive");
 
-    auto particles = std::minmax(particle1, particle2);
+    auto particles{std::minmax(particle1, particle2)};
     auto [iter, inserted] = exceptionMap.emplace(particles, exceptions.size());
     if (inserted)
         exceptions.emplace_back(
             ExceptionInfo(particle1, particle2, A, gamma, rCut));
     else if (replace) {
-        auto &exception = exceptions[iter->second];
+        auto &exception{exceptions[iter->second]};
         exception.A = A;
         exception.gamma = gamma;
         exception.rCut = rCut;
@@ -195,13 +191,12 @@ void OpenMM::DPDForce::setExceptionParameters(int exceptionIndex, int particle1,
     ASSERT_VALID_INDEX(exceptionIndex, exceptions);
     if (gamma < 0.0)
         throw OpenMM::OpenMMException(
-            "DPDForce.setExceptionParameters: gamma must be greater than "
-            "or equal to 0");
+            "DPDForce.setExceptionParameters: gamma cannot be negative");
     if (rCut <= 0.0)
         throw OpenMM::OpenMMException(
-            "DPDForce.setExceptionParameters: rCut must be greater than 0");
+            "DPDForce.setExceptionParameters: rCut must be positive");
 
-    ExceptionInfo &exception = exceptions[exceptionIndex];
+    ExceptionInfo &exception{exceptions[exceptionIndex]};
 
     if (exception.particle1 == particle1 && exception.particle2 == particle2 &&
         exception.A == A && exception.gamma == gamma && exception.rCut == rCut)
@@ -230,27 +225,26 @@ void OpenMM::DPDForce::createExceptionsFromBonds(
         bonded12[bond.first].insert(bond.second);
         bonded12[bond.second].insert(bond.first);
     }
-    for (int i = 0; i < (int)exclusions.size(); ++i)
+    for (int i{0}; i < (int)exclusions.size(); ++i)
         addExclusionsToSet(bonded12, exclusions[i], i, i, 2);
 
-    for (int i = 0; i < (int)exclusions.size(); ++i) {
+    for (int i{0}; i < (int)exclusions.size(); ++i) {
         std::set<int> bonded13;
         addExclusionsToSet(bonded12, bonded13, i, i, 1);
         for (int j : exclusions[i]) {
             if (j < i) {
                 if (bonded13.find(j) == bonded13.end()) {
-                    const int type1 = particleTypes[i];
-                    const int type2 = particleTypes[j];
+                    const int type1{particleTypes[i]};
+                    const int type2{particleTypes[j]};
                     if (type1 != 0 && type2 != 0) {
-                        auto iter = typePairMap.find(std::minmax(type1, type2));
-                        if (iter == typePairMap.end()) {
+                        auto iter{typePairMap.find(std::minmax(type1, type2))};
+                        if (iter == typePairMap.end())
                             throw OpenMM::OpenMMException(
                                 "DPDForce.createExceptionsFromBonds: No DPD "
                                 "parameters defined for particles of types " +
                                 std::to_string(type1) + " and " +
                                 std::to_string(type2));
-                        }
-                        int typePairIndex = iter->second;
+                        int typePairIndex{iter->second};
                         addException(j, i,
                                      A14Scale * typePairs[typePairIndex].A,
                                      typePairs[typePairIndex].gamma,
@@ -265,6 +259,16 @@ void OpenMM::DPDForce::createExceptionsFromBonds(
     }
 }
 
+void OpenMM::DPDForce::updateParametersInContext(OpenMM::Context &context) {
+    dynamic_cast<OpenMM::DPDForceImpl &>(getImplInContext(context))
+        .updateParametersInContext(getContextImpl(context));
+}
+
+OpenMM::ForceImpl *OpenMM::DPDForce::createImpl() const {
+    numContexts++;
+    return new OpenMM::DPDForceImpl(*this);
+}
+
 void OpenMM::DPDForce::addExclusionsToSet(
     const std::vector<std::set<int>> &bonded12, std::set<int> &exclusions,
     int baseParticle, int fromParticle, int currentLevel) const {
@@ -275,14 +279,4 @@ void OpenMM::DPDForce::addExclusionsToSet(
             addExclusionsToSet(bonded12, exclusions, baseParticle, i,
                                currentLevel - 1);
     }
-}
-
-void OpenMM::DPDForce::updateParametersInContext(Context &context) {
-    dynamic_cast<DPDForceImpl &>(getImplInContext(context))
-        .updateParametersInContext(getContextImpl(context));
-}
-
-OpenMM::ForceImpl *OpenMM::DPDForce::createImpl() const {
-    numContexts++;
-    return new OpenMM::DPDForceImpl(*this);
 }
