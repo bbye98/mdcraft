@@ -1288,6 +1288,7 @@ class SingleChainStructureFactor(NumbaAnalysisBase, _PolymerAnalysisBase):
         # Specify 'parallel=False' to use the NumbaAnalysisBase.run method
         # instead of the ParallelAnalysisBase.run method
         _PolymerAnalysisBase.__init__(
+            self,
             groups,
             groupings,
             n_chains,
@@ -1364,15 +1365,11 @@ class SingleChainStructureFactor(NumbaAnalysisBase, _PolymerAnalysisBase):
             self._wavenumbers = self._wavenumbers[keep]
 
         self._njit = lambda s: numba.njit(s, fastmath=True, parallel=parallel)
-        self._delta_fourier_transform_sum = self._njit("c16[:](f8[:,:],f8[:,:])")(
+        self._delta_fourier_transform_sum = self._njit(
             structure.delta_fourier_transform_sum
         )
-        self._ssf_trigonometric = self._njit("f8[:](f8[:,:])")(
-            structure.ssf_trigonometric
-        )
-        self._psf_trigonometric = self._njit("f8[:](f8[:,:],f8[:,:])")(
-            structure.psf_trigonometric
-        )
+        self._ssf_trigonometric = self._njit(structure.ssf_trigonometric)
+        self._psf_trigonometric = self._njit(structure.psf_trigonometric)
         self._inner = (
             accelerated.numba_inner_parallel if parallel else accelerated.numba_inner
         )

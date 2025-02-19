@@ -55,12 +55,11 @@ class NetCDFFile:
             self._nc = file
         self._nc.set_always_mask(False)
 
-        if mode == "r":
-            self._frame = self._nc.variables["time"].shape[0]
-            self._restart = self._nc.Conventions == "AMBERRESTART"
-        else:
-            self._frame = 0
+        if mode.startswith(("a", "r+", "w", "x")):
             self._restart = restart
+        else:
+            self._restart = self._nc.Conventions == "AMBERRESTART"
+        self._frame = self.get_num_frames() if hasattr(self._nc, "Conventions") else 0
 
     def get_dimensions(
         self, frames: Union[int, list[int], slice] = None, units: bool = True
@@ -117,6 +116,11 @@ class NetCDFFile:
             Number of frames.
         """
 
+        if not hasattr(self._nc, "Conventions"):
+            raise RuntimeError(
+                "The NetCDF file is not a valid AMBER NetCDF "
+                "trajectory or does not contain any data."
+            )
         return self._nc.dimensions["frame"].size
 
     def get_num_atoms(self) -> int:
@@ -129,7 +133,12 @@ class NetCDFFile:
             Number of atoms.
         """
 
-        return self._nc.dimensions["atom"].size
+        if not hasattr(self._nc, "Conventions"):
+            raise RuntimeError(
+                "The NetCDF file is not a valid AMBER NetCDF "
+                "trajectory or does not contain any data."
+            )
+        return self._nc.dimensions["atom"].size if hasattr(self._nc, "Conventions") else 0
 
     def get_times(
         self, frames: Union[int, list[int], slice] = None, units: bool = True
@@ -154,6 +163,11 @@ class NetCDFFile:
             **Reference unit**: :math:`\\mathrm{ps}`.
         """
 
+        if not hasattr(self._nc, "Conventions"):
+            raise RuntimeError(
+                "The NetCDF file is not a valid AMBER NetCDF "
+                "trajectory or does not contain any data."
+            )
         times = (
             self._nc.variables["time"][:]
             if frames is None
@@ -186,6 +200,11 @@ class NetCDFFile:
             **Reference unit**: :math:`\\mathrm{Å}`.
         """
 
+        if not hasattr(self._nc, "Conventions"):
+            raise RuntimeError(
+                "The NetCDF file is not a valid AMBER NetCDF "
+                "trajectory or does not contain any data."
+            )
         positions = (
             self._nc.variables["coordinates"][:]
             if frames is None
@@ -219,6 +238,11 @@ class NetCDFFile:
             **Reference unit**: :math:`\\mathrm{Å/ps}`.
         """
 
+        if not hasattr(self._nc, "Conventions"):
+            raise RuntimeError(
+                "The NetCDF file is not a valid AMBER NetCDF "
+                "trajectory or does not contain any data."
+            )
         if "velocities" not in self._nc.variables:
             wmsg = (
                 "The NetCDF file does not contain information about "
@@ -260,6 +284,11 @@ class NetCDFFile:
             **Reference unit**: :math:`\\mathrm{Å/ps}`.
         """
 
+        if not hasattr(self._nc, "Conventions"):
+            raise RuntimeError(
+                "The NetCDF file is not a valid AMBER NetCDF "
+                "trajectory or does not contain any data."
+            )
         if "forces" not in self._nc.variables:
             wmsg = (
                 "The NetCDF file does not contain information about "

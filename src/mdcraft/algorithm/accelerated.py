@@ -10,7 +10,7 @@ import numba
 import numpy as np
 
 
-@numba.njit("f8[:](f8[:],i8)", fastmath=True)
+@numba.njit(fastmath=True)
 def numba_histogram_bin_edges(
     array: np.ndarray[float], n_bins: int
 ) -> np.ndarray[float]:
@@ -43,7 +43,7 @@ def numba_histogram_bin_edges(
     return bin_edges
 
 
-@numba.njit("i8[:](f8[:],i8,f8[:])", fastmath=True)
+@numba.njit(fastmath=True)
 def numba_histogram(
     array: np.ndarray[float], n_bins: int, bin_edges: np.ndarray[float]
 ) -> np.ndarray[int]:
@@ -81,7 +81,7 @@ def numba_histogram(
     return histogram_
 
 
-@numba.njit("f8(f8[:],f8[:])", fastmath=True)
+@numba.njit(fastmath=True)
 def numba_dot(a: np.ndarray[float], b: np.ndarray[float]) -> float:
     r"""
     Serial Numba-accelerated dot product between two one-dimensional
@@ -113,7 +113,7 @@ def numba_dot(a: np.ndarray[float], b: np.ndarray[float]) -> float:
     return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
 
 
-@numba.njit("f8[:,:](f8[:,:],f8[:,:])", fastmath=True)
+@numba.njit(fastmath=True)
 def numba_inner(qs: np.ndarray[float], rs: np.ndarray[float]) -> np.ndarray[float]:
     r"""
     Serial Numba-accelerated inner product between all possible
@@ -154,7 +154,7 @@ def numba_inner(qs: np.ndarray[float], rs: np.ndarray[float]) -> np.ndarray[floa
     return s
 
 
-@numba.njit("f8[:,:](f8[:,:],f8[:,:])", fastmath=True, parallel=True)
+@numba.njit(fastmath=True, parallel=True)
 def numba_inner_parallel(
     qs: np.ndarray[float], rs: np.ndarray[float]
 ) -> np.ndarray[float]:

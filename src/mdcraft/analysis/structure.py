@@ -1201,7 +1201,7 @@ class RadialDistributionFunction(DynamicAnalysisBase):
         )
 
 
-@numba.njit("c16(f8[:],f8[:])", fastmath=True)
+@numba.njit(fastmath=True)
 def numba_delta_fourier_transform(
     q: np.ndarray[float], r: np.ndarray[float]
 ) -> complex:
@@ -1280,7 +1280,7 @@ def delta_fourier_transform_sum(
     return F
 
 
-@numba.njit("f8(f8[:])", fastmath=True)
+@numba.njit(fastmath=True)
 def numba_pythagorean_trigonometric_identity(r: np.ndarray[float]) -> float:
     r"""
     Serial Numba-accelerated evaluation of the Pythagorean trigonometric
@@ -1312,7 +1312,7 @@ def numba_pythagorean_trigonometric_identity(r: np.ndarray[float]) -> float:
     return c**2 + s**2
 
 
-@numba.njit("f8(f8[:],f8[:])", fastmath=True)
+@numba.njit(fastmath=True)
 def numba_cross_pythagorean_trigonometric_identity(
     r: np.ndarray[float], s: np.ndarray[float]
 ) -> float:
@@ -1899,13 +1899,9 @@ class StructureFactor(NumbaAnalysisBase):
             _ += N
 
         self._njit = lambda s: numba.njit(s, fastmath=True, parallel=parallel)
-        self._delta_fourier_transform_sum = self._njit("c16[:](f8[:,:],f8[:,:])")(
-            delta_fourier_transform_sum
-        )
-        self._ssf_trigonometric = self._njit("f8[:](f8[:,:])")(ssf_trigonometric)
-        self._psf_trigonometric = self._njit("f8[:](f8[:,:],f8[:,:])")(
-            psf_trigonometric
-        )
+        self._delta_fourier_transform_sum = self._njit(delta_fourier_transform_sum)
+        self._ssf_trigonometric = self._njit(ssf_trigonometric)
+        self._psf_trigonometric = self._njit(psf_trigonometric)
         self._inner = (
             accelerated.numba_inner_parallel if parallel else accelerated.numba_inner
         )
@@ -2021,7 +2017,7 @@ class StructureFactor(NumbaAnalysisBase):
         del self._positions
 
 
-@numba.njit("f8(f8[:])", fastmath=True)
+@numba.njit(fastmath=True)
 def numba_cosine_sum(x: np.ndarray[float]) -> float:
     r"""
     Serial Numba-accelerated sum of the cosines of the elements in a
@@ -2110,7 +2106,7 @@ def cosine_column_sum_inplace(xs: np.ndarray[float], s: np.ndarray[float]) -> No
         s[i] = numba_cosine_sum(xs[i])
 
 
-@numba.njit("f8(f8[:])", fastmath=True)
+@numba.njit(fastmath=True)
 def numba_sine_sum(x: np.ndarray[float]) -> float:
     r"""
     Serial Numba-accelerated sum of the sines of the elements in a

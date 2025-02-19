@@ -32,7 +32,7 @@ class FixImageCharges: public Fix {
 
  protected: 
   class Region *region;
-  char *pxstr, *pystr, *pzstr, *nxstr, *nystr, *nzstr;
+  char *pxstr, *pystr, *pzstr, *nxstr, *nystr, *nzstr, *idregion, *scalestr;
   int *imagei;
   double *imageid;
 
