@@ -247,16 +247,19 @@ def calculate_transport_coefficients(
         # Iterate through all unique group pairings
         for i, msd in enumerate(msd_cross[:, b] / denom):
             y = msd[start:stop]
-            valid = np.isfinite(y) & (y > 0)
-            y = y[valid]
-            x = times[start:stop][valid]
-
             if len(x) > 1:
 
                 # Calculate L_ij
                 if scale == "linear":
+                    valid = np.isfinite(y) & y!=0
+                    y = y[valid]
+                    x = times[start:stop][valid]
+
                     L_ij[b, r_ud[i], c_ud[i]] = np.polyfit(x, y, 1)[0]
                 elif scale == "log":
+                    valid = np.isfinite(y) & (y > 0)
+                    y = y[valid]
+                    x = times[start:stop][valid]
                     if enforce_linear:
                         L_ij[b, r_ud[i], c_ud[i]] = np.exp(
                             optimize.curve_fit(
