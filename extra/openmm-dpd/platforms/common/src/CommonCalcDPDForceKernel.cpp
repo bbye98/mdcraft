@@ -54,33 +54,40 @@ private:
     const OpenMM::DPDForce &force;
 };
 
-class OpenMM::CommonCalcDPDForceKernel::ReorderListener
-    : public OpenMM::ComputeContext::ReorderListener {
-public:
-    ReorderListener(OpenMM::CommonCalcDPDForceKernel &owner) : owner(owner) {}
-    void execute() { owner.sortAtoms(); }
-
-private:
-    OpenMM::CommonCalcDPDForceKernel &owner;
-};
-
 void OpenMM::CommonCalcDPDForceKernel::initialize(
     const OpenMM::System &system, const OpenMM::DPDForce &force) {
-    // Intialize interactions.
+    /* Initialize interactions. */
 
     OpenMM::ContextSelector selector(cc);
     numParticles = force.getNumParticles();
     int paddedNumParticles{cc.getPaddedNumAtoms()};
+
+    // Create a vector to store vectors of indices of particles that are
+    // excluded from interactions with each particle.
+    std::vector<std::vector<int>> exclusionList(numParticles);
+
+    // Create a map to associate each particle type to a unique index.
     std::map<int, int> typeIndexMap{{0, 0}};
-    for (const auto &typeNumber : force.getParticleTypes())
-        typeIndexMap[typeNumber] = typeIndexMap.size();
+
+    // Get and store the type indices corresponding to the particles' types.
     particleTypeIndices.initialize<int>(cc, numParticles,
                                         "dpdParticleTypeIndices");
     std::vector<int> particleTypeIndicesVec(numParticles);
-    for (int i = 0; i < numParticles; i++)
-        particleTypeIndicesVec[i] = typeIndexMap[force.getParticleType(i)];
+    for (int i{0}; i < numParticles; ++i) {
+        int particleType{force.getParticleType(i)};
+        auto typeMapping{typeIndexMap.find(particleType)};
+        if (typeMapping == typeIndexMap.end()) {
+            particleTypeIndicesVec[i] = typeIndexMap.size();
+            typeIndexMap[particleType] = typeIndexMap.size();
+        } else
+            particleTypeIndicesVec[i] = typeMapping.second;
+        // Exclude self-interactions.
+        exclusionList[i].push_back(i);
+    }
     particleTypeIndices.upload(particleTypeIndicesVec);
 
+    // Get and store DPD parameters for each pair of particle types in a
+    // row-major 2D array.
     int numTypes{typeIndexMap.size()};
     int numTypePairs{numTypes * (numTypes + 1) / 2};
     pairParams.initialize<OpenMM::mm_float4>(cc, numTypePairs, "dpdPairParams");
@@ -88,6 +95,7 @@ void OpenMM::CommonCalcDPDForceKernel::initialize(
     OpenMM::mm_float4 defaultParams{(float)force.getA(),
                                     (float)force.getGamma(),
                                     (float)force.getRCut(), 0.0f};
+    // Give pairs with type 0 the default parameters.
     for (int i{0}; i < numTypes; ++i) pairParamsVec[i] = defaultParams;
     for (int i{0}; i < force.getNumTypePairs(); ++i) {
         int type1, type2;
@@ -101,50 +109,36 @@ void OpenMM::CommonCalcDPDForceKernel::initialize(
     }
     pairParams.upload(pairParamsVec);
 
-    // Record exceptions and exclusions.
+    /* Record exceptions and exclusions. */
 
+    // Store the indices and pair parameters of particles that interact
+    // through exceptions.
+    std::vector<std::pair<int, int>> exceptionPairsVec;
     std::vector<OpenMM::mm_float4> exceptionParamsVec;
     for (int i{0}; i < force.getNumExceptions(); i++) {
         int particle1, particle2;
         double A, gamma, rCut;
         force.getExceptionParameters(i, particle1, particle2, A, gamma, rCut);
-        excludedPairs.push_back(std::pair<int, int>(particle1, particle2));
+        exclusionList[particle1].push_back(particle2);
+        exclusionList[particle2].push_back(particle1);
         if (A != 0.0) {
             exceptionParamsVec.push_back(
                 mm_float4((float)A, (float)gamma, (float)rCut, 0.0f));
-            exceptionPairs.push_back(std::pair<int, int>(particle1, particle2));
+            exceptionPairsVec.push_back(
+                std::pair<int, int>(particle1, particle2));
         }
     }
     int numExceptions = exceptionParamsVec.size();
-    exclusions.initialize<int>(cc, std::max(1, (int)excludedPairs.size()),
-                               "dpdExclusions");
-    exclusionStartIndex.initialize<int>(cc, numParticles + 1,
-                                        "dpdExclusionStartIndex");
-    exceptionParticles.initialize<OpenMM::mm_int4>(
-        cc, std::max(1, numExceptions), "dpdExceptionParticles");
-    exceptionParams.initialize<OpenMM::mm_float2>(
+    exceptionPairs.initialize<OpenMM::mm_int4>(cc, std::max(1, numExceptions),
+                                               "dpdExceptionPairs");
+    exceptionParams.initialize<OpenMM::mm_float4>(
         cc, std::max(1, numExceptions), "dpdExceptionParams");
-    if (numExceptions > 0)
+    if (numExceptions > 0) {
+        exceptionPairs.upload(exceptionPairsVec);
         exceptionParams.upload(exceptionParamsVec);
+    }
 
-    // Create data structures used for the neighbor list.
-
-    int numAtomBlocks = (numParticles + 31) / 32;
-    int elementSize =
-        (cc.getUseDoublePrecision() ? sizeof(double) : sizeof(float));
-    blockCenter.initialize(cc, numAtomBlocks, 4 * elementSize,
-                           "dpdBlockCenter");
-    blockBoundingBox.initialize(cc, numAtomBlocks, 4 * elementSize,
-                                "dpdBlockBoundingBox");
-    sortedPositions.initialize(cc, numParticles, 4 * elementSize,
-                               "dpdSortedPositions");
-    maxNeighborBlocks = numParticles * 2;
-    neighbors.initialize<int>(cc, maxNeighborBlocks * 32, "dpdNeighbors");
-    neighborIndex.initialize<int>(cc, maxNeighborBlocks, "dpdNeighborIndex");
-    neighborBlockCount.initialize<int>(cc, 1, "dpdNeighborBlockCount");
-    event = cc.createEvent();
-
-    // Create the kernels.
+    /* Create the kernels. */
 
     OpenMM::DPDForce::NonbondedMethod nonbondedMethod =
         force.getNonbondedMethod();
@@ -153,18 +147,21 @@ void OpenMM::CommonCalcDPDForceKernel::initialize(
     bool usePeriodic =
         (nonbondedMethod == OpenMM::DPDForce::NonbondedMethod::CutoffPeriodic);
     double nonbondedCutoff = force.getCutoffDistance();
-    std::map<std::string, std::string> defines;
+    std::map<std::string, std::string> replacements;
     if (useCutoff) {
-        defines["USE_CUTOFF"] = "1";
+        replacements["USE_CUTOFF"] = "1";
         if (usePeriodic)
-            defines["USE_PERIODIC"] = "1";
+            replacements["USE_PERIODIC"] = "1";
     }
-    defines["PADDED_NUM_ATOMS"] = cc.intToString(cc.getPaddedNumAtoms());
-    OpenMM::ComputeProgram program =
-        cc.compileProgram(OpenMM::CommonKernelSources::DPDForce, defines);
-    // TODO: Register kernels here.
+
+    // TODO: Figure this out. Not implemented yet!
+    std::string source =
+        cc.replaceStrings(OpenMM::CommonKernelSources::DPDForce, replacements);
+    cc.getNonbondedUtilities().addInteraction(
+        useCutoff, usePeriodic, true, force.getCutoffDistance(), exclusionList,
+        source, force.getForceGroup(), numParticles > 2000);
+
     cc.addForce(new OpenMM::CommonCalcDPDForceKernel::ForceInfo(force));
-    cc.addReorderListener(new ReorderListener(*this));
 }
 
 void OpenMM::CommonCalcDPDForceKernel::initialize(
@@ -177,54 +174,3 @@ void OpenMM::CommonCalcDPDForceKernel::execute(OpenMM::ContextImpl &context,
                                                bool includeForces,
                                                bool includeEnergy,
                                                bool includeConservative) {}
-
-void OpenMM::CommonCalcDPDForceKernel::sortAtoms() {
-    // Sort the list of atoms by type to avoid thread divergence. This is
-    // executed every time the atoms are reordered.
-
-    int nextIndex{0};
-    std::vector<int> particles(cc.getPaddedNumAtoms(), 0);
-    const std::vector<int> &order{cc.getAtomIndex()};
-    std::vector<int> inverseOrder(order.size(), -1);
-    for (int i = 0; i < cc.getNumAtoms(); i++) {
-        int atom{order[i]};
-        inverseOrder[atom] = nextIndex;
-        particles[nextIndex++] = atom;
-    }
-    sortedParticles.upload(particles);
-
-    // Update the list of exception particles.
-
-    int numExceptions { exceptionPairs.size(); }
-    if (numExceptions > 0) {
-        std::vector<OpenMM::mm_int4> exceptionParticlesVec(numExceptions);
-        for (int i{0}; i < numExceptions; ++i)
-            exceptionParticlesVec[i] = OpenMM::mm_int4(
-                exceptionAtoms[i].first, exceptionAtoms[i].second,
-                inverseOrder[exceptionAtoms[i].first],
-                inverseOrder[exceptionAtoms[i].second]);
-        exceptionParticles.upload(exceptionParticlesVec);
-    }
-
-    // Rebuild the list of exclusions.
-
-    std::vector<std::vector<int>> excludedAtoms(numParticles);
-    for (int i{0}; i < excludedPairs.size(); ++i) {
-        int first{inverseOrder[std::min(excludedPairs[i].first,
-                                        excludedPairs[i].second)]};
-        int second{inverseOrder[std::max(excludedPairs[i].first,
-                                         excludedPairs[i].second)]};
-        excludedAtoms[first].push_back(second);
-    }
-    int index{0};
-    std::vector<int> exclusionVec(exclusions.getSize());
-    std::vector<int> startIndexVec(exclusionStartIndex.getSize());
-    for (int i{0}; i < numRealParticles; ++i) {
-        startIndexVec[i] = index;
-        for (int j{0}; j < excludedAtoms[i].size(); ++j)
-            exclusionVec[index++] = excludedAtoms[i][j];
-    }
-    startIndexVec[numRealParticles] = index;
-    exclusions.upload(exclusionVec);
-    exclusionStartIndex.upload(startIndexVec);
-}

@@ -26,24 +26,15 @@ namespace OpenMM {
 
     private:
         class ForceInfo;
-        class ReorderListener;
         ComputeContext &cc;
         ForceInfo *info;
         const System &system;
         DPDForce::NonbondedMethod nonbondedMethod;
-        bool hasInitializedKernel;
-        int numParticles, maxNeighborBlocks;
-        ComputeArray particleTypeIndices, pairParams, sortedParticles;
-        ComputeArray exclusions, exclusionStartIndex, exceptionParticles,
-            exceptionParams;
-        ComputeArray blockCenter, blockBoundingBox, sortedPositions, neighbors,
-            neighborIndex, neighborBlockCount;
-        ComputeEvent event;
-        // ComputeKernel framesKernel, blockBoundsKernel, neighborsKernel,
-        // forceKernel;
-        std::vector<std::pair<int, int>> exceptionPairs, excludedPairs;
-
-        void sortAtoms();
+        bool hasInitializedKernel, useNeighborList;
+        int numParticles;
+        ComputeArray particleTypeIndices, pairParams;
+        ComputeArray exceptionPairs, exceptionParams;
+        std::vector<std::pair<int, int>> exceptionPairs;
     };
 
 }  // namespace OpenMM

@@ -232,8 +232,8 @@ void OpenMM::ReferenceCalcDPDForceKernel::calculateOneIxn(
         gamma = (*params)[1];
         rCut = (*params)[2];
     } else {
-        int type1 = particleTypes[ii];
-        int type2 = particleTypes[jj];
+        int type1{particleTypes[ii]};
+        int type2{particleTypes[jj]};
         if (type1 == 0 || type2 == 0) {
             A = defaultA;
             gamma = defaultGamma;
@@ -243,8 +243,8 @@ void OpenMM::ReferenceCalcDPDForceKernel::calculateOneIxn(
                 std::swap(type1, type2);
             type1 = typeIndexMap[type1];
             type2 = typeIndexMap[type2];
-            int pairParamsIndex =
-                type1 * numTypes - (type1 * (type1 - 1)) / 2 + type2 - type1;
+            int pairParamsIndex{type1 * numTypes - (type1 * (type1 - 1)) / 2 +
+                                type2 - type1};
             A = pairParams[pairParamsIndex][0];
             gamma = pairParams[pairParamsIndex][1];
             rCut = pairParams[pairParamsIndex][2];
@@ -258,8 +258,8 @@ void OpenMM::ReferenceCalcDPDForceKernel::calculateOneIxn(
     else
         OpenMM::ReferenceForce::getDeltaR(positions[ii], positions[jj], dr);
 
-    double r = dr[OpenMM::ReferenceForce::RIndex];
-    bool overlap = r < EPSILON;
+    double r{dr[OpenMM::ReferenceForce::RIndex]};
+    bool overlap{r < EPSILON};
     double weight, weight2;
     OpenMM::Vec3 drUnitVector;
     if (overlap) {
@@ -272,20 +272,20 @@ void OpenMM::ReferenceCalcDPDForceKernel::calculateOneIxn(
                         dr[OpenMM::ReferenceForce::YIndex] / r,
                         dr[OpenMM::ReferenceForce::ZIndex] / r};
     }
-    OpenMM::Vec3 dv = velocities[ii] - velocities[jj];
-    double sigma = sqrt(2 * gamma * BOLTZ * temperature);
+    OpenMM::Vec3 dv{velocities[ii] - velocities[jj]};
+    double sigma{sqrt(2 * gamma * BOLTZ * temperature)};
 
     if (r < rCut) {
         if (!overlap) {
-            double forceMag = -gamma * weight2 * drUnitVector.dot(dv) +
-                              sigma * weight *
-                                  OpenMM::SimTKOpenMMUtilities::
-                                      getNormallyDistributedRandomNumber() /
-                                  sqrt(dt);
+            double forceMag{-gamma * weight2 * drUnitVector.dot(dv) +
+                            sigma * weight *
+                                OpenMM::SimTKOpenMMUtilities::
+                                    getNormallyDistributedRandomNumber() /
+                                sqrt(dt)};
             if (includeConservative)
                 forceMag += A * weight;
-            for (int kk = 0; kk < 3; ++kk) {
-                double fkk = forceMag * drUnitVector[kk];
+            for (int kk{0}; kk < 3; ++kk) {
+                double fkk{forceMag * drUnitVector[kk]};
                 forces[ii][kk] += fkk;
                 forces[jj][kk] -= fkk;
             }
