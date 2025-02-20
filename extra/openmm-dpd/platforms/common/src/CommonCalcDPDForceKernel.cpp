@@ -155,17 +155,21 @@ void OpenMM::CommonCalcDPDForceKernel::initialize(
     }
 
     // TODO: Figure this out. Not implemented yet!
-    std::string source =
-        cc.replaceStrings(OpenMM::CommonKernelSources::DPDForce, replacements);
+    // initialize:
+    //   - DPDForcePair.cc: Code for computing forces and energy for a single
+    //     pair.
+    //   - DPDForce.cc: Code for kernels that compute forces and energy for
+    //     all pairs.
+    // execute:
+    //   - Compile program, create kernel, add parameters, and execute it.
+    std::string source = cc.replaceStrings(
+        OpenMM::CommonKernelSources::DPDForcePair, replacements);
     cc.getNonbondedUtilities().addInteraction(
         useCutoff, usePeriodic, true, force.getCutoffDistance(), exclusionList,
         source, force.getForceGroup(), numParticles > 2000);
 
     cc.addForce(new OpenMM::CommonCalcDPDForceKernel::ForceInfo(force));
 }
-
-void OpenMM::CommonCalcDPDForceKernel::initialize(
-    const OpenMM::System &system, const OpenMM::DPDForce &force) {}
 
 void OpenMM::CommonCalcDPDForceKernel::copyParametersToContext(
     OpenMM::ContextImpl &context, const OpenMM::DPDForce &force) {}
