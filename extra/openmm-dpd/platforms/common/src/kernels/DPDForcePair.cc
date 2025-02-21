@@ -11,7 +11,9 @@
 // }
 
 #ifdef USE_CUTOFF
-
+if (!isExcluded && r2 < CUTOFF_SQUARED) {
 #else
-
+if (!isExcluded) {
 #endif
+    real ijForce = 0;
+}

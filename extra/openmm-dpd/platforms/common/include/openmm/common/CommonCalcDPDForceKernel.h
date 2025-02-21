@@ -33,8 +33,7 @@ namespace OpenMM {
         bool hasInitializedKernel, useNeighborList;
         int numParticles;
         ComputeArray particleTypeIndices, pairParams;
-        ComputeArray exceptionPairs, exceptionParams;
-        std::vector<std::pair<int, int>> exceptionPairs;
+        ComputeArray exceptionParticlePairs, exceptionParams;
     };
 
 }  // namespace OpenMM

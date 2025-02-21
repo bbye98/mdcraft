@@ -113,7 +113,7 @@ void OpenMM::CommonCalcDPDForceKernel::initialize(
 
     // Store the indices and pair parameters of particles that interact
     // through exceptions.
-    std::vector<std::pair<int, int>> exceptionPairsVec;
+    std::vector<std::pair<int, int>> exceptionParticlePairsVec;
     std::vector<OpenMM::mm_float4> exceptionParamsVec;
     for (int i{0}; i < force.getNumExceptions(); i++) {
         int particle1, particle2;
@@ -121,20 +121,20 @@ void OpenMM::CommonCalcDPDForceKernel::initialize(
         force.getExceptionParameters(i, particle1, particle2, A, gamma, rCut);
         exclusionList[particle1].push_back(particle2);
         exclusionList[particle2].push_back(particle1);
-        if (A != 0.0) {
+        if (A != 0) {
             exceptionParamsVec.push_back(
                 mm_float4((float)A, (float)gamma, (float)rCut, 0.0f));
-            exceptionPairsVec.push_back(
+            exceptionParticlePairs.push_back(
                 std::pair<int, int>(particle1, particle2));
         }
     }
     int numExceptions = exceptionParamsVec.size();
-    exceptionPairs.initialize<OpenMM::mm_int4>(cc, std::max(1, numExceptions),
-                                               "dpdExceptionPairs");
+    exceptionParticlePairs.initialize<OpenMM::mm_int4>(
+        cc, std::max(1, numExceptions), "dpdExceptionParticlePairs");
     exceptionParams.initialize<OpenMM::mm_float4>(
         cc, std::max(1, numExceptions), "dpdExceptionParams");
     if (numExceptions > 0) {
-        exceptionPairs.upload(exceptionPairsVec);
+        exceptionParticlePairs.upload(exceptionParticlePairsVec);
         exceptionParams.upload(exceptionParamsVec);
     }
 
@@ -150,6 +150,8 @@ void OpenMM::CommonCalcDPDForceKernel::initialize(
     std::map<std::string, std::string> replacements;
     if (useCutoff) {
         replacements["USE_CUTOFF"] = "1";
+        replacements["CUTOFF_SQUARED"] =
+            cc.doubleToString(nonbondedCutoff * nonbondedCutoff);
         if (usePeriodic)
             replacements["USE_PERIODIC"] = "1";
     }
@@ -162,11 +164,13 @@ void OpenMM::CommonCalcDPDForceKernel::initialize(
     //     all pairs.
     // execute:
     //   - Compile program, create kernel, add parameters, and execute it.
-    std::string source = cc.replaceStrings(
-        OpenMM::CommonKernelSources::DPDForcePair, replacements);
+    // std::string source = cc.replaceStrings(
+    //     OpenMM::CommonKernelSources::DPDForcePair, replacements);
+
+    std::string source = "";
     cc.getNonbondedUtilities().addInteraction(
-        useCutoff, usePeriodic, true, force.getCutoffDistance(), exclusionList,
-        source, force.getForceGroup(), numParticles > 2000);
+        useCutoff, usePeriodic, true, nonbondedCutoff, exclusionList, source,
+        force.getForceGroup(), numParticles > 2000);
 
     cc.addForce(new OpenMM::CommonCalcDPDForceKernel::ForceInfo(force));
 }
