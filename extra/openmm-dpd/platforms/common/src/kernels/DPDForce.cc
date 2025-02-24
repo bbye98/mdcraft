@@ -1,26 +1,74 @@
+static constexpr double EPSILON = 1.0e-12;
+
+DEVICE unsigned int getRandomInt(RandomState* random) {
+    unsigned int xs = ((random->state >> 18) ^ random->state) >> 27;
+    unsigned int rot = random->state >> 59;
+    random->state = random->state * 6364136223846793005ULL + random->increment;
+    return (xs >> rot) | (xs << ((-rot) & 31));
+}
+
+DEVICE float getRandomNormal(RandomState* random) {
+    if (random->nextIsValid) {
+        random->nextIsValid = false;
+        return random->next;
+    }
+    float scale = 1 / (float)0x100000000;
+    float x = scale * max(getRandomInt(random), 1u);
+    float y = scale * getRandomInt(random);
+    float multiplier = SQRT(-2 * LOG(x));
+    float angle = 2 * M_PI * y;
+    random->next = multiplier * COS(angle);
+    random->nextIsValid = true;
+    return multiplier * SIN(angle);
+}
+
 KERNEL void computeIxns(GLOBAL mixed* RESTRICT energyBuffer,
                         GLOBAL mm_ulong* RESTRICT forceBuffers, int numAtoms,
-                        int numExceptions,
                         GLOBAL const real4* RESTRICT positions,
                         GLOBAL const int* RESTRICT particleTypeIndices,
                         GLOBAL const real4* RESTRICT pairParams,
+                        int numExceptions,
                         GLOBAL const int2* RESTRICT exceptionParticlePairs,
-                        GLOBAL const real4* RESTRICT exceptionParams) {}
-
-DEVICE void computeOneIxn(mixed* totalEnergy, real3* force1, real3* force2,
-                          real3 pos1, real3 pos2, real3 vel1, real3 vel2,
-                          float A, float gamma, float rCut, float dt,
-                          RandomState* random
+                        GLOBAL const real4* RESTRICT exceptionParams
 #ifdef USE_PERIODIC
-                          ,
-                          real4 periodicBoxSize, real4 invPeriodicBoxSize,
-                          real4 periodicBoxVecX, real4 periodicBoxVecY,
-                          real4 periodicBoxVecZ
+                        ,
+                        real4 periodicBoxSize, real4 invPeriodicBoxSize,
+                        real4 periodicBoxVecX, real4 periodicBoxVecY,
+                        real4 periodicBoxVecZ
 #endif
 ) {
-    real3 dr = pos1 - pos2;
-#ifdef USE_PERIODIC
-    APPLY_PERIODIC_TO_DELTA(dr)
+
+    RandomState random;
+    random.state = 0;
+    random.increment = (GLOBAL_ID << 1) | 1;
+    random.nextIsValid = false;
+    getRandomInt(&random);
+    random.state += seed;
+    getRandomInt(&random);
+    for (int i = 0; i < LOCAL_ID % 16; i++) getRandomInt(&random);
+}
+
+DEVICE void computeOneIxn(mixed* totalEnergy, real3* force1, real3* force2,
+                          real3 dr, real3 vel1, real3 vel2, float A,
+                          float gamma, float rCut, float dt,
+                          RandomState* random) {
+    real r2 = dr.x * dr.x + dr.y * dr.y + dr.z * dr.z;
+    real invR = RSQRT(r2);
+    real r = r2 * invR;
+    if (r < rCut) {
+        if (r < EPSILON) {
+#ifdef INCLUDE_CONSERVATIVE
+            *totalEnergy += 0.5f * A * rCut;
 #endif
-    real r2 = dot(dr, dr);
+            return;
+        }
+
+        real weight = 1.0 - r / rCut;
+        real weight2 = weight * weight;
+        real3 drUnitVector = dr * invR;
+        real3 dv =
+            make_real3(vel2.x - vel1.x, vel2.y - vel1.y, vel2.z - vel1.z);
+
+        // TODO: Add force and energy contributions.
+    }
 }
