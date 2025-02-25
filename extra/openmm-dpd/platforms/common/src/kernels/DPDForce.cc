@@ -22,19 +22,17 @@ DEVICE float getRandomNormal(RandomState* random) {
     return multiplier * SIN(angle);
 }
 
-KERNEL void computeIxns(GLOBAL mixed* RESTRICT energyBuffer,
-                        GLOBAL mm_ulong* RESTRICT forceBuffers, int numAtoms,
-                        GLOBAL const real4* RESTRICT positions,
-                        GLOBAL const int* RESTRICT particleTypeIndices,
-                        GLOBAL const real4* RESTRICT pairParams,
-                        int numExceptions,
-                        GLOBAL const int2* RESTRICT exceptionParticlePairs,
-                        GLOBAL const real4* RESTRICT exceptionParams
+KERNEL void computeIxns(
+    GLOBAL mixed* RESTRICT energyBuffer, GLOBAL mm_ulong* RESTRICT forceBuffers,
+    int numAtoms, GLOBAL const real4* RESTRICT positions,
+    GLOBAL const int* RESTRICT particleTypeIndices,
+    GLOBAL const real4* RESTRICT pairParams, int numExceptions,
+    GLOBAL const int2* RESTRICT exceptionParticlePairs,
+    GLOBAL const real4* RESTRICT exceptionParams, float kBT, mixed dt
 #ifdef USE_PERIODIC
-                        ,
-                        real4 periodicBoxSize, real4 invPeriodicBoxSize,
-                        real4 periodicBoxVecX, real4 periodicBoxVecY,
-                        real4 periodicBoxVecZ
+    ,
+    real4 periodicBoxSize, real4 invPeriodicBoxSize, real4 periodicBoxVecX,
+    real4 periodicBoxVecY, real4 periodicBoxVecZ
 #endif
 ) {
 
@@ -50,7 +48,7 @@ KERNEL void computeIxns(GLOBAL mixed* RESTRICT energyBuffer,
 
 DEVICE void computeOneIxn(mixed* totalEnergy, real3* force1, real3* force2,
                           real3 dr, real3 vel1, real3 vel2, float A,
-                          float gamma, float rCut, float dt,
+                          float gamma, float rCut, float kBT, mixed dt,
                           RandomState* random) {
     real r2 = dr.x * dr.x + dr.y * dr.y + dr.z * dr.z;
     real invR = RSQRT(r2);
@@ -58,7 +56,7 @@ DEVICE void computeOneIxn(mixed* totalEnergy, real3* force1, real3* force2,
     if (r < rCut) {
         if (r < EPSILON) {
 #ifdef INCLUDE_CONSERVATIVE
-            *totalEnergy += 0.5f * A * rCut;
+            *totalEnergy += 0.5f * A;
 #endif
             return;
         }
@@ -70,5 +68,15 @@ DEVICE void computeOneIxn(mixed* totalEnergy, real3* force1, real3* force2,
             make_real3(vel2.x - vel1.x, vel2.y - vel1.y, vel2.z - vel1.z);
 
         // TODO: Add force and energy contributions.
+        real forceMag =
+#ifdef INCLUDE_CONSERVATIVE
+            A * weight
+#endif
+            - gamma * weight2 * dot(drUnitVector, dv) +
+            SQRT(2 * gamma * kBT / dt) * weight * getRandomNormal(random);
+        real3 force = drUnitVector * forceMag;
+        *force1 += force;
+        *force2 -= force;
+        *totalEnergy += 0.5f * A * weight2;
     }
 }

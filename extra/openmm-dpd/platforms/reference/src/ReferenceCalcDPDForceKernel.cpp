@@ -260,8 +260,9 @@ void OpenMM::ReferenceCalcDPDForceKernel::calculateOneIxn(
 
     double r{dr[OpenMM::ReferenceForce::RIndex]};
     if (r < rCut) {
-        if (r < EPSILON && includeConservative) {
-            totalEnergy += 0.5 * A * rCut;
+        if (r < EPSILON) {
+            if (includeConservative)
+                totalEnergy += 0.5 * A;
             return;
         }
         double weight{1.0 - r / rCut};
@@ -271,10 +272,9 @@ void OpenMM::ReferenceCalcDPDForceKernel::calculateOneIxn(
                                   dr[OpenMM::ReferenceForce::ZIndex] / r};
         OpenMM::Vec3 dv{velocities[ii] - velocities[jj]};
         double forceMag{-gamma * weight2 * drUnitVector.dot(dv) +
-                        sqrt(2 * gamma * BOLTZ * temperature) * weight *
+                        sqrt(2 * gamma * BOLTZ * temperature / dt) * weight *
                             OpenMM::SimTKOpenMMUtilities::
-                                getNormallyDistributedRandomNumber() /
-                            sqrt(dt)};
+                                getNormallyDistributedRandomNumber()};
         if (includeConservative)
             forceMag += A * weight;
         for (int kk{0}; kk < 3; ++kk) {
@@ -282,5 +282,6 @@ void OpenMM::ReferenceCalcDPDForceKernel::calculateOneIxn(
             forces[ii][kk] += fkk;
             forces[jj][kk] -= fkk;
         }
+        totalEnergy += 0.5 * A * weight2;
     }
 }
