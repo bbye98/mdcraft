@@ -22,30 +22,6 @@ DEVICE float getRandomNormal(RandomState* random) {
     return multiplier * SIN(angle);
 }
 
-KERNEL void computeIxns(
-    GLOBAL mixed* RESTRICT energyBuffer, GLOBAL mm_ulong* RESTRICT forceBuffers,
-    int numAtoms, GLOBAL const real4* RESTRICT positions,
-    GLOBAL const int* RESTRICT particleTypeIndices,
-    GLOBAL const real4* RESTRICT pairParams, int numExceptions,
-    GLOBAL const int2* RESTRICT exceptionParticlePairs,
-    GLOBAL const real4* RESTRICT exceptionParams, float kBT, mixed dt
-#ifdef USE_PERIODIC
-    ,
-    real4 periodicBoxSize, real4 invPeriodicBoxSize, real4 periodicBoxVecX,
-    real4 periodicBoxVecY, real4 periodicBoxVecZ
-#endif
-) {
-
-    RandomState random;
-    random.state = 0;
-    random.increment = (GLOBAL_ID << 1) | 1;
-    random.nextIsValid = false;
-    getRandomInt(&random);
-    random.state += seed;
-    getRandomInt(&random);
-    for (int i = 0; i < LOCAL_ID % 16; i++) getRandomInt(&random);
-}
-
 DEVICE void computeOneIxn(mixed* totalEnergy, real3* force1, real3* force2,
                           real3 dr, real3 vel1, real3 vel2, float A,
                           float gamma, float rCut, float kBT, mixed dt,
@@ -67,7 +43,6 @@ DEVICE void computeOneIxn(mixed* totalEnergy, real3* force1, real3* force2,
         real3 dv =
             make_real3(vel2.x - vel1.x, vel2.y - vel1.y, vel2.z - vel1.z);
 
-        // TODO: Add force and energy contributions.
         real forceMag =
 #ifdef INCLUDE_CONSERVATIVE
             A * weight
@@ -79,4 +54,39 @@ DEVICE void computeOneIxn(mixed* totalEnergy, real3* force1, real3* force2,
         *force2 -= force;
         *totalEnergy += 0.5f * A * weight2;
     }
+}
+
+KERNEL void computeIxns(
+    GLOBAL mixed* RESTRICT energyBuffer, GLOBAL mm_ulong* RESTRICT forceBuffers,
+    int numAtoms, GLOBAL const real4* RESTRICT positions,
+    GLOBAL const int* RESTRICT particleTypeIndices,
+    GLOBAL const real4* RESTRICT pairParams, int numExceptions,
+    GLOBAL const int2* RESTRICT exceptionParticlePairs,
+    GLOBAL const real4* RESTRICT exceptionParams, float kBT, mixed dt
+#ifdef USE_PERIODIC
+    ,
+    real4 periodicBoxSize, real4 invPeriodicBoxSize, real4 periodicBoxVecX,
+    real4 periodicBoxVecY, real4 periodicBoxVecZ
+#endif
+) {
+
+    const unsigned int totalWarps = GLOBAL_SIZE / TILE_SIZE;
+    const unsigned int warp = GLOBAL_ID / TILE_SIZE;  // global warpIndex
+    const unsigned int tgx =
+        LOCAL_ID & (TILE_SIZE - 1);           // index within the warp
+    const unsigned int tbx = LOCAL_ID - tgx;  // block warpIndex
+
+    // Initialize the random generator for this thread. The seed is incremented
+    // each step, and the stream ID is the global thread index. Skipping a
+    // variable number of values also seems to be necessary to decorrelate the
+    // streams.
+
+    RandomState random;
+    random.state = 0;
+    random.increment = (GLOBAL_ID << 1) | 1;
+    random.nextIsValid = false;
+    getRandomInt(&random);
+    random.state += seed;
+    getRandomInt(&random);
+    for (int i = 0; i < LOCAL_ID % 16; i++) getRandomInt(&random);
 }
