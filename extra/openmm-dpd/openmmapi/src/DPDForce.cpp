@@ -10,11 +10,10 @@
 
 OpenMM::DPDForce::DPDForce(double A, double gamma, double rCut,
                            double temperature, double cutoff, bool conservative)
-    : defaultA(A), includeConservative(conservative) {
+    : defaultA(A), nonbondedCutoff(cutoff), includeConservative(conservative) {
     setGamma(gamma);
     setRCut(rCut);
     setTemperature(temperature);
-    setCutoffDistance(cutoff);
 }
 
 void OpenMM::DPDForce::setGamma(double gamma) {
@@ -33,6 +32,20 @@ void OpenMM::DPDForce::setTemperature(double temp) {
     if (temp <= 0.0)
         throw OpenMM::OpenMMException("DPDForce: temperature must be positive");
     temperature = temp;
+}
+
+double OpenMM::DPDForce::getCutoffDistance() const {
+    if (nonbondedCutoff == 0.0) {
+        if (getNumTypePairs() == 0)
+            return defaultRCut;
+        return std::max_element(
+                   typePairs.begin(), typePairs.end(),
+                   [](const TypePairInfo &a, const TypePairInfo &b) {
+                       return a.rCut < b.rCut;
+                   })
+            ->rCut;
+    }
+    return nonbondedCutoff;
 }
 
 void OpenMM::DPDForce::setCutoffDistance(double cutoff) {

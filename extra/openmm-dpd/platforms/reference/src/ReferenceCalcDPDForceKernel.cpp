@@ -22,6 +22,7 @@ void OpenMM::ReferenceCalcDPDForceKernel::initialize(
     defaultGamma = force.getGamma();
     defaultRCut = force.getRCut();
     temperature = force.getTemperature();
+    includeConservative = force.getIncludeConservative();
 
     numParticles = force.getNumParticles();
     particleTypes.resize(numParticles);
@@ -69,11 +70,7 @@ void OpenMM::ReferenceCalcDPDForceKernel::initialize(
     nonbondedMethod =
         OpenMM::CalcDPDForceKernel::NonbondedMethod(force.getNonbondedMethod());
     nonbondedCutoff = force.getCutoffDistance();
-    if (nonbondedMethod ==
-        OpenMM::CalcDPDForceKernel::NonbondedMethod::NoCutoff)
-        neighborList = nullptr;
-    else
-        neighborList = new OpenMM::NeighborList();
+    neighborList = new OpenMM::NeighborList();
     if (nonbondedMethod ==
         OpenMM::CalcDPDForceKernel::NonbondedMethod::CutoffPeriodic)
         exceptionsArePeriodic =
@@ -93,6 +90,7 @@ void OpenMM::ReferenceCalcDPDForceKernel::copyParametersToContext(
     defaultGamma = force.getGamma();
     defaultRCut = force.getRCut();
     temperature = force.getTemperature();
+    includeConservative = force.getIncludeConservative();
 
     std::set<int> uniqueTypesSet;
     for (int i{0}; i < numParticles; ++i) {
@@ -162,8 +160,7 @@ void OpenMM::ReferenceCalcDPDForceKernel::copyParametersToContext(
 }
 
 double OpenMM::ReferenceCalcDPDForceKernel::execute(
-    OpenMM::ContextImpl& context, bool includeForces, bool includeEnergy,
-    bool includeConservative) {
+    OpenMM::ContextImpl& context, bool includeForces, bool includeEnergy) {
     OpenMM::ReferencePlatform::PlatformData* data{
         reinterpret_cast<OpenMM::ReferencePlatform::PlatformData*>(
             context.getPlatformData())};
@@ -171,16 +168,12 @@ double OpenMM::ReferenceCalcDPDForceKernel::execute(
     std::vector<Vec3>& velocities{*data->velocities};
     std::vector<Vec3>& forces{*data->forces};
 
-    bool cutoff{nonbondedMethod !=
-                OpenMM::CalcDPDForceKernel::NonbondedMethod::NoCutoff};
     bool periodic{nonbondedMethod ==
                   OpenMM::CalcDPDForceKernel::NonbondedMethod::CutoffPeriodic};
     OpenMM::Vec3* boxVectors{data->periodicBoxVectors};
-    if (nonbondedMethod !=
-        OpenMM::CalcDPDForceKernel::NonbondedMethod::NoCutoff)
-        computeNeighborListVoxelHash(*neighborList, numParticles, positions,
-                                     perParticleExclusions, boxVectors,
-                                     periodic, nonbondedCutoff);
+    computeNeighborListVoxelHash(*neighborList, numParticles, positions,
+                                 perParticleExclusions, boxVectors, periodic,
+                                 nonbondedCutoff);
     if (periodic) {
         double minAllowedSize{1.999999 * nonbondedCutoff};
         if (boxVectors[0][0] < minAllowedSize ||
@@ -193,29 +186,14 @@ double OpenMM::ReferenceCalcDPDForceKernel::execute(
 
     double dt{context.getIntegrator().getStepSize()};
     double totalEnergy{0.0};
-    if (cutoff)
-        for (auto& pair : *neighborList) {
-            calculateOneIxn(pair.first, pair.second, positions, velocities,
-                            forces, totalEnergy, dt, includeConservative,
-                            periodic, boxVectors);
-        }
-    else
-        for (int ii{0}; ii < numParticles; ++ii) {
-            for (int jj{ii + 1}; jj < numParticles; ++jj)
-                if (perParticleExclusions[jj].find(ii) ==
-                    perParticleExclusions[jj].end()) {
-                    calculateOneIxn(ii, jj, positions, velocities, forces,
-                                    totalEnergy, dt, includeConservative,
-                                    periodic, boxVectors);
-                }
-        }
-
-    for (int i{0}; i < numExceptions; ++i) {
+    for (auto& pair : *neighborList)
+        calculateOneIxn(pair.first, pair.second, positions, velocities, forces,
+                        totalEnergy, dt, periodic, boxVectors);
+    for (int i{0}; i < numExceptions; ++i)
         calculateOneIxn(exceptionParticlePairs[i][0],
                         exceptionParticlePairs[i][1], positions, velocities,
-                        forces, totalEnergy, dt, includeConservative,
-                        exceptionsArePeriodic, boxVectors, &exceptionParams[i]);
-    }
+                        forces, totalEnergy, dt, exceptionsArePeriodic,
+                        boxVectors, &exceptionParams[i]);
 
     return totalEnergy;
 }
@@ -224,7 +202,7 @@ void OpenMM::ReferenceCalcDPDForceKernel::calculateOneIxn(
     int ii, int jj, const std::vector<OpenMM::Vec3>& positions,
     const std::vector<OpenMM::Vec3>& velocities,
     std::vector<OpenMM::Vec3>& forces, double& totalEnergy, const double dt,
-    bool includeConservative, bool periodic, const OpenMM::Vec3* boxVectors,
+    bool periodic, const OpenMM::Vec3* boxVectors,
     const std::array<double, 3>* params) {
     double A, gamma, rCut;
     if (params != nullptr) {

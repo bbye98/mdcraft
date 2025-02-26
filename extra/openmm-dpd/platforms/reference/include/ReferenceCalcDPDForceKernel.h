@@ -27,12 +27,12 @@ namespace OpenMM {
                                      const DPDForce &force) override;
 
         double execute(ContextImpl &context, bool includeForces,
-                       bool includeEnergy, bool includeConservative) override;
+                       bool includeEnergy) override;
 
     private:
         CalcDPDForceKernel::NonbondedMethod nonbondedMethod;
         NeighborList *neighborList;
-        bool exceptionsArePeriodic;
+        bool includeConservative, exceptionsArePeriodic;
         int numParticles, numTypes, numExceptions, numTotalExceptions;
         double defaultA, defaultGamma, defaultRCut, temperature,
             nonbondedCutoff;

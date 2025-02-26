@@ -97,6 +97,6 @@ double OpenMM::DPDForceImpl::calcForcesAndEnergy(OpenMM::ContextImpl &context,
                                                  int groups) {
     if ((groups & (1 << forceGroup)) != 0)
         return kernel.getAs<OpenMM::CalcDPDForceKernel>().execute(
-            context, includeForces, includeEnergy, includeConservative);
+            context, includeForces, includeEnergy);
     return 0.0;
 }

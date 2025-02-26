@@ -32,8 +32,7 @@ namespace OpenMM {
                                              const DPDForce &force) = 0;
 
         virtual double execute(ContextImpl &context, bool includeForces,
-                               bool includeEnergy,
-                               bool includeConservative) = 0;
+                               bool includeEnergy) = 0;
     };
 
 }  // namespace OpenMM

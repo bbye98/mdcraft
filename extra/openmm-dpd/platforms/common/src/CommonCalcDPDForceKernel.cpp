@@ -3,6 +3,7 @@
 #include <map>
 
 #include "CommonKernelSources.h"
+#include "SimTKOpenMMRealType.h"
 #include "openmm/common/ComputeForceInfo.h"
 #include "openmm/common/ComputeParameterSet.h"
 #include "openmm/common/ContextSelector.h"
@@ -53,6 +54,31 @@ public:
 private:
     const OpenMM::DPDForce &force;
 };
+
+// class OpenMM::CommonCalcDPDForceKernel::ReorderListener
+//     : public OpenMM::ComputeContext::ReorderListener {
+// public:
+//     ReorderListener(OpenMM::ComputeContext &cc, std::vector<int>
+//     &particleTypes,
+//                     OpenMM::ComputeArray &particleTypeArray)
+//         : cc(cc),
+//           particleTypes(particleTypes),
+//           particleTypeArray(particleTypeArray) {}
+//     void execute() {
+//         // Reorder particleTypes to reflect the new atom order.
+
+//         vector<int> sortedTypes(particleTypes.size());
+//         const vector<int> &order = cc.getAtomIndex();
+//         for (int i = 0; i < particleTypes.size(); i++)
+//             sortedTypes[i] = particleTypes[order[i]];
+//         particleTypeArray.upload(sortedTypes);
+//     }
+
+// private:
+//     OpenMM::ComputeContext &cc;
+//     OpenMM::ComputeArray &particleTypeArray;
+//     std::vector<int> particleTypes;
+// };
 
 void OpenMM::CommonCalcDPDForceKernel::initialize(
     const OpenMM::System &system, const OpenMM::DPDForce &force) {
@@ -142,19 +168,22 @@ void OpenMM::CommonCalcDPDForceKernel::initialize(
 
     OpenMM::DPDForce::NonbondedMethod nonbondedMethod =
         force.getNonbondedMethod();
-    bool useCutoff =
-        (nonbondedMethod != OpenMM::DPDForce::NonbondedMethod::NoCutoff);
     bool usePeriodic =
         (nonbondedMethod == OpenMM::DPDForce::NonbondedMethod::CutoffPeriodic);
     double nonbondedCutoff = force.getCutoffDistance();
-    std::map<std::string, std::string> replacements;
-    if (useCutoff) {
-        replacements["USE_CUTOFF"] = "1";
-        replacements["CUTOFF_SQUARED"] =
-            cc.doubleToString(nonbondedCutoff * nonbondedCutoff);
-        if (usePeriodic)
-            replacements["USE_PERIODIC"] = "1";
-    }
+    std::map<std::string, std::string> defines;
+    defines["EPSILON"] = cc.doubleToString(1.0e-12);
+    defines["M_PI"] = cc.doubleToString(M_PI);
+    defines["TILE_SIZE"] = cc.intToString(ComputeContext::TileSize);
+    defines["WORK_GROUP_SIZE"] =
+        cc.intToString(cc.getNonbondedUtilities().getForceThreadBlockSize());
+    defines["CUTOFF_SQUARED"] =
+        cc.doubleToString(nonbondedCutoff * nonbondedCutoff);
+    if (force.getIncludeConservative())
+        defines["INCLUDE_CONSERVATIVE"] = "1";
+    if (usePeriodic)
+        defines["USE_PERIODIC"] = "1";
+    tileCounter.initialize<int>(cc, 1, "tileCounter");
 
     // TODO: Figure this out. Not implemented yet!
     // initialize:
@@ -169,10 +198,15 @@ void OpenMM::CommonCalcDPDForceKernel::initialize(
 
     std::string source = "";
     cc.getNonbondedUtilities().addInteraction(
-        useCutoff, usePeriodic, true, nonbondedCutoff, exclusionList, source,
+        true, usePeriodic, true, nonbondedCutoff, exclusionList, source,
         force.getForceGroup(), numParticles > 2000);
 
     cc.addForce(new OpenMM::CommonCalcDPDForceKernel::ForceInfo(force));
+    cc.addReorderListener(
+        new ReorderListener(cc, particleTypeVec, particleType));
+    randomSeed = integrator.getRandomNumberSeed();
+    if (randomSeed == 0)
+        randomSeed = osrngseed();  // A seed of 0 means use a unique one
 }
 
 void OpenMM::CommonCalcDPDForceKernel::copyParametersToContext(

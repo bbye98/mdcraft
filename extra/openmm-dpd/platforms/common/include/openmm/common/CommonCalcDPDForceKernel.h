@@ -22,18 +22,20 @@ namespace OpenMM {
                                      const DPDForce &force) override;
 
         double execute(ContextImpl &context, bool includeForces,
-                       bool includeEnergy, bool includeConservative) override;
+                       bool includeEnergy) override;
 
     private:
         class ForceInfo;
+        class ReorderListener;
         ComputeContext &cc;
         ForceInfo *info;
         const System &system;
         DPDForce::NonbondedMethod nonbondedMethod;
         bool hasInitializedKernel, useNeighborList;
-        int numParticles;
+        int numParticles, randomSeed;
         ComputeArray particleTypeIndices, pairParams;
         ComputeArray exceptionParticlePairs, exceptionParams;
+        ComputeArray tileCounter;
     };
 
 }  // namespace OpenMM

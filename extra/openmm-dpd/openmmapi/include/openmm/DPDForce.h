@@ -45,7 +45,7 @@ namespace OpenMM {
 
         double getTemperature() const { return temperature; }
 
-        double getCutoffDistance() const { return nonbondedCutoff; }
+        double getCutoffDistance() const;
 
         void setCutoffDistance(double cutoff);
 

@@ -1,5 +1,3 @@
-static constexpr double EPSILON = 1.0e-12;
-
 DEVICE unsigned int getRandomInt(RandomState* random) {
     unsigned int xs = ((random->state >> 18) ^ random->state) >> 27;
     unsigned int rot = random->state >> 59;
@@ -62,7 +60,14 @@ KERNEL void computeIxns(
     GLOBAL const int* RESTRICT particleTypeIndices,
     GLOBAL const real4* RESTRICT pairParams, int numExceptions,
     GLOBAL const int2* RESTRICT exceptionParticlePairs,
-    GLOBAL const real4* RESTRICT exceptionParams, float kBT, mixed dt
+    GLOBAL const real4* RESTRICT exceptionParams, float kBT, mixed dt,
+    mm_long seed, GLOBAL const int2* RESTRICT exceptionTiles,
+    int numExceptionTiles, GLOBAL const int* RESTRICT tiles,
+    GLOBAL const unsigned int* RESTRICT interactionCount,
+    GLOBAL const real4* RESTRICT blockCenter,
+    GLOBAL const real4* RESTRICT blockSize,
+    GLOBAL const int* RESTRICT interactingAtoms,
+    GLOBAL int* RESTRICT tileCounter
 #ifdef USE_PERIODIC
     ,
     real4 periodicBoxSize, real4 invPeriodicBoxSize, real4 periodicBoxVecX,
@@ -75,6 +80,7 @@ KERNEL void computeIxns(
     const unsigned int tgx =
         LOCAL_ID & (TILE_SIZE - 1);           // index within the warp
     const unsigned int tbx = LOCAL_ID - tgx;  // block warpIndex
+    mixed energy = 0;
 
     // Initialize the random generator for this thread. The seed is incremented
     // each step, and the stream ID is the global thread index. Skipping a
@@ -89,4 +95,8 @@ KERNEL void computeIxns(
     random.state += seed;
     getRandomInt(&random);
     for (int i = 0; i < LOCAL_ID % 16; i++) getRandomInt(&random);
+
+    // TODO
+
+    energyBuffer[GLOBAL_ID] += energy;
 }
