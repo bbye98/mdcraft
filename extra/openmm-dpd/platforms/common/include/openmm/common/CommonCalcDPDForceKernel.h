@@ -31,7 +31,7 @@ namespace OpenMM {
         ForceInfo *info;
         const System &system;
         DPDForce::NonbondedMethod nonbondedMethod;
-        bool hasInitializedKernel, useNeighborList;
+        bool hasInitializedKernel;
         int numParticles, randomSeed;
         ComputeArray particleTypeIndices, pairParams;
         ComputeArray exceptionParticlePairs, exceptionParams;

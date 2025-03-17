@@ -55,30 +55,28 @@ private:
     const OpenMM::DPDForce &force;
 };
 
-// class OpenMM::CommonCalcDPDForceKernel::ReorderListener
-//     : public OpenMM::ComputeContext::ReorderListener {
-// public:
-//     ReorderListener(OpenMM::ComputeContext &cc, std::vector<int>
-//     &particleTypes,
-//                     OpenMM::ComputeArray &particleTypeArray)
-//         : cc(cc),
-//           particleTypes(particleTypes),
-//           particleTypeArray(particleTypeArray) {}
-//     void execute() {
-//         // Reorder particleTypes to reflect the new atom order.
+class OpenMM::CommonCalcDPDForceKernel::ReorderListener
+    : public OpenMM::ComputeContext::ReorderListener {
+public:
+    ReorderListener(OpenMM::ComputeContext &cc,
+                    std::vector<int> &particleTypeIndicesVec,
+                    OpenMM::ComputeArray &particleTypeIndices)
+        : cc(cc),
+          particleTypeIndices(particleTypeIndices),
+          particleTypeIndicesVec(particleTypeIndicesVec) {}
+    void execute() {
+        std::vector<int> sortedTypeIndices(particleTypeIndices.size());
+        const std::vector<int> &order = cc.getAtomIndex();
+        for (int i{0}; i < particleTypeIndices.size(); ++i)
+            sortedTypeIndices[i] = particleTypeIndices[order[i]];
+        particleTypeIndicesVec.upload(sortedTypeIndices);
+    }
 
-//         vector<int> sortedTypes(particleTypes.size());
-//         const vector<int> &order = cc.getAtomIndex();
-//         for (int i = 0; i < particleTypes.size(); i++)
-//             sortedTypes[i] = particleTypes[order[i]];
-//         particleTypeArray.upload(sortedTypes);
-//     }
-
-// private:
-//     OpenMM::ComputeContext &cc;
-//     OpenMM::ComputeArray &particleTypeArray;
-//     std::vector<int> particleTypes;
-// };
+private:
+    OpenMM::ComputeContext &cc;
+    OpenMM::ComputeArray &particleTypeIndicesVec;
+    std::vector<int> particleTypeIndices;
+};
 
 void OpenMM::CommonCalcDPDForceKernel::initialize(
     const OpenMM::System &system, const OpenMM::DPDForce &force) {
@@ -203,7 +201,7 @@ void OpenMM::CommonCalcDPDForceKernel::initialize(
 
     cc.addForce(new OpenMM::CommonCalcDPDForceKernel::ForceInfo(force));
     cc.addReorderListener(
-        new ReorderListener(cc, particleTypeVec, particleType));
+        new ReorderListener(cc, particleTypeIndicesVec, particleTypeIndices));
     randomSeed = integrator.getRandomNumberSeed();
     if (randomSeed == 0)
         randomSeed = osrngseed();  // A seed of 0 means use a unique one
