@@ -36,6 +36,7 @@ namespace OpenMM {
         ComputeArray particleTypeIndices, pairParams;
         ComputeArray exceptionParticlePairs, exceptionParams;
         ComputeArray tileCounter;
+        ComputeKernel kernel;
     };
 
 }  // namespace OpenMM

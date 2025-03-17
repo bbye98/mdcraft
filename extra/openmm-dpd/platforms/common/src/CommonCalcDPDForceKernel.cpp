@@ -185,6 +185,7 @@ void OpenMM::CommonCalcDPDForceKernel::initialize(
     tileCounter.initialize<int>(cc, 1, "tileCounter");
     ComputeProgram program =
         cc.compileProgram(CommonKernelSources::DPDForce, defines);
+    kernel = program->createKernel("computeIxns");
 
     // Add an interaction to the default nonbonded kernel.  This doesn't
     // actually do any calculations.  It's

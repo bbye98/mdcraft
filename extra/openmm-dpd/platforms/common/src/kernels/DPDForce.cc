@@ -147,9 +147,20 @@ KERNEL void computeIxns(
                                   localType[tbx + i], delta, vel1,
                                   localVel[tbx + i], params.x, params.y,
                                   params.z, kBT, dt[0].y, &random);
+                    ATOMIC_ADD(&forceBuffers[atom2],
+                               (mm_ulong)realToFixedPoint(force2.x));
+                    ATOMIC_ADD(&forceBuffers[atom2 + PADDED_NUM_ATOMS],
+                               (mm_ulong)realToFixedPoint(force2.y));
+                    ATOMIC_ADD(&forceBuffers[atom2 + 2 * PADDED_NUM_ATOMS],
+                               (mm_ulong)realToFixedPoint(force2.z));
                 }
             }
         }
+        ATOMIC_ADD(&forceBuffers[atom1], (mm_ulong)realToFixedPoint(force1.x));
+        ATOMIC_ADD(&forceBuffers[atom1 + PADDED_NUM_ATOMS],
+                   (mm_ulong)realToFixedPoint(force1.y));
+        ATOMIC_ADD(&forceBuffers[atom1 + 2 * PADDED_NUM_ATOMS],
+                   (mm_ulong)realToFixedPoint(force1.z));
         SYNC_WARPS;
     }
 
@@ -211,6 +222,12 @@ KERNEL void computeIxns(
                                       localType[tbx + i], delta, vel1,
                                       localVel[tbx + i], params.x, params.y,
                                       params.z, kBT, dt[0].y, &random);
+                        ATOMIC_ADD(&forceBuffers[atom2],
+                                   (mm_ulong)realToFixedPoint(force2.x));
+                        ATOMIC_ADD(&forceBuffers[atom2 + PADDED_NUM_ATOMS],
+                                   (mm_ulong)realToFixedPoint(force2.y));
+                        ATOMIC_ADD(&forceBuffers[atom2 + 2 * PADDED_NUM_ATOMS],
+                                   (mm_ulong)realToFixedPoint(force2.z));
                     }
                 }
             }
@@ -240,13 +257,13 @@ KERNEL void computeIxns(
                                       localType[tbx + i], delta, vel1,
                                       localVel[tbx + i], params.x, params.y,
                                       params.z, kBT, dt[0].y, &random);
+                        ATOMIC_ADD(&forceBuffers[atom2],
+                                   (mm_ulong)realToFixedPoint(force2.x));
+                        ATOMIC_ADD(&forceBuffers[atom2 + PADDED_NUM_ATOMS],
+                                   (mm_ulong)realToFixedPoint(force2.y));
+                        ATOMIC_ADD(&forceBuffers[atom2 + 2 * PADDED_NUM_ATOMS],
+                                   (mm_ulong)realToFixedPoint(force2.z));
                     }
-                    ATOMIC_ADD(&forceBuffers[atom2],
-                               (mm_ulong)realToFixedPoint(force2.x));
-                    ATOMIC_ADD(&forceBuffers[atom2 + PADDED_NUM_ATOMS],
-                               (mm_ulong)realToFixedPoint(force2.y));
-                    ATOMIC_ADD(&forceBuffers[atom2 + 2 * PADDED_NUM_ATOMS],
-                               (mm_ulong)realToFixedPoint(force2.z));
                 }
             }
         }
