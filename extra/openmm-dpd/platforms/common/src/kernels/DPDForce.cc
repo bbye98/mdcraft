@@ -183,9 +183,9 @@ KERNEL void computeIxns(
         localVel[LOCAL_ID] = vel2;
 #ifdef USE_PERIODIC
         bool singlePeriodicCopy =
-            (0.5f * periodicBoxSize.x - blockSizeX.x >= MAX_CUTOFF &&
-             0.5f * periodicBoxSize.y - blockSizeX.y >= MAX_CUTOFF &&
-             0.5f * periodicBoxSize.z - blockSizeX.z >= MAX_CUTOFF);
+            (0.5f * periodicBoxSize.x - blockSizeX.x >= CUTOFF &&
+             0.5f * periodicBoxSize.y - blockSizeX.y >= CUTOFF &&
+             0.5f * periodicBoxSize.z - blockSizeX.z >= CUTOFF);
         if (singlePeriodicCopy) {
             // The box is small enough that we can just translate all the atoms
             // into a single periodic box, then skip having to apply periodic

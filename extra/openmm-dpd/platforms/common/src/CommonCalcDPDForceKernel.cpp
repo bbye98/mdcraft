@@ -169,34 +169,30 @@ void OpenMM::CommonCalcDPDForceKernel::initialize(
     bool usePeriodic =
         (nonbondedMethod == OpenMM::DPDForce::NonbondedMethod::CutoffPeriodic);
     double nonbondedCutoff = force.getCutoffDistance();
+    cc.initializeContexts();
+    OpenMM::ContextSelector selector(cc);
     std::map<std::string, std::string> defines;
     defines["EPSILON"] = cc.doubleToString(1.0e-12);
     defines["M_PI"] = cc.doubleToString(M_PI);
     defines["TILE_SIZE"] = cc.intToString(ComputeContext::TileSize);
     defines["WORK_GROUP_SIZE"] =
         cc.intToString(cc.getNonbondedUtilities().getForceThreadBlockSize());
-    defines["CUTOFF_SQUARED"] =
-        cc.doubleToString(nonbondedCutoff * nonbondedCutoff);
+    defines["CUTOFF"] = cc.doubleToString(nonbondedCutoff);
     if (force.getIncludeConservative())
         defines["INCLUDE_CONSERVATIVE"] = "1";
     if (usePeriodic)
         defines["USE_PERIODIC"] = "1";
     tileCounter.initialize<int>(cc, 1, "tileCounter");
+    ComputeProgram program =
+        cc.compileProgram(CommonKernelSources::DPDForce, defines);
 
-    // TODO: Figure this out. Not implemented yet!
-    // initialize:
-    //   - DPDForcePair.cc: Code for computing forces and energy for a single
-    //     pair.
-    //   - DPDForce.cc: Code for kernels that compute forces and energy for
-    //     all pairs.
-    // execute:
-    //   - Compile program, create kernel, add parameters, and execute it.
-    // std::string source = cc.replaceStrings(
-    //     OpenMM::CommonKernelSources::DPDForcePair, replacements);
+    // Add an interaction to the default nonbonded kernel.  This doesn't
+    // actually do any calculations.  It's
+    // just so that NonbondedUtilities will build the exclusion flags and
+    // maintain the neighbor list.
 
-    std::string source = "";
     cc.getNonbondedUtilities().addInteraction(
-        true, usePeriodic, true, nonbondedCutoff, exclusionList, source,
+        true, usePeriodic, true, nonbondedCutoff, exclusionList, "",
         force.getForceGroup(), numParticles > 2000);
 
     cc.addForce(new OpenMM::CommonCalcDPDForceKernel::ForceInfo(force));
