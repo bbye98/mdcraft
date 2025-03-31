@@ -502,10 +502,14 @@ class BaseTrajectoryReader(BaseReader):
 
         # Read data from frame(s)
         data = (
-            self._parse_frame(file, frame_indices, _convert_units and not self._reduced)
+            self._parse_frame(
+                file, frame_indices, _convert_units and not self._reduced
+            )
             if isinstance(frame_indices, (int, np.integer))
             else [
-                self._parse_frame(file, fi, _convert_units and not self._reduced)
+                self._parse_frame(
+                    file, fi, _convert_units and not self._reduced
+                )
                 for fi in frame_indices
             ]
         )

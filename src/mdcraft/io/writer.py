@@ -1,3 +1,4 @@
+from __future__ import annotations
 from abc import abstractmethod
 from pathlib import Path
 from types import TracebackType

@@ -1,4 +1,4 @@
-from typing import Union
+from __future__ import annotations
 
 import numpy as np
 
@@ -10,8 +10,8 @@ if FOUND_OPENMM:
 
 
 def reduce_box_vectors(
-    vectors: Union[np.ndarray[float], "unit.Quantity", Q_], /
-) -> Union[np.ndarray[float], "unit.Quantity", Q_]:
+    vectors: np.ndarray[float] | "unit.Quantity" | Q_, /
+) -> np.ndarray[float] | "unit.Quantity" | Q_:
     """
     Reduces the box vectors of a general triclinic simulation box to
     those of a restricted one.
@@ -148,8 +148,10 @@ def reduce_box_vectors(
 
 
 def convert_cell_representation(
-    representation: Union[np.ndarray[float], "unit.Quantity", Q_], output_format: str, /
-) -> Union[np.ndarray[float], "unit.Quantity", Q_]:
+    representation: np.ndarray[float] | "unit.Quantity" | Q_,
+    output_format: str,
+    /,
+) -> np.ndarray[float] | "unit.Quantity" | Q_:
     """
     Converts between cell representations for a simulation box.
 
@@ -271,7 +273,11 @@ def convert_cell_representation(
             return np.concatenate((representation, (90.0, 90.0, 90.0)))
         elif output_format == "vectors":
             representation = np.diag(representation)
-        return representation if length_unit is None else representation * length_unit
+        return (
+            representation
+            if length_unit is None
+            else representation * length_unit
+        )
     elif input_format == "parameters":
         alpha, beta, gamma = np.radians(representation[3:])
         if output_format == "dimensions":
@@ -303,7 +309,9 @@ def convert_cell_representation(
                 / np.sin(gamma)
             )
             vectors[2, 2] = np.sqrt(
-                representation[2] ** 2 - vectors[2, 0] ** 2 - vectors[2, 1] ** 2
+                representation[2] ** 2
+                - vectors[2, 0] ** 2
+                - vectors[2, 1] ** 2
             )
             vectors[np.isclose(vectors, 0, atol=5e-6)] = 0
             return vectors
@@ -330,7 +338,11 @@ def convert_cell_representation(
             )
         elif output_format == "dimensions":
             representation = np.diag(representation)
-        return representation if length_unit is None else representation * length_unit
+        return (
+            representation
+            if length_unit is None
+            else representation * length_unit
+        )
 
 
 def scale_triclinic_coordinates(
@@ -475,7 +487,9 @@ def scale_triclinic_coordinates(
                             coordinates[:, other_index]
                             * box_vectors[axis_index, other_index]
                         )
-                    coordinates[:, axis_index] /= box_vectors[axis_index, axis_index]
+                    coordinates[:, axis_index] /= box_vectors[
+                        axis_index, axis_index
+                    ]
                 else:
                     scaled_index, unscaled_index = other_indices[
                         :: (2 * other_scaled_flags[0] - 1)

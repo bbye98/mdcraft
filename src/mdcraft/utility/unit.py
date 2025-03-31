@@ -1,4 +1,5 @@
-from typing import Any, Union
+from __future__ import annotations
+from typing import Any
 
 from .. import FOUND_OPENMM, Q_, U_
 
@@ -50,9 +51,9 @@ def _convert_pint_unit_to_openmm_unit(pint_unit: U_) -> "unit.Unit":
 
 def strip_unit(
     quantity: Any,
-    output_unit: Union[str, "unit.Unit", U_, None] = None,
+    output_unit: str | "unit.Unit" | U_ | None = None,
     /,
-) -> tuple[Any, Union[str, "unit.Unit", U_, None]]:
+) -> tuple[Any, str | "unit.Unit" | U_ | None]:
     """
     Separates the unit from a physical quantity after, optionally,
     converting it to a different unit.
@@ -185,7 +186,9 @@ def strip_unit(
         else:
             actual_unit = conversion_unit = output_unit
             if getattr(output_unit, "__module__", None) == "openmm.unit.unit":
-                conversion_unit = _convert_openmm_unit_to_pint_unit(output_unit)
+                conversion_unit = _convert_openmm_unit_to_pint_unit(
+                    output_unit
+                )
             quantity = quantity.to(conversion_unit)
             if isinstance(output_unit, str):
                 actual_unit = str(quantity.units)
@@ -206,14 +209,18 @@ def strip_unit(
                 _convert_pint_unit_to_openmm_unit(U_(output_unit))
                 if isinstance(output_unit, str)
                 else (
-                    output_unit if isinstance(output_unit, unit.Unit) else quantity.unit
+                    output_unit
+                    if isinstance(output_unit, unit.Unit)
+                    else quantity.unit
                 )
             )
         value = quantity.value_in_unit(conversion_unit)
     elif isinstance(quantity, Q_):
         if quantity.unitless:
             actual_unit = (
-                U_(output_unit) if isinstance(output_unit, str) else output_unit
+                U_(output_unit)
+                if isinstance(output_unit, str)
+                else output_unit
             )
             conversion_unit = quantity.units
         elif getattr(output_unit, "__module__", None) == "openmm.unit.unit":
@@ -223,7 +230,11 @@ def strip_unit(
             actual_unit = conversion_unit = (
                 U_(output_unit)
                 if isinstance(output_unit, str)
-                else output_unit if isinstance(output_unit, U_) else quantity.units
+                else (
+                    output_unit
+                    if isinstance(output_unit, U_)
+                    else quantity.units
+                )
             )
         value = quantity.m_as(conversion_unit)
     else:
