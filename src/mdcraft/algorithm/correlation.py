@@ -13,7 +13,7 @@ def correlation(
     *,
     average: bool = False,
     fft: bool = True,
-    symmetric: bool = False,
+    symmetrize: bool = False,
     vector: bool = False,
 ) -> np.ndarray[float | complex]:
     """
@@ -114,7 +114,7 @@ def correlation(
         Specifies whether to use fast Fourier transforms (FFT) to
         evaluate the ACF/CCF.
 
-    symmetric : `bool`, keyword-only, default: :code:`False`
+    symmetrize : `bool`, keyword-only, default: :code:`False`
         Specifies whether to double the ACF or to combine the negative
         and positive time lags for the CCF.
 
@@ -143,7 +143,7 @@ def correlation(
 
            * If :code:`average=True`, the axis corresponding to the
              :math:`N` entities is no longer present.
-           * If :code:`symmetric=False`, the axis corresponding to the
+           * If :code:`symmetrize=False`, the axis corresponding to the
              :math:`n_t` times now has a length of :math:`2n_t-1` to
              accomodate negative and positive time lags.
            * If :code:`vector=True`, the last axis is no longer present.
@@ -174,7 +174,7 @@ def correlation(
         )
     if vector and n_dim == 1:
         raise ValueError(
-            "The arrays cannot be one-dimensional if " "`vector=True`."
+            "The arrays cannot be one-dimensional if `vector=True`."
         )
     if y is not None:
         y = np.asarray(y)
@@ -223,14 +223,15 @@ def correlation(
         if y is None:
             ft = f_fft(x, n=n_fft, axis=axis)
             corr = f_ifft(ft * ft.conj(), axis=axis)
-            corr = (symmetric + 1) * (corr[:, :n_t] if axis else corr[:n_t])
+            corr = (symmetrize + 1) * (corr[:, :n_t] if axis else corr[:n_t])
         else:
             ft_x = f_fft(x, n=n_fft, axis=axis)
             ft_y = f_fft(y, n=n_fft, axis=axis)
             ft = ft_x.conj() * ft_y
-            if symmetric:
-                corr = f_ifft(ft + ft_x * ft_y.conj(), axis=axis)
-                corr = corr[:, :n_t] if axis else corr[:n_t]
+            if symmetrize:
+                corr = f_ifft(ft + ft_x * ft_y.conj(), axis=axis)[
+                    *slices, :n_t
+                ]
             else:
                 corr = f_ifft(ft, axis=axis)
                 axis_slices.append(slice(1 - n_t, None))
@@ -243,8 +244,7 @@ def correlation(
         # Initialize array with axis slice(s) needed for normalization later
         axis_slices = [slice(-n_t, None)]
 
-        # Use forward and backward slices to get relevant time windows
-        # for the ACF/CCF
+        # Use opposite sliding windows to get relevant data for each time lag
         if y is None:
             if n_dim == 1:
                 corr = np.fromiter(
@@ -302,7 +302,7 @@ def correlation(
 
         # Double the ACF or combine the negative and positive time lags for
         # the CCF, if desired
-        if symmetric:
+        if symmetrize:
             if y is None:
                 corr *= 2
             else:
