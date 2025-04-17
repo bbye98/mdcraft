@@ -11,7 +11,9 @@ sys.path.insert(0, "/mnt/c/Users/Benjamin/Documents/GitHub/mdcraft-dev/src")
 from mdcraft.io.reader import LAMMPSDataReader, LAMMPSDumpReader
 
 
-os.chdir("/mnt/c/Users/Benjamin/Documents/GitHub/mdcraft-dev/tests/data/topologies")
+os.chdir(
+    "/mnt/c/Users/Benjamin/Documents/GitHub/mdcraft-dev/tests/data/topologies"
+)
 
 data_reader = LAMMPSDataReader("benzene.data")
 test = data_reader._parse_topology(data_reader._file)

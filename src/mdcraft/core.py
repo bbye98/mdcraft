@@ -453,9 +453,7 @@ class Trajectory:
         else:
             filenames = [f.name for f in self._filenames]
             formats = [r._FORMAT for r in self._readers]
-        return (
-            f"{self.__class__.__name__}({filenames}, formats={formats}, ...)"
-        )
+        return f"{self.__class__.__name__}({filenames}, formats={formats}, ...)"
 
     def __str__(self) -> str:
         filenames = (

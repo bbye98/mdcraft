@@ -186,9 +186,7 @@ def strip_unit(
         else:
             actual_unit = conversion_unit = output_unit
             if getattr(output_unit, "__module__", None) == "openmm.unit.unit":
-                conversion_unit = _convert_openmm_unit_to_pint_unit(
-                    output_unit
-                )
+                conversion_unit = _convert_openmm_unit_to_pint_unit(output_unit)
             quantity = quantity.to(conversion_unit)
             if isinstance(output_unit, str):
                 actual_unit = str(quantity.units)
@@ -218,9 +216,7 @@ def strip_unit(
     elif isinstance(quantity, Q_):
         if quantity.unitless:
             actual_unit = (
-                U_(output_unit)
-                if isinstance(output_unit, str)
-                else output_unit
+                U_(output_unit) if isinstance(output_unit, str) else output_unit
             )
             conversion_unit = quantity.units
         elif getattr(output_unit, "__module__", None) == "openmm.unit.unit":

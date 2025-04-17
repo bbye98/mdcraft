@@ -1,9 +1,0 @@
-matplotlib
-netCDF4
-numba
-numpy
-pandas
-pint
-psutil
-scipy
-sympy

@@ -10,18 +10,15 @@ sys.path.insert(
 )
 from mdcraft.algorithm import correlation
 
-
 RNG = np.random.default_rng()
 
 
 class TestFunctionCorrelation:
-
     @classmethod
     def setup_class(cls):
         # Randomly choose the shape of the time series data
         # (b)locks, (t)ime, (e)ntities, (d)imensions
-        # cls.shape = np.array((*RNG.integers(2, 100, size=3), 3))
-        cls.shape = np.array((100, 100, 100, 3))
+        cls.shape = np.array((*RNG.integers(2, 100, size=3), 3))
         cls.shape_ccf = cls.shape.copy()
         cls.shape_ccf[1] = 2 * cls.shape_ccf[1] - 1
 
@@ -73,7 +70,7 @@ class TestFunctionCorrelation:
             ]
         )
 
-        # Calculate symmetrize CCF solutions
+        # Calculate symmetrized CCF solutions
         cls.symmetrized_ccf_ted = np.vstack(
             (
                 2 * cls.ccf_ted[cls.shape[1] - 1],
@@ -140,6 +137,15 @@ class TestFunctionCorrelation:
         """
         with pytest.raises(ValueError):
             correlation.correlation(np.empty(1), vector=True)
+
+    def test_ccf_asymmetric_arrays(self):
+        """
+        Computes the CCF of two asymmetric arrays with different shapes.
+
+        A ValueError should be raised.
+        """
+        with pytest.raises(ValueError):
+            correlation.correlation(np.empty(1), np.empty(2))
 
     def test_acf_fft_ones_t(self):
         """
@@ -262,6 +268,42 @@ class TestFunctionCorrelation:
             self.shape[:3],
         ) and np.allclose(acf, 3)
 
+    def test_acf_fft_complex_ones_bted(self):
+        """
+        Computes the ACF of a segmented time series of complex
+        one-vectors for multiple entities with shape (N_b, N_t, N_e, 3)
+        using FFTs.
+
+        The expected result is an array of threes with shape
+        (N_b, N_t, N_e).
+        """
+        assert np.allclose(
+            (
+                acf := correlation.correlation(
+                    self.ones.astype(complex), vector=True
+                )
+            ).shape,
+            self.shape[:3],
+        ) and np.allclose(acf, 3)
+
+    def test_acf_shift_complex_ones_bted(self):
+        """
+        Computes the ACF of a segmented time series of complex
+        one-vectors for multiple entities with shape (N_b, N_t, N_e, 3)
+        using sliding windows.
+
+        The expected result is an array of threes with shape
+        (N_b, N_t, N_e).
+        """
+        assert np.allclose(
+            (
+                acf := correlation.correlation(
+                    self.ones.astype(complex), fft=False, vector=True
+                )
+            ).shape,
+            self.shape[:3],
+        ) and np.allclose(acf, 3)
+
     def test_acf_fft_random_t(self):
         """
         Computes the ACF of a time series of random scalars with shape
@@ -317,9 +359,7 @@ class TestFunctionCorrelation:
         """
         assert (
             np.allclose(
-                (
-                    acf := correlation.correlation(self.r1[..., 0], axis=1)
-                ).shape,
+                (acf := correlation.correlation(self.r1[..., 0], axis=1)).shape,
                 self.shape[:3],
             )
             and np.allclose(acf[0], self.acf_te)
@@ -466,9 +506,7 @@ class TestFunctionCorrelation:
         """
         assert (
             np.allclose(
-                (
-                    acf := correlation.correlation(self.r1[..., 0], axis=1)
-                ).shape,
+                (acf := correlation.correlation(self.r1[..., 0], axis=1)).shape,
                 self.shape[:3],
             )
             and np.allclose(acf[0], self.acf_te)
@@ -607,15 +645,6 @@ class TestFunctionCorrelation:
             and np.allclose(acf[0], self.acf_ted)
             and np.allclose(acf[..., 0], self.acf_btd)
         )
-
-    def test_ccf_asymmetric_arrays(self):
-        """
-        Computes the CCF of two asymmetric arrays with different shapes.
-
-        A ValueError should be raised.
-        """
-        with pytest.raises(ValueError):
-            correlation.correlation(np.empty(1), np.empty(2))
 
     def test_ccf_fft_random_t(self):
         """

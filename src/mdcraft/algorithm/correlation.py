@@ -229,9 +229,7 @@ def correlation(
             ft_y = f_fft(y, n=n_fft, axis=axis)
             ft = ft_x.conj() * ft_y
             if symmetrize:
-                corr = f_ifft(ft + ft_x * ft_y.conj(), axis=axis)[
-                    *slices, :n_t
-                ]
+                corr = f_ifft(ft + ft_x * ft_y.conj(), axis=axis)[*slices, :n_t]
             else:
                 corr = f_ifft(ft, axis=axis)
                 axis_slices.append(slice(1 - n_t, None))
@@ -248,10 +246,7 @@ def correlation(
         if y is None:
             if n_dim == 1:
                 corr = np.fromiter(
-                    (
-                        np.dot(x[i:], x[: -i if i else None])
-                        for i in range(n_t)
-                    ),
+                    (np.dot(x[i:], x[: -i if i else None]) for i in range(n_t)),
                     dtype=float,
                     count=n_t,
                 )
@@ -316,13 +311,9 @@ def correlation(
     axes.remove(axis)
 
     # Normalize the ACF/CCF
-    corr[*slices, axis_slices[0]] /= np.expand_dims(
-        np.arange(n_t, 0, -1), axes
-    )
+    corr[*slices, axis_slices[0]] /= np.expand_dims(np.arange(n_t, 0, -1), axes)
     if corr.shape[axis] != n_t:
-        corr[*slices, axis_slices[1]] /= np.expand_dims(
-            np.arange(1, n_t), axes
-        )
+        corr[*slices, axis_slices[1]] /= np.expand_dims(np.arange(1, n_t), axes)
         if fft:
             corr = pfft.fftshift(corr, axis)[
                 *slices, (start := n_fft // 2 - n_t + 1) : start + 2 * n_t - 1

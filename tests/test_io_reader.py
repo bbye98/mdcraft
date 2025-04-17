@@ -3,7 +3,9 @@ import sys
 
 import numpy as np
 
-sys.path.insert(0, f"{pathlib.Path(__file__).parents[1].resolve().as_posix()}/src")
+sys.path.insert(
+    0, f"{pathlib.Path(__file__).parents[1].resolve().as_posix()}/src"
+)
 from mdcraft.io.reader import LAMMPSDumpReader  # noqa: E402
 
 DATA_DIRECTORY = pathlib.Path(__file__).parents[0].resolve() / "data"

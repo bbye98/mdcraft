@@ -1265,8 +1265,7 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
                     elif self._extra_attribute_indices[name] is not None:
                         self._extra_attribute_indices[name].sort()
                         extra_attribute_columns[name] = [
-                            cols[i]
-                            for i in self._extra_attribute_indices[name]
+                            cols[i] for i in self._extra_attribute_indices[name]
                         ]
             else:
                 extra_attribute_columns = {}
@@ -1293,16 +1292,12 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
                         for name, col in self._attributes.items()
                         if name.startswith(attr)
                     }
-                    self._extra_attribute_indices[attr] = sorted(
-                        mapping.keys()
-                    )
+                    self._extra_attribute_indices[attr] = sorted(mapping.keys())
                     extra_attribute_columns[attr] = [
                         mapping[i] for i in self._extra_attribute_indices[attr]
                     ]
                 else:
-                    raise ValueError(
-                        f"Invalid attribute '{attr}' in `extras`."
-                    )
+                    raise ValueError(f"Invalid attribute '{attr}' in `extras`.")
         self._attribute_columns |= extra_attribute_columns
 
         # Get time step, number of atoms, and byte offsets for frames in file
@@ -1736,10 +1731,7 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
                         * self._UNITS["energy"]
                         / self._UNITS["length"]
                     )
-                    if (
-                        "[substance]"
-                        not in frame_data["forces"].dimensionality
-                    ):
+                    if "[substance]" not in frame_data["forces"].dimensionality:
                         frame_data["forces"] *= ureg.avogadro_constant
                     frame_data["forces"] = frame_data["forces"].m_as(
                         INTERNAL_UNITS["energy"] / INTERNAL_UNITS["length"]

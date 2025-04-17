@@ -309,9 +309,7 @@ def convert_cell_representation(
                 / np.sin(gamma)
             )
             vectors[2, 2] = np.sqrt(
-                representation[2] ** 2
-                - vectors[2, 0] ** 2
-                - vectors[2, 1] ** 2
+                representation[2] ** 2 - vectors[2, 0] ** 2 - vectors[2, 1] ** 2
             )
             vectors[np.isclose(vectors, 0, atol=5e-6)] = 0
             return vectors

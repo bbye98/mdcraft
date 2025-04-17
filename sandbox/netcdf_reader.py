@@ -8,7 +8,9 @@ from typing import Any, Iterable
 import numpy as np
 
 sys.path.insert(0, "/mnt/c/Users/Benjamin/Documents/GitHub/mdcraft-dev/src")
-from mdcraft.io.reader import BaseTrajectoryReader  # , NetCDFReader  # dev MDCraft
+from mdcraft.io.reader import (
+    BaseTrajectoryReader,
+)  # , NetCDFReader  # dev MDCraft
 
 # os.chdir("/mnt/c/Users/Benjamin/Downloads")
 # filename = "example.nc"
@@ -395,7 +397,9 @@ class NetCDFReader(BaseTrajectoryReader):
                 "positions": self.get_positions(frame, file=file),
                 "dimensions": self.get_dimensions(frame, file=file),
                 "forces": self.get_forces(frame, verbose=False, file=file),
-                "velocities": self.get_velocities(frame, verbose=False, file=file),
+                "velocities": self.get_velocities(
+                    frame, verbose=False, file=file
+                ),
             }
 
         # Open file for parallel reading, if necessary
