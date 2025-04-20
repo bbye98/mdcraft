@@ -1,7 +1,6 @@
 from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Iterable
-import importlib.util
 from pathlib import Path
 from types import TracebackType
 from typing import Any, Self, TextIO
@@ -11,8 +10,6 @@ import numpy as np
 import psutil
 
 from .. import U_
-
-FOUND_MDANALYSIS = importlib.util.find_spec("MDAnalysis") is not None
 
 
 class BaseReader:
@@ -27,25 +24,20 @@ class BaseReader:
     filename : `str` or `pathlib.Path`, positional-only
         Filename or path to the topology or trajectory file.
 
-    parallel : `bool`, keyword-only
-        Determines whether the file is read in parallel.
-
     n_workers : `int`, keyword-only
-        Number of threads to use when reading the file in parallel.
-        If not specified, the number of logical threads available is
-        used.
+        Number of threads to use when reading the file. If :code:`None`,
+        the number of available logical threads is used.
     """
 
     _PARALLELIZABLE: bool
 
     def __init__(
-        self, filename: str | Path, /, *, parallel: bool, n_workers: int = None
+        self, filename: str | Path, /, *, n_workers: int | None
     ) -> None:
         # Resolve full path to file
         self._filename = Path(filename).resolve(True)
 
         # Store settings
-        self._parallel = parallel
         self._n_workers = n_workers or psutil.cpu_count()
 
         # Create finalizer
@@ -120,13 +112,9 @@ class BaseTopologyReader(BaseReader):
     filename : `str` or `pathlib.Path`, positional-only
         Filename or path to the topology file.
 
-    parallel : `bool`, keyword-only
-        Determines whether the file is read in parallel.
-
     n_workers : `int`, keyword-only
-        Number of threads to use when reading the file in parallel.
-        If not specified, the number of logical threads available is
-        used.
+        Number of threads to use when reading the file. If :code:`None`,
+        the number of available logical threads is used.
     """
 
     _EXTENSIONS: set[str]
@@ -139,10 +127,9 @@ class BaseTopologyReader(BaseReader):
         filename: str | Path,
         /,
         *,
-        parallel: bool,
-        n_workers: int,
+        n_workers: int | None,
     ) -> None:
-        super().__init__(filename, parallel=parallel, n_workers=n_workers)
+        super().__init__(filename, n_workers=n_workers)
 
     @abstractmethod
     def __repr__(self) -> str:
@@ -170,7 +157,6 @@ class BaseTopologyReader(BaseReader):
         self,
         /,
         *,
-        parallel: bool | None = None,
         _convert_units: bool = True,
     ) -> dict[str, Any] | list[dict[str, Any]]:
         pass
@@ -302,13 +288,9 @@ class BaseTrajectoryReader(BaseReader):
     filename : `str` or `pathlib.Path`, positional-only
         Filename or path to the trajectory file.
 
-    parallel : `bool`, keyword-only
-        Determines whether the file is read in parallel.
-
     n_workers : `int`, keyword-only
-        Number of threads to use when reading the file in parallel.
-        If not specified, the number of logical threads available is
-        used.
+        Number of threads to use when reading the file. If :code:`None`,
+        the number of available logical threads is used.
     """
 
     _EXTENSIONS: set[str]
@@ -321,10 +303,9 @@ class BaseTrajectoryReader(BaseReader):
         filename: str | Path,
         /,
         *,
-        parallel: bool,
-        n_workers: int,
+        n_workers: int | None,
     ) -> None:
-        super().__init__(filename, parallel=parallel, n_workers=n_workers)
+        super().__init__(filename, n_workers=n_workers)
 
     @abstractmethod
     def __repr__(self) -> str:
@@ -462,7 +443,6 @@ class BaseTrajectoryReader(BaseReader):
         frame_indices: int | slice | Iterable[int],
         /,
         *,
-        parallel: bool | None = None,
         _convert_units: bool = True,
     ) -> dict[str, Any] | list[dict[str, Any]]:
         """
@@ -472,9 +452,6 @@ class BaseTrajectoryReader(BaseReader):
         ----------
         frame_indices : `int`, `slice`, or array-like, positional-only
             Indices of frames to read.
-
-        parallel : `bool`, keyword-only, optional
-            Determines whether the file is read in parallel.
 
         Returns
         -------
@@ -492,9 +469,7 @@ class BaseTrajectoryReader(BaseReader):
                 self._check_frame(fi)
 
         # Open file for parallel reading, if necessary
-        if parallel is None:
-            parallel = self._parallel and self._PARALLELIZABLE
-        if parallel:
+        if self._n_workers > 1:
             file = open(self._filename, "r")
         else:
             self.open()
@@ -515,7 +490,7 @@ class BaseTrajectoryReader(BaseReader):
         )
 
         # Close file, if necessary
-        if parallel:
+        if self._n_workers > 1:
             file.close()
 
         return data

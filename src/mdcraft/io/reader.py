@@ -1,7 +1,6 @@
 from __future__ import annotations
 from collections import defaultdict
 import concurrent.futures
-import importlib.util
 from pathlib import Path
 from typing import Any, TextIO
 import warnings
@@ -11,13 +10,11 @@ import pandas as pd
 
 from . import INTERNAL_UNITS
 from .base import BaseTopologyReader, BaseTrajectoryReader
-from .. import ureg, U_
+from .. import FOUND, U_, ureg
 from ..utility.topology import (
     convert_cell_representation,
     scale_triclinic_coordinates,
 )
-
-FOUND_MDANALYSIS = importlib.util.find_spec("MDAnalysis") is not None
 
 
 class LAMMPSDataReader(BaseTopologyReader):  # TODO
@@ -232,6 +229,7 @@ class LAMMPSDataReader(BaseTopologyReader):  # TODO
         "cvec",
         "abc origin",
     }
+    _PARALLELIZABLE = True
     _SECTION_KEYWORDS = {
         "Atoms": "atoms",
         "Velocities": "atoms",
@@ -272,14 +270,9 @@ class LAMMPSDataReader(BaseTopologyReader):  # TODO
         atom_style: str | list[str] | None = None,
         *,
         reduced: bool = False,
-        parallel: bool = False,
-        n_workers: int | None = None,
+        n_workers: int | None = 1,
     ) -> None:
-        super().__init__(
-            filename,
-            parallel=parallel,
-            n_workers=n_workers,
-        )
+        super().__init__(filename, n_workers=n_workers)
 
         # Create and store handle to file
         self.open()
@@ -345,7 +338,7 @@ class LAMMPSDataReader(BaseTopologyReader):  # TODO
         # Find all sections
         file_size = self._filename.stat().st_size
         start = self._file.tell() - len(line) - 1
-        if self._parallel:
+        if self._n_workers > 1:
             chunk_size = np.ceil((file_size - start) / self._n_workers).astype(
                 int
             )
@@ -421,7 +414,7 @@ class LAMMPSDataReader(BaseTopologyReader):  # TODO
         return (
             f"{self.__class__.__name__}"
             f"('{self._filename.name}', reduced={self._reduced}, "
-            f"parallel={self._parallel}, n_workers={self._n_workers})"
+            f"n_workers={self._n_workers})"
         )
 
     def _find_sections(
@@ -542,8 +535,7 @@ class LAMMPSDataReader(BaseTopologyReader):  # TODO
     def _parse_topology(
         self,
         file: TextIO,
-        convert_units: bool = True,
-        parallel: bool | None = None,
+        _convert_units: bool = True,
     ) -> dict[str, dict[str, np.ndarray[int | float]]]:
 
         sections = {}
@@ -829,15 +821,10 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
         :code:`"si"`, :code:`"cgs"`, :code:`"electron"`,
         :code:`"micro"`, and :code:`"nano"`.
 
-    parallel : `bool`, keyword-only, optional
-        Determines whether the file is read in parallel. This instance
-        setting can be overridden in methods that have a `parallel`
-        keyword parameter.
 
-    n_workers : `int`, keyword-only, optional
-        Number of threads to use when reading the file in parallel.
-        If not specified, the number of logical threads available is
-        used.
+    n_workers : `int`, keyword-only, default: :code:`1`
+        Number of threads to use when reading the file. If :code:`None`,
+        the number of available logical threads is used.
 
         .. important::
 
@@ -859,8 +846,8 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
     `units_style`, respectively—to directly specify these properties.
     Additionally, the constructor also accepts the `extras` keyword
     argument to specify extra attributes to read from the dump file, and
-    the `parallel` and `n_workers` keyword arguments to control parallel
-    parsing of the dump file.
+    the `n_workers` keyword arguments to control parallel parsing of the
+    dump file.
 
     For example, to parse the same dump file in parallel with 4 CPU
     threads and specify that it is in reduced Lennard-Jones units, the
@@ -875,7 +862,6 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
     ...    dt=0.005,
     ...    extras=True,
     ...    units_style="lj",
-    ...    parallel=True,
     ...    n_workers=4
     ... )
 
@@ -1041,15 +1027,10 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
         dt: float | None = None,
         extras: bool | str | list[str] | None = None,
         units_style: str | None = None,
-        parallel: bool = False,
-        n_workers: int | None = None,
+        n_workers: int | None = 1,
         **kwargs,
     ) -> None:
-        super().__init__(
-            filename,
-            parallel=parallel,
-            n_workers=n_workers,
-        )
+        super().__init__(filename, n_workers=n_workers)
 
         # Create and store handle to file
         self.open()
@@ -1309,8 +1290,7 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
         #       - an `int` if the value is constant, or
         #       - `None` if the value is not constant.
         file_size = self._filename.stat().st_size
-        self._parallel = parallel
-        if self._parallel:
+        if self._n_workers > 1:
             chunk_size = np.ceil(file_size / self._n_workers).astype(int)
             self._dt = self._time_step = True
             self._offsets = []
@@ -1409,8 +1389,7 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
             f"{self.__class__.__name__}('{self._filename.name}', "
             f"coordinate_formats={getattr(self, '_coordinate_formats', None)}, "
             f"dt={self.dt}, extras={list(self._extra_attribute_indices.keys())}, "
-            f"units_style='{self._units_style}', parallel={self._parallel}, "
-            f"n_workers={self._n_workers})"
+            f"units_style='{self._units_style}', n_workers={self._n_workers})"
         )
 
     def _find_frames(
@@ -1842,7 +1821,7 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
             del self._file
 
 
-if FOUND_MDANALYSIS:
+if FOUND["MDAnalysis"]:
     from MDAnalysis.coordinates.base import ReaderBase
 
     class _LAMMPSDumpReader(LAMMPSDumpReader, ReaderBase):
@@ -1912,14 +1891,9 @@ if FOUND_MDANALYSIS:
         reduced : `bool`, keyword-only, optional
             Specifies whether the data is in reduced units.
 
-        parallel : `bool`, keyword-only, optional
-            Determines whether the file is read in parallel to determine
-            the frame offsets.
-
-        n_workers : `int`, keyword-only, optional
-            Number of threads to use when reading the file in parallel.
-            If not specified, the number of logical threads available is
-            used.
+        n_workers : `int`, keyword-only
+            Number of threads to use when reading the file. If
+            :code:`None`, the number of available logical threads is used.
 
         **kwargs : `dict`, optional
             Additional keyword arguments to pass to the
@@ -1935,8 +1909,7 @@ if FOUND_MDANALYSIS:
             coordinate_formats: str | list[str] | None = None,
             *,
             extras: bool | str | list[str] | None = None,
-            parallel: bool = False,
-            n_workers: int | None = None,
+            n_workers: int | None = 1,
             **kwargs,
         ) -> None:
             LAMMPSDumpReader.__init__(
@@ -1944,7 +1917,6 @@ if FOUND_MDANALYSIS:
                 filename,
                 coordinate_formats=coordinate_formats,
                 extras=extras,
-                parallel=parallel,
                 n_workers=n_workers,
             )
             if self._dump_style != "custom":
@@ -2008,9 +1980,7 @@ if FOUND_MDANALYSIS:
             ts.frame += 1
             self._check_frame(ts.frame)
 
-            data = self.read_frames(
-                ts.frame, parallel=False, _convert_units=False
-            )
+            data = self.read_frames(ts.frame, _convert_units=False)
             ts.data["step"] = data["timestep"]
             ts.data["time"] = data["timestep"] * ts.dt
             ts.dimensions = data["dimensions"]

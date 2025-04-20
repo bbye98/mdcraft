@@ -45,8 +45,8 @@ namespace OpenMM {
         void calculateOneIxn(int ii, int jj, const std::vector<Vec3> &positions,
                              const std::vector<Vec3> &velocities,
                              std::vector<Vec3> &forces, double &totalEnergy,
-                             const double dt, bool includeConservative,
-                             bool periodic, const Vec3 *boxVectors = nullptr,
+                             const double dt, bool periodic,
+                             const Vec3 *boxVectors = nullptr,
                              const std::array<double, 3> *params = nullptr);
     };
 }

@@ -195,30 +195,30 @@ class Trajectory:
 
     .. code::
 
-       file 0:     ooxxxx
-       file 1:       oooooo
-       file 2:             oooooo
-       trajectory: ffffffffffffff
+       FILE 0:     ooxxxx
+       FILE 1:       oooooo
+       FILE 2:             oooooo
+       TRAJECTORY: ffffffffffffff
 
     More complex interleaving of frames is also possible, but is not
     guaranteed to be handled correctly. Examples include:
 
     .. code::
 
-       file 0:     xooxoo
-       file 1:     o  o  o  x  o  x
-       file 2:              o o o o
-       trajectory: fffffff  f fff f
+       FILE 0:     xooxoo
+       FILE 1:     o  o  o  x  o  x
+       FILE 2:              o o o o
+       TRAJECTORY: fffffff  f fff f
 
     and:
 
     .. code::
 
-       file 0:     x o o x o o
-       file 1:     o  x  o  x  o  x  o
-       file 2:      o o o o
-       file 3:              o o o o o o
-       trajectory: ffffffffffffff f fff
+       FILE 0:     x o o x o o
+       FILE 1:     o  x  o  x  o  x  o
+       FILE 2:      o o o o
+       FILE 3:              o o o o o o
+       TRAJECTORY: ffffffffffffff f fff
 
     Individual frames can be accessed through indexing or iteration.
 
@@ -259,9 +259,9 @@ class Trajectory:
                 self._readers = np.fromiter(
                     (
                         next(
-                            r
-                            for r in BaseTrajectoryReader.__subclasses__()
-                            if (filename := f).suffix in r._EXTENSIONS
+                            R
+                            for R in BaseTrajectoryReader.__subclasses__()
+                            if (filename := f).suffix in R._EXTENSIONS
                         )(f, **kwargs)
                         for f in self._filenames
                     ),
@@ -282,7 +282,7 @@ class Trajectory:
                         f"Invalid or unsupported format '{formats}'. Valid "
                         f"values: '" + "', '".join(supported_formats) + "'."
                     )
-                Reader = supported_formats[format]
+                Reader = supported_formats[formats]
                 self._readers = np.fromiter(
                     (Reader(f, **kwargs) for f in self._filenames),
                     dtype=object,
@@ -320,9 +320,8 @@ class Trajectory:
             self._filenames = self._filenames[order]
             self._readers = self._readers[order]
 
-        self._overlap_frames = (
-            {}
-        )  # <time>: (<reader_index>, <reader_frame_index>)
+        # <time>: (<reader_index>, <reader_frame_index>)
+        self._overlap_frames = {}
         if len(self._readers) > 1:
             # Combine trajectories from individual readers into a
             # continuous trajectory
@@ -355,14 +354,13 @@ class Trajectory:
                 is_normal_frame = (reader.times > unseen_start_time) & (
                     reader.times < overlap_start_time
                 )
-                n_normal_frames = np.count_nonzero(is_normal_frame)
                 self._start_frames.append(self._n_frames)
                 self._offset_frames.append(is_normal_frame.argmax())
-                self._n_frames += n_normal_frames
+                self._n_frames += np.count_nonzero(is_normal_frame)
                 seen_times.update(reader.times[is_normal_frame])
 
                 # Account for overlapping frames in both readers
-                reader_indices = (reader_index, reader_index + 1)
+                reader_indices = reader_index, reader_index + 1
                 overlap_reader_frame_indices = (
                     (
                         (reader.times >= overlap_start_time)
@@ -377,7 +375,6 @@ class Trajectory:
                     reader.times[overlap_reader_frame_indices[0]],
                     next_reader.times[overlap_reader_frame_indices[1]],
                 )
-
                 for ri, rfis, rts in zip(
                     reader_indices,
                     overlap_reader_frame_indices,
@@ -403,15 +400,14 @@ class Trajectory:
 
             # Replace times with trajectory indices in the dictionary of
             # overlap frames
-            self._overlap_frames = {
-                index: info
-                for index, info in zip(
+            self._overlap_frames = dict(
+                zip(
                     np.searchsorted(
                         sorted(seen_times), list(self._overlap_frames)
                     ),
                     self._overlap_frames.values(),
                 )
-            }
+            )
         else:
             self._n_frames = self._readers[0].n_frames
             self._start_frames = [0]
@@ -612,8 +608,6 @@ class Trajectory:
         self,
         frame_indices: int | slice | Iterable[int],
         /,
-        *,
-        parallel: bool | None = None,
     ) -> TrajectoryFrame | list[TrajectoryFrame]:
         """
         Gets one or more frames from the trajectory.
@@ -622,11 +616,6 @@ class Trajectory:
         ----------
         frame_indices : `int`, `slice`, or array-like, positional-only
             Indices of frames to get.
-
-        parallel : `bool`, keyword-only, optional
-            Specifies whether this method will be run in parallel. If
-            not specified, the setting used for the trajectory reader is
-            used.
 
         Returns
         -------
@@ -640,7 +629,7 @@ class Trajectory:
             ri, rfi = self._get_reader_indices(frame_indices)
             return TrajectoryFrame(
                 frame_indices % self.n_frames,
-                **self._readers[ri].read_frames(rfi, parallel=parallel),
+                **self._readers[ri].read_frames(rfi),
             )
 
         # Convert slices to iterable ranges
@@ -657,9 +646,7 @@ class Trajectory:
         # Read frames from each reader
         frames = []
         for ri, rfis in reader_indices.items():
-            frames.extend(
-                self._readers[ri].read_frames(rfis, parallel=parallel)
-            )
+            frames.extend(self._readers[ri].read_frames(rfis))
         return [
             TrajectoryFrame(f % self.n_frames, **d)
             for f, d in zip(
@@ -862,8 +849,6 @@ class TrajectorySubset:
         self,
         indices: int | slice | Iterable[int],
         /,
-        *,
-        parallel: bool | None = None,
     ) -> TrajectoryFrame | list[TrajectoryFrame]:
         """
         Gets one or more frames from the trajectory subset.
@@ -873,20 +858,13 @@ class TrajectorySubset:
         indices : `int`, `slice`, or array-like, positional-only
             Indices of frames in the subset to get.
 
-        parallel : `bool`, keyword-only, optional
-            Specifies whether this method will be run in parallel. If
-            not specified, the setting used for the trajectory reader is
-            used.
-
         Returns
         -------
         frames : `TrajectoryFrame` or `list`
             Trajectory frame(s).
         """
 
-        return self._trajectory.get_frames(
-            self._frame_indices[indices], parallel=parallel
-        )
+        return self._trajectory.get_frames(self._frame_indices[indices])
 
 
 class TrajectoryFrame:

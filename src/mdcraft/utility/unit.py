@@ -1,9 +1,9 @@
 from __future__ import annotations
 from typing import Any
 
-from .. import FOUND_OPENMM, Q_, U_
+from .. import FOUND, Q_, U_
 
-if FOUND_OPENMM:
+if FOUND["openmm"]:
     from openmm import unit
 
 

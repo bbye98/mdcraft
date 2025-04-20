@@ -4,7 +4,7 @@ from pint import UnitRegistry
 
 __version__ = "2.0.0"
 
-FOUND_OPENMM = find_spec("openmm") is not None
+FOUND = {dep: find_spec(dep) is not None for dep in {"MDAnalysis", "openmm"}}
 
 ureg = UnitRegistry()
 Q_ = ureg.Quantity

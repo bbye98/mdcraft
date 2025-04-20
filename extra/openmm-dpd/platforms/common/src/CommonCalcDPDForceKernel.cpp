@@ -83,8 +83,7 @@ void OpenMM::CommonCalcDPDForceKernel::initialize(
     /* Initialize interactions. */
 
     OpenMM::ContextSelector selector(cc);
-    numParticles = force.getNumParticles();
-    int paddedNumParticles{cc.getPaddedNumAtoms()};
+    int numParticles = force.getNumParticles();
 
     // Create a vector to store vectors of indices of particles that are
     // excluded from interactions with each particle.
@@ -112,8 +111,8 @@ void OpenMM::CommonCalcDPDForceKernel::initialize(
 
     // Get and store DPD parameters for each pair of particle types in a
     // row-major 2D array.
-    int numTypes{typeIndexMap.size()};
-    int numTypePairs{numTypes * (numTypes + 1) / 2};
+    numTypes = typeIndexMap.size();
+    numTypePairs = numTypes * (numTypes + 1) / 2;
     pairParams.initialize<OpenMM::mm_float4>(cc, numTypePairs, "dpdPairParams");
     std::vector<OpenMM::mm_float4> pairParamsVec(numTypePairs);
     OpenMM::mm_float4 defaultParams{(float)force.getA(),
@@ -152,7 +151,7 @@ void OpenMM::CommonCalcDPDForceKernel::initialize(
                 std::pair<int, int>(particle1, particle2));
         }
     }
-    int numExceptions = exceptionParamsVec.size();
+    numExceptions = exceptionParamsVec.size();
     exceptionParticlePairs.initialize<OpenMM::mm_int4>(
         cc, std::max(1, numExceptions), "dpdExceptionParticlePairs");
     exceptionParams.initialize<OpenMM::mm_float4>(
@@ -170,7 +169,6 @@ void OpenMM::CommonCalcDPDForceKernel::initialize(
         (nonbondedMethod == OpenMM::DPDForce::NonbondedMethod::CutoffPeriodic);
     double nonbondedCutoff = force.getCutoffDistance();
     cc.initializeContexts();
-    OpenMM::ContextSelector selector(cc);
     std::map<std::string, std::string> defines;
     defines["EPSILON"] = cc.doubleToString(1.0e-12);
     defines["M_PI"] = cc.doubleToString(M_PI);
@@ -205,7 +203,76 @@ void OpenMM::CommonCalcDPDForceKernel::initialize(
 }
 
 void OpenMM::CommonCalcDPDForceKernel::copyParametersToContext(
-    OpenMM::ContextImpl &context, const OpenMM::DPDForce &force) {}
+    OpenMM::ContextImpl &context, const OpenMM::DPDForce &force) {
+    OpenMM::ContextSelector selector(cc);
+    int numParticles = force.getNumParticles();
+    if (numParticles != cc.getNumAtoms())
+        throw OpenMMException(
+            "DPDForce.updateParametersInContext: The number of particles has "
+            "changed");
+
+    std::vector<std::vector<int>> exclusionList(numParticles);
+    std::map<int, int> typeIndexMap{{0, 0}};
+    std::vector<int> particleTypeIndicesVec(numParticles);
+    for (int i{0}; i < numParticles; ++i) {
+        int particleType{force.getParticleType(i)};
+        auto typeMapping{typeIndexMap.find(particleType)};
+        if (typeMapping == typeIndexMap.end()) {
+            particleTypeIndicesVec[i] = typeIndexMap.size();
+            typeIndexMap[particleType] = typeIndexMap.size();
+        } else
+            particleTypeIndicesVec[i] = typeMapping.second;
+        exclusionList[i].push_back(i);
+    }
+    particleTypeIndices.upload(particleTypeIndicesVec);
+
+    if (numTypes != typeIndexMap.size())
+        throw OpenMM::OpenMMException(
+            "DPDForce.updateParametersInContext: The number of particle types "
+            "has changed");
+    std::vector<OpenMM::mm_float4> pairParamsVec(numTypePairs);
+    OpenMM::mm_float4 defaultParams{(float)force.getA(),
+                                    (float)force.getGamma(),
+                                    (float)force.getRCut(), 0.0f};
+    for (int i{0}; i < numTypes; ++i) pairParamsVec[i] = defaultParams;
+    for (int i{0}; i < force.getNumTypePairs(); ++i) {
+        int type1, type2;
+        double A, gamma, rCut;
+        force.getTypePairParameters(i, type1, type2, A, gamma, rCut);
+        type1 = typeIndexMap[type1];
+        type2 = typeIndexMap[type2];
+        pairParamsVec[type1 * numTypes - (type1 * (type1 - 1)) / 2 + type2 -
+                      type1] =
+            OpenMM::mm_float4((float)A, (float)gamma, (float)rCut, 0.0f);
+    }
+    pairParams.upload(pairParamsVec);
+
+    std::vector<std::pair<int, int>> exceptionParticlePairsVec;
+    std::vector<OpenMM::mm_float4> exceptionParamsVec;
+    for (int i{0}; i < force.getNumExceptions(); i++) {
+        int particle1, particle2;
+        double A, gamma, rCut;
+        force.getExceptionParameters(i, particle1, particle2, A, gamma, rCut);
+        exclusionList[particle1].push_back(particle2);
+        exclusionList[particle2].push_back(particle1);
+        if (A != 0) {
+            exceptionParamsVec.push_back(
+                mm_float4((float)A, (float)gamma, (float)rCut, 0.0f));
+            exceptionParticlePairs.push_back(
+                std::pair<int, int>(particle1, particle2));
+        }
+    }
+    if (numExceptions != exceptionParamsVec.size())
+        throw OpenMM::OpenMMException(
+            "DPDForce.updateParametersInContext: The number of exceptions has "
+            "changed");
+    if (numExceptions > 0) {
+        exceptionParticlePairs.upload(exceptionParticlePairsVec);
+        exceptionParams.upload(exceptionParamsVec);
+    }
+
+    cc.invalidateMolecules(info);
+}
 
 void OpenMM::CommonCalcDPDForceKernel::execute(OpenMM::ContextImpl &context,
                                                bool includeForces,

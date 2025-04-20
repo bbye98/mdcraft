@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import numpy as np
 
-from .. import FOUND_OPENMM, Q_
+from .. import FOUND, Q_
 from ..utility.unit import strip_unit
 
-if FOUND_OPENMM:
+if FOUND["openmm"]:
     from openmm import unit
 
 

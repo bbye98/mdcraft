@@ -19,7 +19,7 @@ class TestClassTrajectory:
         UNITS: lj
 
         INDEX:      012345
-        READER 0:   nnnnnn
+        FILE 0:     nnnnnn
         TRAJECTORY: ffffff
 
         _start_frames   = [0]
@@ -48,9 +48,9 @@ class TestClassTrajectory:
         UNITS: lj
 
         INDEX:      01234567890123
-        READER 0:   nnxxxx
-        READER 1:     oooonnxx
-        READER 2:           oonnnn
+        FILE 0:     nnxxxx
+        FILE 1:       oooonnxx
+        FILE 2:             oonnnn
         TRAJECTORY: ffffffffffffff
 
         _start_frames   = [0, 6, 10]
@@ -97,9 +97,9 @@ class TestClassTrajectory:
         UNITS: real
 
         INDEX:      01234567890123
-        READER 0:   n o o o
-        READER 1:    o o o n
-        READER 2:           nnnnnn
+        FILE 0:     n o o o
+        FILE 1:      o o o n
+        FILE 2:             nnnnnn
         TRAJECTORY: ffffffffffffff
 
         _start_frames   = [0, 7, 8]
@@ -149,9 +149,9 @@ class TestClassTrajectory:
         UNITS: lj
 
         INDEX:      0123456  7 890 1 234
-        READER 0:   xooxoo
-        READER 1:   o  o  n  x  o  x  o
-        READER 2:            o o o o o n
+        FILE 0:     xooxoo
+        FILE 1:     o  o  n  x  o  x  o
+        FILE 2:              o o o o o n
         TRAJECTORY: fffffff  f fff f fff
 
         _start_frames   = [?, 6, 14]
@@ -196,11 +196,11 @@ class TestClassTrajectory:
         UNITS: lj
 
         INDEX:      01234567890123 4 567
-        READER 0:   x o o x o o
-        READER 1:   o  x  o  x  o  x  o
-        READER 2:    o o o o
-        READER 3:            o o o o o n
-        trajectory: ffffffffffffff f fff
+        FILE 0:     x o o x o o
+        FILE 1:     o  x  o  x  o  x  o
+        FILE 2:      o o o o
+        FILE 3:              o o o o o n
+        TRAJECTORY: ffffffffffffff f fff
 
         _start_frames   = [?, ?, ?, 17]
         _offset_frames  = [?, ?, ?, 5]

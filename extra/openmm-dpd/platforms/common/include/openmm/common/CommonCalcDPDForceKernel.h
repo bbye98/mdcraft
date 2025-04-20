@@ -32,7 +32,7 @@ namespace OpenMM {
         const System &system;
         DPDForce::NonbondedMethod nonbondedMethod;
         bool hasInitializedKernel;
-        int numParticles, randomSeed;
+        int numTypes, numTypePairs, numExceptions, randomSeed;
         ComputeArray particleTypeIndices, pairParams;
         ComputeArray exceptionParticlePairs, exceptionParams;
         ComputeArray tileCounter;
