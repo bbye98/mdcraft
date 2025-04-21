@@ -320,8 +320,9 @@ class Trajectory:
             self._filenames = self._filenames[order]
             self._readers = self._readers[order]
 
-        # <time>: (<reader_index>, <reader_frame_index>)
-        self._overlap_frames = {}
+        self._overlap_frames = (
+            {}
+        )  # <time>: (<reader_index>, <reader_frame_index>)
         if len(self._readers) > 1:
             # Combine trajectories from individual readers into a
             # continuous trajectory
@@ -469,7 +470,7 @@ class Trajectory:
         Parameters
         ----------
         frame_index : `int`
-            Frame index to check.
+            Index of frame to check.
         """
 
         if not -self.n_frames <= frame_index < self.n_frames:
@@ -542,7 +543,7 @@ class Trajectory:
         Time step between frames in the trajectory. If `None`, the time
         step is not constant across frames.
 
-        **Reference units**: :math:`\\mathrm{ps}`.
+        **Reference unit**: :math:`\\mathrm{ps}`.
         """
 
         time_steps = set(
@@ -555,7 +556,7 @@ class Trajectory:
         """
         Simulation times found in the trajectory.
 
-        **Reference units**: :math:`\\mathrm{ps}`.
+        **Reference unit**: :math:`\\mathrm{ps}`.
         """
 
         return np.fromiter(
@@ -727,20 +728,20 @@ class TrajectorySubset:
             string += f", {self._trajectory.n_atoms:,} atom(s)"
         return string
 
-    def _check_frame(self, index: int) -> None:
+    def _check_frame(self, frame_index: int) -> None:
         """
         Checks if a frame index is valid.
 
         Parameters
         ----------
-        index : `int`
-            Frame index to check.
+        frame_index : `int`
+            Index of frame to check.
         """
 
-        if not -self.n_frames <= index < self.n_frames:
+        if not -self.n_frames <= frame_index < self.n_frames:
             raise EOFError(
-                f"Frame with index {index} was requested from a "
-                f"trajectory subset with only {self.n_frames} frames."
+                f"Frame with index {frame_index} was requested from "
+                f"a trajectory subset with only {self.n_frames} frames."
             )
 
     @cached_property
@@ -777,7 +778,7 @@ class TrajectorySubset:
         Time step between frames in the trajectory subset. If `None`,
         the time step is not constant across frames.
 
-        **Reference units**: :math:`\\mathrm{ps}`.
+        **Reference unit**: :math:`\\mathrm{ps}`.
         """
 
         time_steps = set(
@@ -790,7 +791,7 @@ class TrajectorySubset:
         """
         Simulation times found in the trajectory subset.
 
-        **Reference units**: :math:`\\mathrm{ps}`.
+        **Reference unit**: :math:`\\mathrm{ps}`.
         """
 
         return np.fromiter(

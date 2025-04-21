@@ -85,10 +85,11 @@ class BaseTopologyReader(BaseReader):
     * the :attr:`_FORMAT` and :attr:`_EXTENSIONS` attributes, which
       specify the format and standard extension(s) of the topology
       file, respectively,
-    * the :attr:`_UNITS` attribute, which specifies the units used by
-      the simulation software that generated the topology file,
     * the :attr:`_PARALLELIZABLE` attribute, which specifies whether the
       reader can process a file in parallel,
+    * the :attr:`_units` attribute, which specifies the base units
+      (charge, energy, length, mass, temperature, and time) used by the
+      simulation software that generated the trajectory file,
     * the :attr:`_reduced` attribute, which specifies whether the data
       is in reduced units,
     * the :meth:`dimensions` property, which specifies the simulation
@@ -112,14 +113,14 @@ class BaseTopologyReader(BaseReader):
     filename : `str` or `pathlib.Path`, positional-only
         Filename or path to the topology file.
 
-    n_workers : `int`, keyword-only
+    n_workers : `int`, keyword-only, default: :code:`1`
         Number of threads to use when reading the file. If :code:`None`,
         the number of available logical threads is used.
     """
 
     _EXTENSIONS: set[str]
     _FORMAT: str
-    _UNITS: dict[str, U_]
+    _units: dict[str, U_]
     _reduced: bool
 
     def __init__(
@@ -127,7 +128,7 @@ class BaseTopologyReader(BaseReader):
         filename: str | Path,
         /,
         *,
-        n_workers: int | None,
+        n_workers: int | None = 1,
     ) -> None:
         super().__init__(filename, n_workers=n_workers)
 
@@ -259,10 +260,11 @@ class BaseTrajectoryReader(BaseReader):
     * the :attr:`_FORMAT` and :attr:`_EXTENSIONS` attributes, which
       specify the format and standard extension(s) of the trajectory
       file, respectively,
-    * the :attr:`_UNITS` attribute, which specifies the units used by
-      the simulation software that generated the trajectory file,
     * the :attr:`_PARALLELIZABLE` attribute, which specifies whether the
       reader can process a file in parallel,
+    * the :attr:`_units` attribute, which specifies the base units
+      (charge, energy, length, mass, temperature, and time) used by the
+      simulation software that generated the trajectory file,
     * the :attr:`_reduced` attribute, which specifies whether the data
       is in reduced units,
     * the :meth:`dt` and :meth:`time_step` properties, which specify the
@@ -288,14 +290,14 @@ class BaseTrajectoryReader(BaseReader):
     filename : `str` or `pathlib.Path`, positional-only
         Filename or path to the trajectory file.
 
-    n_workers : `int`, keyword-only
+    n_workers : `int`, keyword-only, default: :code:`1`
         Number of threads to use when reading the file. If :code:`None`,
         the number of available logical threads is used.
     """
 
     _EXTENSIONS: set[str]
     _FORMAT: str
-    _UNITS: dict[str, U_]
+    _units: dict[str, U_]
     _reduced: bool
 
     def __init__(
@@ -303,7 +305,7 @@ class BaseTrajectoryReader(BaseReader):
         filename: str | Path,
         /,
         *,
-        n_workers: int | None,
+        n_workers: int | None = 1,
     ) -> None:
         super().__init__(filename, n_workers=n_workers)
 
@@ -335,19 +337,18 @@ class BaseTrajectoryReader(BaseReader):
         Parameters
         ----------
         frame_index : `int`
-            Frame index to check.
+            Index of frame to check.
         """
 
-        if frame_index >= self.n_frames:
+        if not -self.n_frames <= frame_index < self.n_frames:
             raise EOFError(
                 f"Frame with index {frame_index} was requested from "
-                f"'{self._filename.name}', but it only has "
-                f"{self.n_frames} frames."
+                f"'{self._filename.name}' with only {self.n_frames} frames."
             )
 
     @abstractmethod
     def _parse_frame(
-        self, file: TextIO, frame_index: int, convert_units: bool
+        self, file: Any, frame_index: int, convert_units: bool
     ) -> dict[str, Any]:
         """
         Reads data from a single frame in the specified trajectory
@@ -355,11 +356,11 @@ class BaseTrajectoryReader(BaseReader):
 
         Parameters
         ----------
-        file : `io.TextIO`
+        file : any
             Handle to the trajectory file.
 
         frame_index : `int`
-            Frame index to read.
+            Index of frame to read.
 
         convert_units : `bool`
             Specifies whether to convert the data from LAMMPS units to
@@ -381,7 +382,7 @@ class BaseTrajectoryReader(BaseReader):
         the time step size is not constant across frames or could not be
         determined from the trajectory.
 
-        **Reference units**: :math:`\\mathrm{ps}`.
+        **Reference unit**: :math:`\\mathrm{ps}`.
         """
 
         pass
@@ -393,7 +394,7 @@ class BaseTrajectoryReader(BaseReader):
         Time step between frames in the trajectory. If `None`, the time
         step is not constant across frames.
 
-        **Reference units**: :math:`\\mathrm{ps}`.
+        **Reference unit**: :math:`\\mathrm{ps}`.
         """
 
         pass
@@ -404,14 +405,14 @@ class BaseTrajectoryReader(BaseReader):
         """
         Simulation times found in the trajectory.
 
-        **Reference units**: :math:`\\mathrm{ps}`.
+        **Reference unit**: :math:`\\mathrm{ps}`.
         """
 
         pass
 
     @property
     @abstractmethod
-    def timesteps(self) -> float | None:
+    def timesteps(self) -> np.ndarray[int] | None:
         """
         Simulation timesteps found in the trajectory. If `None`, the
         timesteps could not be determined from the trajectory.

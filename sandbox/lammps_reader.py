@@ -1,14 +1,10 @@
-import concurrent.futures
-from datetime import datetime
 import os
 import sys
 
-import MDAnalysis as mda
-import numpy as np
 
 sys.path.insert(0, "/mnt/c/Users/Benjamin/Documents/GitHub/mdcraft-dev/src")
 # from mdcraft.analysis.core import Trajectory
-from mdcraft.io.reader import LAMMPSDataReader, LAMMPSDumpReader
+from mdcraft.io.reader import LAMMPSDataReader
 
 
 os.chdir(

@@ -1,20 +1,28 @@
 from __future__ import annotations
 from collections import defaultdict
 import concurrent.futures
+from functools import cached_property
 from pathlib import Path
 from typing import Any, TextIO
 import warnings
 
 import numpy as np
 import pandas as pd
+from scipy.io import netcdf_file
 
 from . import INTERNAL_UNITS
 from .base import BaseTopologyReader, BaseTrajectoryReader
-from .. import FOUND, U_, ureg
+from .. import FOUND, Q_, ureg
 from ..utility.topology import (
     convert_cell_representation,
     scale_triclinic_coordinates,
 )
+from ..utility.unit import strip_unit
+
+if FOUND["netCDF4"]:
+    import netCDF4 as nc
+if FOUND["openmm"]:
+    from openmm import unit
 
 
 class LAMMPSDataReader(BaseTopologyReader):  # TODO
@@ -941,7 +949,6 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
     }
     _FORMAT = "LAMMPSDUMP"
     _PARALLELIZABLE = True
-    _UNITS: dict[str, U_]
     _UNIT_STYLES = {
         "lj": {
             "charge": ureg.dimensionless,
@@ -1024,7 +1031,7 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
         /,
         coordinate_formats: str | list[str] | None = None,
         *,
-        dt: float | None = None,
+        dt: float | unit.Quantity | Q_ | None = None,
         extras: bool | str | list[str] | None = None,
         units_style: str | None = None,
         n_workers: int | None = 1,
@@ -1063,7 +1070,7 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
                     "'" + "', '".join(self._UNIT_STYLES) + "'."
                 )
             self._units_style = units_style
-        self._UNITS = self._UNIT_STYLES[self._units_style]
+        self._units = self._UNIT_STYLES[self._units_style]
         self._has_time_header = line == "ITEM: TIME"
         if self._has_time_header:
             self._file.readline()
@@ -1365,7 +1372,7 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
                     "was determined to be "
                     f"{'variable' if self._dt is None else self._dt}."
                 )
-                self._dt = dt
+            self._dt = strip_unit(dt, self._units["time"])[0]
         elif isinstance(self._dt, bool):
             self._dt = self._DEFAULT_TIME_STEP_SIZES[self._units_style]
         if self._times is None or isinstance(self._times, bool):
@@ -1425,14 +1432,14 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
             :code:`dump_modify time yes` was not used or `None` if the
             step size is not constant.
 
-            **Reference units**: :math:`\\mathrm{ps}`.
+            **Reference unit**: :math:`\\mathrm{ps}`.
 
         time_step : `bool` or `float`
             Time step between frames. Is `False` if
             :code:`dump_modify time yes` was not used or `None` if the
             time step is not constant.
 
-            **Reference units**: :math:`\\mathrm{ps}`.
+            **Reference unit**: :math:`\\mathrm{ps}`.
 
         n_entities : `bool` or `int`
             Number of entities in each frame. Is `False` if the
@@ -1446,10 +1453,10 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
             Simulation times of the frames in the file. Is `None` if
             :code:`dump_modify time yes` was not used.
 
-            **Reference units**: :math:`\\mathrm{ps}`.
+            **Reference unit**: :math:`\\mathrm{ps}`.
 
         timesteps : `list`
-            Simuulation timesteps for frames in the file.
+            Simulation timesteps for frames in the file.
         """
 
         manual = isinstance(file, (str, Path))
@@ -1568,7 +1575,7 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
         )
 
     def _parse_frame(
-        self, file: TextIO, frame: int, convert_units: bool
+        self, file: TextIO, frame_index: int, convert_units: bool
     ) -> dict[str, Any]:
         """
         Reads data from a single frame in the specified LAMMPS dump
@@ -1579,8 +1586,8 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
         file : `io.TextIO`
             Handle to the dump file.
 
-        frame : `int`
-            Frame index to read.
+        frame_index : `int`
+            Index of frame to read.
 
         convert_units : `bool`
             Specifies whether to convert the data from LAMMPS units to
@@ -1593,7 +1600,7 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
         """
 
         # Seek to frame
-        file.seek(self._offsets[frame])
+        file.seek(self._offsets[frame_index])
 
         # Initialize data dictionary
         frame_data = {}
@@ -1697,29 +1704,32 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
 
         # Convert from LAMMPS units to consistent MDCraft units
         if convert_units:
+            frame_data["time"] = (
+                frame_data["time"] * self._units["time"]
+            ).m_as(INTERNAL_UNITS["time"])
             frame_data["dimensions"][:3] = (
-                frame_data["dimensions"][:3] * self._UNITS["length"]
+                frame_data["dimensions"][:3] * self._units["length"]
             ).m_as(INTERNAL_UNITS["length"])
             if self._dump_style == "custom":
                 frame_data["positions"] = (
-                    frame_data["positions"] * self._UNITS["length"]
+                    frame_data["positions"] * self._units["length"]
                 ).m_as(INTERNAL_UNITS["length"])
                 if "forces" in frame_data:
                     frame_data["forces"] = (
                         frame_data["forces"]
-                        * self._UNITS["energy"]
-                        / self._UNITS["length"]
+                        * self._units["energy"]
+                        / self._units["length"]
                     )
                     if "[substance]" not in frame_data["forces"].dimensionality:
-                        frame_data["forces"] *= ureg.avogadro_constant
+                        frame_data["forces"] /= ureg.avogadro_constant
                     frame_data["forces"] = frame_data["forces"].m_as(
                         INTERNAL_UNITS["energy"] / INTERNAL_UNITS["length"]
                     )
                 if "velocities" in frame_data:
                     frame_data["velocities"] = (
                         frame_data["velocities"]
-                        * self._UNITS["length"]
-                        / self._UNITS["time"]
+                        * self._units["length"]
+                        / self._units["time"]
                     ).m_as(INTERNAL_UNITS["length"] / INTERNAL_UNITS["time"])
 
         return frame_data
@@ -1730,7 +1740,7 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
         Time step size between timesteps in the trajectory. If `None`,
         the step size is not constant across frames.
 
-        **Reference units**: :math:`\\mathrm{ps}`.
+        **Reference unit**: :math:`\\mathrm{ps}`.
         """
 
         return self._dt
@@ -1741,7 +1751,7 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
         Time step between frames in the trajectory. If `None`, the time
         step is not constant across frames.
 
-        **Reference units**: :math:`\\mathrm{ps}`.
+        **Reference unit**: :math:`\\mathrm{ps}`.
         """
 
         return self._time_step
@@ -1749,17 +1759,17 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
     @property
     def times(self) -> np.ndarray[float]:
         """
-        Simuulation times found in the trajectory. May not be accurate
+        Simulation times found in the trajectory. May not be accurate
         if the time step size (`dt`) was not specified and could not be
         determined from the dump file.
 
-        **Reference units**: :math:`\\mathrm{ps}`.
+        **Reference unit**: :math:`\\mathrm{ps}`.
         """
 
         return self._times
 
     @property
-    def timesteps(self) -> float:
+    def timesteps(self) -> np.ndarray[int]:
         """
         Simulation timesteps found in the trajectory.
         """
@@ -1819,6 +1829,510 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
         if hasattr(self, "_file"):
             self._file.close()
             del self._file
+
+
+class NetCDFReader(BaseTrajectoryReader):
+    """
+    AMBER NetCDF trajectory/restart file reader.
+
+    .. seealso::
+
+       For more information on the AMBER NetCDF file format, see the
+       `AMBER NetCDF Trajectory/Restart Convention
+       <https://ambermd.org/netcdf/nctraj.xhtml>`_.
+
+    Parameters
+    ----------
+    filename : `str` or `pathlib.Path`, positional-only
+        Filename or path to the NetCDF file.
+
+    module : `str`, optional, keyword-only, default: :code:`"scipy"`
+        Specifies which module to use for reading the NetCDF file.
+
+        **Valid values**: :code:`"netcdf4"` or :code:`"scipy"`.
+
+    dt : `float`, optional
+        Simulation time step size.
+
+        **Reference unit**: :math:`\\mathrm{ps}`.
+    """
+
+    _EXTENSIONS = {".nc", ".ncdf"}
+    _FORMAT = "NETCDF"
+    _PARALLELIZABLE = False
+    _reduced = False
+    _units = {
+        "charge": ureg.elementary_charge,
+        "energy": ureg.kilocalorie / ureg.mole,
+        "length": ureg.angstrom,
+        "mass": ureg.gram / ureg.mole,
+        "temperature": ureg.kelvin,
+        "time": ureg.picosecond,
+    }
+
+    def __init__(
+        self,
+        filename: str | Path,
+        /,
+        *,
+        module: str = "scipy",
+        dt: float | unit.Quantity | Q_ | None = None,
+        **kwargs,
+    ) -> None:
+
+        super().__init__(filename)
+
+        # Store which module to use for reading
+        module = module.lower()
+        if module not in {"scipy", "netcdf4"}:
+            raise ValueError(
+                f"Module '{module}' is not supported. "
+                "Use 'scipy' or 'netcdf4'."
+            )
+        self._module = module
+
+        # Create and store handle to file
+        self.open()
+
+        # Store trajectory properties
+        if self._module == "scipy":
+            self._n_atoms = self._file.dimensions["atom"]
+            self._n_frames = self._file._recs
+            self._is_restart = self._file.Conventions == b"AMBERRESTART"
+        else:
+            self._n_atoms = self._file.dimensions["atom"].size
+            self._n_frames = self._file.dimensions["frame"].size
+            self._is_restart = self._file.Conventions == "AMBERRESTART"
+        self._dt = strip_unit(dt, "ps")[0]
+
+    def __repr__(self) -> str:
+        return (
+            f"{self.__class__.__name__}('{self._filename.name}', "
+            f"module='{self._module}', dt={self.dt})"
+        )
+
+    def _open(self) -> netcdf_file | nc.Dataset:
+        """
+        Opens the NetCDF file using the user-specified module.
+
+        Returns
+        -------
+        file : `netCDF4.Dataset` or `scipy.io.netcdf_file`
+            Handle to the NetCDF file.
+        """
+
+        if self._module == "scipy":
+            file = netcdf_file(self._filename, "r")
+        else:
+            file = nc.Dataset(self._filename, mode="r")
+            file.set_auto_mask(False)
+        return file
+
+    def _parse_frame(
+        self,
+        file: "nc.Dataset" | netcdf_file,
+        frame_index: int,
+        convert_units: bool,
+    ) -> dict[str, Any]:
+        """
+        Reads data from a single frame in the specified NetCDF file.
+
+        Parameters
+        ----------
+        file : `netCDF4.Dataset` or `scipy.io.netcdf_file`
+            Handle to the NetCDF file.
+
+        frame_index : `int`
+            Index of frame to read.
+
+        convert_units : `bool`
+            Specifies whether to convert the data from AMBER NetCDF
+            units to consistent MDCraft units.
+
+        Returns
+        -------
+        frame_data : `dict`
+            Data from the frame.
+        """
+
+        return {
+            "n_atoms": self.n_atoms,
+            "time": self.get_times(frame_index, convert_units, _file=file),
+            "dimensions": self.get_dimensions(
+                frame_index, convert_units, _file=file
+            ),
+            "positions": self.get_positions(
+                frame_index, convert_units, _file=file
+            ),
+            "velocities": self.get_velocities(
+                frame_index, convert_units, _file=file
+            ),
+            "forces": self.get_forces(frame_index, convert_units, _file=file),
+        }
+
+    @property
+    def dt(self) -> float | None:
+        """
+        Time step size between timesteps in the trajectory. A value is
+        returned only when a step size was specified using `dt` in the
+        constructor since NetCDF trajectories do not contain this
+        information.
+
+        **Unit**: :math:`\\mathrm{ps}`.
+        """
+
+        return self._dt
+
+    @cached_property
+    def time_step(self) -> float | None:
+        """
+        Time step between frames in the trajectory. If `None`, the time
+        step is not constant across frames.
+
+        **Unit**: :math:`\\mathrm{ps}`.
+        """
+
+        time_steps = np.diff(self.times)
+        return ts if np.allclose(ts := time_steps.mean(), time_steps) else None
+
+    @cached_property
+    def times(self) -> np.ndarray[float]:
+        """
+        Simulation times.
+
+        **Unit**: :math:`\\mathrm{ps}`.
+        """
+
+        return self.get_times()
+
+    @cached_property
+    def timesteps(self) -> np.ndarray[int] | None:
+        """
+        Simulation timesteps found in the trajectory. An array is
+        returned only when a step size was specified using `dt` in the
+        constructor since NetCDF trajectories do not contain this
+        information.
+        """
+
+        if self.dt is not None:
+            return np.round(self.times / self.dt).astype(int)
+
+    @property
+    def n_atoms(self) -> int:
+        """
+        Number of atoms in each frame.
+        """
+
+        return self._n_atoms
+
+    @property
+    def n_frames(self) -> int:
+        """
+        Number of frames in the trajectory.
+        """
+
+        return self._n_frames
+
+    def open(self) -> None:
+        """
+        Opens the NetCDF file and stores a handle to it.
+        """
+
+        self._file = self._open()
+
+    def close(self) -> None:
+        """
+        Closes the NetCDF file and deletes the handle.
+        """
+
+        if hasattr(self, "_file"):
+            self._file.close()
+            del self._file
+
+    def get_dimensions(
+        self,
+        frame_indices: int | list[int] | slice | None = None,
+        convert_units: bool = True,
+        *,
+        _file: "nc.Dataset" | netcdf_file | None = None,
+    ) -> tuple[np.ndarray[float] | np.ndarray[float]]:
+        """
+        Gets the dimensions (lattice parameters) of the simulation box.
+
+        Parameters
+        ----------
+        frame_indices : `int`, `list`, or `slice`, optional
+            Frame indices. If :code:`None`, the dimensions across all
+            frames are returned.
+
+        convert_units : `bool`, default :code:`True`
+            Specifies whether to convert the data from AMBER NetCDF
+            units to consistent MDCraft units.
+
+        Returns
+        -------
+        dimensions : `numpy.ndarray`
+            Simulation box dimensions.
+
+            **Shape**: :math:`(6,)` or :math:`(N_\\mathrm{frames},6)`.
+
+            **Units**: :math:`\\mathrm{Å}` for the lengths and
+            :math:`^\\circ` for the angles.
+        """
+
+        if _file is None:
+            _file = getattr(self, "_file", None)
+        if _file is None:
+            _file = self._open()
+            manual = True
+        else:
+            manual = False
+
+        if frame_indices is None:
+            frame_indices = slice(None)
+
+        dimensions = np.hstack(
+            (
+                _file.variables["cell_lengths"][frame_indices],
+                _file.variables["cell_angles"][frame_indices],
+            )
+        )
+        if convert_units:
+            dimensions[:3] = (dimensions[:3] * self._units["length"]).m_as(
+                INTERNAL_UNITS["length"]
+            )
+
+        if manual:
+            _file.close()
+
+        return dimensions
+
+    def get_forces(
+        self,
+        frame_indices: int | list[int] | slice | None = None,
+        convert_units: bool = True,
+        *,
+        _file: "nc.Dataset" | netcdf_file | None = None,
+    ) -> np.ndarray[float]:
+        """
+        Gets the forces acting on the atoms.
+
+        Parameters
+        ----------
+        frame_indices : `int`, `list`, or `slice`, optional
+            Frame indices. If :code:`None`, the dimensions across all
+            frames are returned.
+
+        convert_units : `bool`, default :code:`True`
+            Specifies whether to convert the data from AMBER NetCDF
+            units to consistent MDCraft units.
+
+        Returns
+        -------
+        forces : `numpy.ndarray` or `openmm.unit.Quantity`
+            Forces acting on the atoms. If the NetCDF file does not
+            contain this information, :code:`None` is returned.
+
+            **Shape**: :math:`(N_\\mathrm{atoms},3)` or
+            :math:`(N_\\mathrm{frames},N_\\mathrm{atoms},3)`.
+
+            **Unit**: :math:`\\mathrm{kJ/(mol\\cdot Å)}`.
+        """
+
+        if _file is None:
+            _file = getattr(self, "_file", None)
+        if _file is None:
+            _file = self._open()
+            manual = True
+        else:
+            manual = False
+
+        if frame_indices is None:
+            frame_indices = slice(None)
+
+        if "forces" not in _file.variables:
+            warnings.warn(
+                "The NetCDF file "
+                f"'{Path(_file.filepath()).resolve().name}' does not "
+                "contain the forces acting on the atoms."
+            )
+            return None
+
+        forces = _file.variables["forces"][frame_indices]
+        if convert_units:
+            forces = (
+                forces * self._units["energy"] / self._units["length"]
+            ).m_as(INTERNAL_UNITS["energy"] / INTERNAL_UNITS["length"])
+
+        if manual:
+            _file.close()
+
+        return forces
+
+    def get_positions(
+        self,
+        frame_indices: int | list[int] | slice | None = None,
+        convert_units: bool = True,
+        *,
+        _file: "nc.Dataset" | netcdf_file | None = None,
+    ) -> np.ndarray[float]:
+        """
+        Gets the atom positions.
+
+        Parameters
+        ----------
+        frame_indices : `int`, `list`, or `slice`, optional
+            Frame indices. If :code:`None`, the positions across all
+            frames are returned.
+
+        convert_units : `bool`, default :code:`True`
+            Specifies whether to convert the data from AMBER NetCDF
+            units to consistent MDCraft units.
+
+        Returns
+        -------
+        positions : `numpy.ndarray`
+            Atom positions.
+
+            **Shape**: :math:`(N_\\mathrm{atoms},3)` or
+            :math:`(N_\\mathrm{frames},N_\\mathrm{atoms},3)`.
+
+            **Unit**: :math:`\\mathrm{Å}`.
+        """
+
+        if _file is None:
+            _file = getattr(self, "_file", None)
+        if _file is None:
+            _file = self._open()
+            manual = True
+        else:
+            manual = False
+
+        if frame_indices is None:
+            frame_indices = slice(None)
+
+        positions = _file.variables["coordinates"][frame_indices]
+        if convert_units:
+            positions = (positions * self._units["length"]).m_as(
+                INTERNAL_UNITS["length"]
+            )
+
+        if manual:
+            _file.close()
+
+        return positions
+
+    def get_times(
+        self,
+        frame_indices: int | list[int] | slice | None = None,
+        convert_units: bool = True,
+        *,
+        _file: "nc.Dataset" | netcdf_file | None = None,
+    ) -> int | np.ndarray[float]:
+        """
+        Gets the simulation times.
+
+        Parameters
+        ----------
+        frames : `int`, `list`, or `slice`, optional
+            Frame indices. If :code:`None`, the times across all
+            frames are returned.
+
+        convert_units : `bool`, default :code:`True`
+            Specifies whether to convert the data from AMBER NetCDF
+            units to consistent MDCraft units.
+
+        Returns
+        -------
+        times : `int` or `numpy.ndarray`
+            Simulation times.
+
+            **Shape**: Scalar or :math:`(N_\\mathrm{frames},)`.
+
+            **Unit**: :math:`\\mathrm{ps}`.
+        """
+
+        if _file is None:
+            _file = getattr(self, "_file", None)
+        if _file is None:
+            _file = self._open()
+            manual = True
+        else:
+            manual = False
+
+        if frame_indices is None:
+            frame_indices = slice(None)
+
+        times = _file.variables["time"][frame_indices]
+        if convert_units:
+            times = (times * self._units["time"]).m_as(INTERNAL_UNITS["time"])
+
+        if manual:
+            _file.close()
+
+        return times
+
+    def get_velocities(
+        self,
+        frame_indices: int | list[int] | slice | None = None,
+        convert_units: bool = True,
+        *,
+        _file: "nc.Dataset" | netcdf_file | None = None,
+    ) -> np.ndarray[float]:
+        """
+        Gets the atom velocities.
+
+        Parameters
+        ----------
+        frame_indices : `int`, `list`, or `slice`, optional
+            Frame indices. If :code:`None`, the velocities across all
+            frames are returned.
+
+        convert_units : `bool`, default :code:`True`
+            Specifies whether to convert the data from AMBER NetCDF
+            units to consistent MDCraft units.
+
+        Returns
+        -------
+        velocities : `numpy.ndarray` or `openmm.unit.Quantity`
+            Atom velocities. If the NetCDF file does not contain
+            this information, :code:`None` is returned.
+
+            **Shape**: :math:`(N_\\mathrm{atoms},3)` or
+            :math:`(N_\\mathrm{frames},N_\\mathrm{atoms},3)`.
+
+            **Unit**: :math:`\\mathrm{Å/ps}`.
+        """
+
+        if _file is None:
+            _file = getattr(self, "_file", None)
+        if _file is None:
+            _file = self._open()
+            manual = True
+        else:
+            manual = False
+
+        if frame_indices is None:
+            frame_indices = slice(None)
+
+        if "velocities" not in _file.variables:
+            warnings.warn(
+                "The NetCDF file "
+                f"'{Path(_file.filepath()).resolve().name}' does not "
+                "contain atom velocities."
+            )
+            return None
+
+        velocities = _file.variables["velocities"][frame_indices]
+        if convert_units:
+            velocities = (
+                velocities * self._units["length"] / self._units["time"]
+            ).m_as(INTERNAL_UNITS["length"] / INTERNAL_UNITS["time"])
+
+        if manual:
+            _file.close()
+
+        return velocities
 
 
 if FOUND["MDAnalysis"]:
@@ -1944,14 +2458,14 @@ if FOUND["MDAnalysis"]:
             self.ts = self._Timestep(self.n_atoms, **self._ts_kwargs)
             self.ts.frame = -1
 
-        def _read_frame(self, frame: int) -> "ReaderBase._Timestep":
+        def _read_frame(self, frame_index: int) -> "ReaderBase._Timestep":
             """
             Reads a specific frame from the LAMMPS dump file.
 
             Parameters
             ----------
-            frame : `int`, optional
-                Frame to read.
+            frame_index : `int`, optional
+                Index of frame to read.
 
             Returns
             -------
@@ -1960,8 +2474,8 @@ if FOUND["MDAnalysis"]:
                 trajectory.
             """
 
-            self._file.seek(self._offsets[frame])
-            self.ts.frame = frame - 1
+            self._file.seek(self._offsets[frame_index])
+            self.ts.frame = frame_index - 1
             return self._read_next_timestep()
 
         def _read_next_timestep(self) -> "ReaderBase._Timestep":

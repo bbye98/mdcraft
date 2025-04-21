@@ -65,7 +65,7 @@ def reduce_box_vectors(
 
         **Shape**: :math:`(3,3)`.
 
-        **Reference units**: :math:`\\mathrm{nm}`.
+        **Reference unit**: :math:`\\mathrm{nm}`.
 
     Returns
     -------
@@ -76,7 +76,7 @@ def reduce_box_vectors(
 
         **Shape**: :math:`(3,3)`.
 
-        **Reference units**: :math:`\\mathrm{nm}`.
+        **Reference unit**: :math:`\\mathrm{nm}`.
 
     Examples
     --------
@@ -380,14 +380,14 @@ def scale_triclinic_coordinates(
 
         **Shape**: :math:`(N,3)`.
 
-        **Reference units**: :math:`\\mathrm{nm}`.
+        **Reference unit**: :math:`\\mathrm{nm}`.
 
     box_vectors : `numpy.ndarray`
         Box vectors of the general triclinic simulation box.
 
         **Shape**: :math:`(3,3)`.
 
-        **Reference units**: :math:`\\mathrm{nm}`.
+        **Reference unit**: :math:`\\mathrm{nm}`.
 
     scaled_flags : `list`, optional
         Flags indicating whether the coordinates are already scaled
