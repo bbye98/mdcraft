@@ -1029,3 +1029,188 @@ class TestFunctionCorrelation:
             and np.allclose(ccf[0], self.symmetrized_ccf_ted)
             and np.allclose(ccf[..., 0], self.symmetrized_ccf_btd)
         )
+
+
+class TestFunctionMSD:
+    @classmethod
+    def setup_class(cls):
+        # Generate simple trajectories
+        cls.trajectory1 = np.tile(
+            np.expand_dims(
+                ((0, 0, 0), (1, 1, 1), (2, 2, 2), (3, 3, 3)), (0, 2)
+            ),
+            (2, 1, 2, 1),
+        )
+        cls.trajectory2 = np.tile(
+            np.expand_dims(
+                (
+                    (0.0, 1.0, 2.0),
+                    (2.0, 3.0, 4.0),
+                    (4.0, 5.0, 6.0),
+                    (6.0, 7.0, 8.0),
+                ),
+                (0, 2),
+            ),
+            (2, 1, 2, 1),
+        )
+
+        # Compute expected (cross) mean square displacements
+        cls.msd1 = (
+            np.einsum("bted,bted->bt", cls.trajectory1, cls.trajectory1)
+            // cls.trajectory1.shape[2]
+        )
+        cls.msd2 = (
+            ((cls.trajectory2 - cls.trajectory2[:, :1]) ** 2)
+            .sum(axis=3)
+            .mean(axis=2)
+        )
+        cls.cmsd = (
+            (cls.trajectory1 * (cls.trajectory2 - cls.trajectory2[:, :1]))
+            .sum(axis=3)
+            .mean(axis=2)
+        )
+
+    def test_msd_empty_1d(self):
+        """
+        Computes the MSD of an empty trajectory.
+
+        A ValueError should be raised.
+        """
+        with pytest.raises(ValueError):
+            correlation.msd(np.empty(0))
+
+    def test_msd_invalid_ndim(self):
+        """
+        Computes the MSD of a five-dimensional trajectory with shape
+        (1, 1, 1, 1, 1).
+
+        A ValueError should be raised.
+        """
+        with pytest.raises(ValueError):
+            correlation.msd(np.empty((1, 1, 1, 1, 1)))
+
+    def test_msd_invalid_axis(self):
+        """
+        Computes the MSD of a three-dimensional trajectory with shape
+        (1, 1, 1) along an invalid axis.
+
+        A ValueError should be raised.
+        """
+        with pytest.raises(ValueError):
+            correlation.msd(np.empty((1, 1, 1)), axis=2)
+
+    def test_msd_fft_td(self):
+        """
+        Computes the MSD of a trajectory with shape (N_t, 3) using FFTs.
+
+        The expected result is a solution array with shape (N_t,).
+        """
+        assert np.allclose(
+            correlation.msd(self.trajectory1[0, :, 0]), self.msd1[0]
+        )
+
+    def test_msd_fft_ted(self):
+        """
+        Computes the per-entity MSD of a trajectory with shape
+        (N_t, N_e, 3) using FFTs.
+
+        The expected result is a solution array with shape (N_t, N_e).
+        """
+        with pytest.warns(UserWarning):
+            assert np.allclose(
+                correlation.msd(self.trajectory1[0], average=False)[:, 0],
+                self.msd1[0],
+            )
+
+    def test_msd_fft_bted(self):
+        """
+        Computes the MSD of a trajectory with shape (N_b, N_t, N_e, 3)
+        using FFTs.
+
+        The expected result is a solution array with shape
+        (N_b, N_t, N_e).
+        """
+        assert np.allclose(correlation.msd(self.trajectory1), self.msd1)
+
+    def test_msd_einstein_td(self):
+        """
+        Computes the MSD of a trajectory with shape (N_t, 3) using the
+        Einstein relation.
+
+        The expected result is a solution array with shape (N_t,).
+        """
+        assert np.allclose(
+            correlation.msd(self.trajectory2[0, :, 0], fft=False), self.msd2[0]
+        )
+
+    def test_msd_einstein_ted(self):
+        """
+        Computes the MSD of a trajectory with shape (N_t, N_e, 3) using
+        the Einstein relation.
+
+        The expected result is a solution array with shape (N_t,).
+        """
+        assert np.allclose(
+            correlation.msd(self.trajectory2[0], axis=0, fft=False),
+            self.msd2[0],
+        )
+
+    def test_msd_einstein_bted(self):
+        """
+        Computes the MSD of a trajectory with shape (N_b, N_t, N_e, 3)
+        using the Einstein relation.
+
+        The expected result is a solution array with shape (N_b, N_t).
+        """
+        assert np.allclose(
+            correlation.msd(self.trajectory2, fft=False), self.msd2
+        )
+
+    def test_cmsd_asymmetric_arrays(self):
+        """
+        Computes the CMSD of two asymmetric trajectories with different
+        shapes.
+
+        A ValueError should be raised.
+        """
+        with pytest.raises(ValueError):
+            correlation.msd(self.trajectory1, self.trajectory2[:1])
+
+    def test_cmsd_fft_bted(self):
+        """
+        Computes the CMSD of two trajectories with shape
+        (N_b, N_t, N_e, 3) using FFTs.
+
+        The expected result is a solution array with shape (N_b, N_t).
+        """
+        assert np.allclose(
+            correlation.msd(self.trajectory1, self.trajectory2), self.cmsd
+        )
+
+    def test_cmsd_einstein_ted(self):
+        """
+        Computes the CMSD of two trajectories with shape
+        (N_t, N_e, 3) using the Einstein relation.
+
+        The expected result is a solution array with shape (N_t).
+        """
+        with pytest.warns(UserWarning):
+            assert np.allclose(
+                correlation.msd(
+                    self.trajectory1[0], self.trajectory2[0], fft=False
+                ),
+                self.cmsd[0],
+            )
+
+    def test_cmsd_einstein_bted(self):
+        """
+        Computes the CMSD of two trajectories with shape
+        (N_b, N_t, N_e, 3) using the Einstein relation.
+
+        The expected result is a solution array with shape
+        (N_b, N_t).
+        """
+        assert np.allclose(
+            correlation.msd(self.trajectory1, self.trajectory2, fft=False),
+            self.cmsd,
+        )
