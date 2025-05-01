@@ -1192,7 +1192,7 @@ class TestFunctionMSD:
         Computes the CMSD of two trajectories with shape
         (N_t, N_e, 3) using the Einstein relation.
 
-        The expected result is a solution array with shape (N_t).
+        The expected result is a solution array with shape (N_t,).
         """
         with pytest.warns(UserWarning):
             assert np.allclose(

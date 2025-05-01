@@ -70,13 +70,13 @@ class BaseReader:
     @abstractmethod
     def close(self) -> None:
         """
-        Closes the topology and trajectory file and deletes the handle.
+        Closes the topology or trajectory file and deletes the handle.
         """
 
         pass
 
 
-class BaseTopologyReader(BaseReader):
+class BaseTopologyReader(BaseReader):  # TODO
     """
     Base class for topology readers.
 
@@ -152,14 +152,6 @@ class BaseTopologyReader(BaseReader):
 
     @abstractmethod
     def _parse_topology(self, file: TextIO) -> dict[str, Any]:
-        pass
-
-    def read_topology(
-        self,
-        /,
-        *,
-        _convert_units: bool = True,
-    ) -> dict[str, Any] | list[dict[str, Any]]:
         pass
 
     @property
@@ -246,6 +238,14 @@ class BaseTopologyReader(BaseReader):
         """
 
         pass
+
+    def read_topology(
+        self,
+        /,
+        *,
+        _convert_units: bool = True,
+    ) -> dict[str, Any] | list[dict[str, Any]]:
+        pass  # TODO
 
     # TODO: Finish specification before implementing readers.
     # TODO: Support smaller subdivisions like molecules (residues) and segments (chains)?
@@ -495,3 +495,94 @@ class BaseTrajectoryReader(BaseReader):
             file.close()
 
         return data
+
+
+class BaseWriter:
+    """
+    Base class for topology and trajectory writers.
+
+    Subclasses must implement the :meth:`open` and :meth:`close` methods
+    to handle the opening and closing of the file.
+
+    Parameters
+    ----------
+    filename : `str` or `pathlib.Path`, positional-only
+        Filename or path to the topology or trajectory file.
+    """
+
+    def __init__(self, filename: str | Path) -> None:
+        # Resolve full path to file
+        self._filename = Path(filename).resolve()
+
+        # Create finalizer
+        self._finalizer = weakref.finalize(self, self.close)
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        self._finalizer()
+
+    @abstractmethod
+    def open(self) -> None:
+        """
+        Opens the topology or trajectory file and stores a handle to it.
+        """
+
+        pass
+
+    @abstractmethod
+    def close(self) -> None:
+        """
+        Closes the topology or trajectory file and deletes the handle.
+        """
+
+        pass
+
+
+class BaseTopologyWriter(BaseWriter):  # TODO
+    """
+    Base class for topology writers.
+    """
+
+
+class BaseTrajectoryWriter(BaseWriter):
+    """
+    Base class for trajectory writers.
+    """
+
+    _EXTENSIONS: set[str]
+    _FORMAT: str
+    _units: dict[str, U_]
+    # _reduced: bool
+
+    def __init__(self, filename: str | Path, **kwargs) -> None:
+        super().__init__(filename)
+
+    @abstractmethod
+    def __repr__(self) -> str:
+        pass
+
+    def __str__(self) -> str:
+        pass  # TODO
+
+    @staticmethod
+    def _get_supported_formats() -> dict[str, object]:
+        """
+        Supported trajectory formats.
+        """
+
+        return {r._FORMAT: r for r in BaseTrajectoryReader.__subclasses__()}
+
+    @abstractmethod
+    def _write_frame(self, *args, convert_units: bool, **kwargs) -> None:
+        pass
+
+    @abstractmethod
+    def _write_frames(self, *args, convert_units: bool, **kwargs) -> None:
+        pass  # TODO: Call _write_frame.

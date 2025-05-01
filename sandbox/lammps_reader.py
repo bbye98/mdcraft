@@ -1,9 +1,6 @@
 import os
-import sys
 
-
-sys.path.insert(0, "/mnt/c/Users/Benjamin/Documents/GitHub/mdcraft-dev/src")
-# from mdcraft.analysis.core import Trajectory
+# from mdcraft.core import Trajectory
 from mdcraft.io.reader import LAMMPSDataReader
 
 
@@ -58,7 +55,7 @@ os.chdir("/mnt/c/Users/Benjamin/Downloads")
 
 ### TRAJECTORY / BENCHMARK
 # trajectory_file = "trajectory.lammpsdump"
-trajectory_file = "dump.dipoleProd"
+# trajectory_file = "dump.dipoleProd"
 
 # with open(trajectory_file, "r") as i:
 #     with open("subset.lammpstrj", "w") as o:

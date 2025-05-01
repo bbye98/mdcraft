@@ -85,9 +85,10 @@ class Topology:  # TODO
                     for r in BaseTopologyReader.__subclasses__()
                     if self._filename.suffix in r._EXTENSIONS
                 )(filename, **kwargs)
-            except StopIteration:
+            except RuntimeError:
                 raise RuntimeError(
-                    "Could not determine the format of the topology file."
+                    "Could not determine the format of the topology "
+                    f"file '{self._filename}'."
                 )
         else:
             supported_formats = BaseTopologyReader.supported_formats()
@@ -268,7 +269,7 @@ class Trajectory:
                     dtype=object,
                     count=len(self._filenames),
                 )
-            except StopIteration:
+            except RuntimeError:
                 raise RuntimeError(
                     "Could not determine the format of trajectory file "
                     f"'{filename.name}'."
@@ -575,6 +576,7 @@ class Trajectory:
         timesteps could not be determined from the trajectory.
         """
 
+        # TODO: Check whether timesteps are monotonically increasing.
         if any(r.timesteps is None for r in self._readers):
             return None
         return np.fromiter(

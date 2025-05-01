@@ -1,4 +1,5 @@
 from __future__ import annotations
+import bz2
 from collections import defaultdict
 import concurrent.futures
 from functools import cached_property
@@ -712,16 +713,20 @@ class LAMMPSDataReader(BaseTopologyReader):  # TODO
             del self._file
 
 
+# class CompositeReader(BaseTrajectoryReader):  # TODO
+#     pass
+
+
 class LAMMPSDumpReader(BaseTrajectoryReader):
     """
     LAMMPS dump file reader.
 
     This class is not a full-featured LAMMPS dump file reader, but can
     process most, if not all, dump files written using a single
-    :code:`dump` command in the text (not binary or gzip) format and
-    with :code:`atom`, :code:`custom`, :code:`grid`, or :code:`local`
-    styles. Notably, it supports
+    :code:`dump` command with :code:`atom`, :code:`custom`,
+    :code:`grid`, or :code:`local` styles. Notably, it supports
 
+    * both compressed (:code:`.bz2`) and text dump files,
     * frame headers with units and/or time information (using
       :code:`dump_modify units yes` and/or
       :code:`dump_modify time yes`, respectively),
@@ -939,7 +944,7 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
         "micro": 2.0,
         "nano": 0.00045,
     }
-    _EXTENSIONS = {".dump", ".lammpsdump", ".lammpstrj"}
+    _EXTENSIONS = {".bz2", ".dump", ".lammpsdump", ".lammpstrj"}
     _EXTRA_ATTRIBUTES = {
         "dipole_moments": ("mux", "muy", "muz"),
         "dipole_moment_magnitudes": ("mu",),
@@ -1819,7 +1824,12 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
         Opens the LAMMPS dump file and stores a handle to it.
         """
 
-        self._file = open(self._filename, "r")
+        with open(self._filename, "rb") as f:
+            self._file = (
+                bz2.open(self._filename, "rt")
+                if f.read(3) == b"BZh"
+                else open(self._filename, "r")
+            )
 
     def close(self) -> None:
         """
@@ -1846,8 +1856,8 @@ class NetCDFReader(BaseTrajectoryReader):
     filename : `str` or `pathlib.Path`, positional-only
         Filename or path to the NetCDF file.
 
-    module : `str`, optional, keyword-only, default: :code:`"scipy"`
-        Specifies which module to use for reading the NetCDF file.
+    package : `str`, optional, keyword-only, default: :code:`"netcdf4"`
+        Specifies which package to use for reading the NetCDF file.
 
         **Valid values**: :code:`"netcdf4"` or :code:`"scipy"`.
 
@@ -1855,6 +1865,9 @@ class NetCDFReader(BaseTrajectoryReader):
         Simulation time step size.
 
         **Reference unit**: :math:`\\mathrm{ps}`.
+
+    Examples
+    --------
     """
 
     _EXTENSIONS = {".nc", ".ncdf"}
@@ -1875,45 +1888,46 @@ class NetCDFReader(BaseTrajectoryReader):
         filename: str | Path,
         /,
         *,
-        module: str = "scipy",
+        package: str = "netcdf4",
         dt: float | unit.Quantity | Q_ | None = None,
         **kwargs,
     ) -> None:
 
         super().__init__(filename)
 
-        # Store which module to use for reading
-        module = module.lower()
-        if module not in {"scipy", "netcdf4"}:
+        # Store which package to use for reading
+        if (pkg := package.lower()) in {"scipy", "netcdf4"}:
+            self._package = pkg
+        else:
             raise ValueError(
-                f"Module '{module}' is not supported. "
-                "Use 'scipy' or 'netcdf4'."
+                f"'{package}' is not a supported package for reading NetCDF files."
             )
-        self._module = module
 
         # Create and store handle to file
         self.open()
 
         # Store trajectory properties
-        if self._module == "scipy":
+        if self._package == "scipy":
             self._n_atoms = self._file.dimensions["atom"]
             self._n_frames = self._file._recs
-            self._is_restart = self._file.Conventions == b"AMBERRESTART"
+            self._restart = b"AMBERRESTART" in self._file.Conventions
         else:
             self._n_atoms = self._file.dimensions["atom"].size
             self._n_frames = self._file.dimensions["frame"].size
-            self._is_restart = self._file.Conventions == "AMBERRESTART"
+            self._restart = "AMBERRESTART" in self._file.Conventions
         self._dt = strip_unit(dt, "ps")[0]
+
+        # TODO: Add LJ units check for LAMMPS trajectories.
 
     def __repr__(self) -> str:
         return (
             f"{self.__class__.__name__}('{self._filename.name}', "
-            f"module='{self._module}', dt={self.dt})"
+            f"package='{self._package}', dt={self.dt})"
         )
 
-    def _open(self) -> netcdf_file | nc.Dataset:
+    def _open(self) -> "nc.Dataset" | netcdf_file:
         """
-        Opens the NetCDF file using the user-specified module.
+        Opens the NetCDF file using the user-specified package.
 
         Returns
         -------
@@ -1921,7 +1935,7 @@ class NetCDFReader(BaseTrajectoryReader):
             Handle to the NetCDF file.
         """
 
-        if self._module == "scipy":
+        if self._package == "scipy":
             file = netcdf_file(self._filename, "r")
         else:
             file = nc.Dataset(self._filename, mode="r")
@@ -1954,6 +1968,21 @@ class NetCDFReader(BaseTrajectoryReader):
         frame_data : `dict`
             Data from the frame.
         """
+
+        # TODO: Get extra attributes.
+        # self._file.variables.keys() - {
+        #     "spatial",
+        #     "cell_spatial",
+        #     "cell_angular",
+        #     "time",
+        #     "cell_lengths",
+        #     "cell_angles",
+        #     "coordinates",
+        #     "velocities",
+        #     "forces"
+        # }
+
+        # TODO: Correctly handle scale factors and units for LAMMPS NetCDF files.
 
         return {
             "n_atoms": self.n_atoms,

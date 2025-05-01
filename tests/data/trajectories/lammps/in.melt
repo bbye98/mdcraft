@@ -1,0 +1,19 @@
+units           real
+atom_style      charge
+
+region          box block 0 34.05 0 34.05 0 34.05
+create_box      1 box
+create_atoms    1 random 800 12345 box
+mass            1 1.0
+
+pair_style      lj/cut 39.948
+pair_coeff      1 1 0.238 3.405
+
+neigh_modify    one 10000
+velocity        all create 300.0 67890
+minimize        1.0e-4 1.0e-6 100 1000
+
+fix             1 all nvt temp 300.0 300.0 $(100.0*dt)
+dump            1 all netcdf 100 ljmelt_real.nc id type q xs ys zs vx vy vz fx fy fz ix iy iz
+thermo          100
+run             1000
