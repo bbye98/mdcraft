@@ -227,3 +227,8 @@ class TestClassTrajectory:
         assert trajectory.n_frames == 18
         for frame in trajectory:
             assert np.isclose(frame.positions[0, 0], 0.1 * frame.timestep)
+
+
+test_class = TestClassTrajectory()
+test_class.test_5()
+debug = True

@@ -2,21 +2,23 @@ from __future__ import annotations
 import bz2
 from collections import defaultdict
 import concurrent.futures
-from functools import cached_property
+from functools import cached_property, lru_cache
 from pathlib import Path
 from typing import Any, TextIO
 import warnings
 
 import numpy as np
 import pandas as pd
+from pint.errors import DefinitionSyntaxError, DimensionalityError
 from scipy.io import netcdf_file
 
 from . import INTERNAL_UNITS
 from .base import BaseTopologyReader, BaseTrajectoryReader
-from .. import FOUND, Q_, ureg
+from .. import FOUND, Q_, U_, ureg
 from ..utility.topology import (
     convert_cell_representation,
     scale_triclinic_coordinates,
+    reduce_box_vectors,
 )
 from ..utility.unit import strip_unit
 
@@ -713,8 +715,9 @@ class LAMMPSDataReader(BaseTopologyReader):  # TODO
             del self._file
 
 
-# class CompositeReader(BaseTrajectoryReader):  # TODO
-#     pass
+class CompositeReader(BaseTrajectoryReader):  # TODO
+
+    _EXTENSIONS = {}
 
 
 class LAMMPSDumpReader(BaseTrajectoryReader):
@@ -1602,6 +1605,30 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
         -------
         frame_data : `dict`
             Data from the frame.
+
+            Possible keys include:
+
+            * :code:`time` (if available)
+            * :code:`timestep`
+            * :code:`ids` (if available)
+            * :code:`molecule_ids` (if available)
+            * :code:`types` (if available)
+            * :code:`labels` (if available)
+            * :code:`elements` (if available)
+            * :code:`masses` (if available)
+            * :code:`charges` (if available)
+            * :code:`n_atoms`, :code:`n_grids`, or :code:`n_entities`
+            * :code:`dimensions`
+            * :code:`positions` (if available)
+            * :code:`image_flags` (if available)
+            * :code:`velocities` (if available)
+            * :code:`forces` (if available)
+            * extra attributes, like :code:`dipole_moments`,
+             :code:`dipole_moment_magnitudes`, :code:`angular_velocities`,
+             :code:`angular_momenta`, and :code:`torques` (if available)
+            * custom variables prefixed with :code:`c_`, :code:`d_`,
+              :code:`d2_`, :code:`f_`, :code:`i_`, :code:`i2_`, or
+              :code:`v_` (if available)
         """
 
         # Seek to frame
@@ -1631,7 +1658,19 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
             )
 
         # Read system dimensions
-        if "xy xz yz" in (box_header := file.readline()):  # ITEM: BOX BOUNDS
+        if is_general_triclinic := "abc origin" in (
+            box_header := file.readline()
+        ):  # ITEM: BOX BOUNDS
+            box_vectors = np.vstack(
+                [
+                    [float(val) for val in file.readline().split()[:3]]
+                    for _ in range(3)
+                ]
+            )
+            frame_data["dimensions"] = convert_cell_representation(
+                box_vectors, "parameters"
+            )
+        elif "xy xz yz" in box_header:  # restricted triclinic box
             xlo, xhi, xy = (float(val) for val in file.readline().split())
             ylo, yhi, xz = (float(val) for val in file.readline().split())
             zlo, zhi, yz = (float(val) for val in file.readline().split())
@@ -1650,17 +1689,7 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
             frame_data["dimensions"] = convert_cell_representation(
                 box_vectors, "parameters"
             )
-        elif is_general_triclinic := "abc origin" in box_header:
-            box_vectors = np.vstack(
-                [
-                    [float(val) for val in file.readline().split()[:3]]
-                    for _ in range(3)
-                ]
-            )
-            frame_data["dimensions"] = convert_cell_representation(
-                box_vectors, "parameters"
-            )
-        else:
+        else:  # orthorhombic box
             xlo, xhi = (float(val) for val in file.readline().split())
             ylo, yhi = (float(val) for val in file.readline().split())
             zlo, zhi = (float(val) for val in file.readline().split())
@@ -1679,7 +1708,10 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
             file, sep="\\s+", header=None, nrows=n_entities
         ).to_numpy()
         for name, columns in self._attribute_columns.items():
-            frame_data[name] = data[:, columns]
+            frame_data[name] = data[:, [col or 0 for col in columns]]
+            frame_data[name][
+                :, [i for i, col in enumerate(columns) if col is None]
+            ] = 0
             if name in {"ids", "molecule_ids", "types"} or name.startswith(
                 ("i_", "i2_")
             ):
@@ -1688,24 +1720,21 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
         # Recover Cartesian coordinates from scaled coordinates and system dimensions
         if self._dump_style == "custom":
             scaled_flags = ["s" in fmt for fmt in self._coordinate_formats]
-            if any(scaled_flags) and np.allclose(
-                frame_data["dimensions"][3:], 90
-            ):
-                frame_data["positions"][:, scaled_flags] *= frame_data[
-                    "dimensions"
-                ][:3][scaled_flags]
-
-        # Rotate coordinates and per-atom vector quantities for general triclinic boxes
-        if is_general_triclinic:
-            restricted_box_vectors = convert_cell_representation(
-                frame_data["dimensions"], "vectors"
-            )
-            if self._dump_style == "custom":
-                for attr in frame_data.keys() & self._VECTOR_ATTRIBUTES:
+            if any(scaled_flags):
+                if np.allclose(frame_data["dimensions"][3:], 90):
+                    frame_data["positions"][:, scaled_flags] *= frame_data[
+                        "dimensions"
+                    ][:3][scaled_flags]
+                else:
+                    # Rotate coordinates for triclinic boxes
                     scale_triclinic_coordinates(
-                        frame_data[attr], box_vectors, scaled_flags
+                        frame_data["positions"], box_vectors, scaled_flags
                     )
-                    frame_data[attr] @= restricted_box_vectors.T
+                    frame_data["positions"] @= (
+                        reduce_box_vectors(box_vectors)
+                        if is_general_triclinic
+                        else box_vectors
+                    ).T
 
         # Convert from LAMMPS units to consistent MDCraft units
         if convert_units:
@@ -1841,7 +1870,7 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
             del self._file
 
 
-class NetCDFReader(BaseTrajectoryReader):
+class NetCDFReader(BaseTrajectoryReader):  # TODO
     """
     AMBER NetCDF trajectory/restart file reader.
 
@@ -1917,6 +1946,9 @@ class NetCDFReader(BaseTrajectoryReader):
             self._restart = "AMBERRESTART" in self._file.Conventions
         self._dt = strip_unit(dt, "ps")[0]
 
+        # Define cached version of self.get_dimensions()
+        self._get_dimensions = lru_cache()(self.get_dimensions)
+
         # TODO: Add LJ units check for LAMMPS trajectories.
 
     def __repr__(self) -> str:
@@ -1969,25 +2001,10 @@ class NetCDFReader(BaseTrajectoryReader):
             Data from the frame.
         """
 
-        # TODO: Get extra attributes.
-        # self._file.variables.keys() - {
-        #     "spatial",
-        #     "cell_spatial",
-        #     "cell_angular",
-        #     "time",
-        #     "cell_lengths",
-        #     "cell_angles",
-        #     "coordinates",
-        #     "velocities",
-        #     "forces"
-        # }
-
-        # TODO: Correctly handle scale factors and units for LAMMPS NetCDF files.
-
         return {
             "n_atoms": self.n_atoms,
             "time": self.get_times(frame_index, convert_units, _file=file),
-            "dimensions": self.get_dimensions(
+            "dimensions": self._get_dimensions(
                 frame_index, convert_units, _file=file
             ),
             "positions": self.get_positions(
@@ -1997,6 +2014,7 @@ class NetCDFReader(BaseTrajectoryReader):
                 frame_index, convert_units, _file=file
             ),
             "forces": self.get_forces(frame_index, convert_units, _file=file),
+            **self.get_extra_attributes(frame_index, convert_units, _file=file),
         }
 
     @property
@@ -2120,13 +2138,36 @@ class NetCDFReader(BaseTrajectoryReader):
         if frame_indices is None:
             frame_indices = slice(None)
 
-        dimensions = np.hstack(
-            (
-                _file.variables["cell_lengths"][frame_indices],
-                _file.variables["cell_angles"][frame_indices],
+        if "cell_lengths" in _file.variables:
+            var = _file.variables["cell_lengths"]
+            cell_lengths = var[frame_indices]
+            units = getattr(var, "units", None)
+            if "cell_angles" in _file.variables:
+                cell_angles = _file.variables["cell_angles"][frame_indices]
+            else:
+                warnings.warn(
+                    "'cell_lengths' was found in the NetCDF file, but not "
+                    "'cell_angles'. It will be assumed that the simulation box "
+                    "is orthorhombic."
+                )
+                cell_angles = np.full_like(cell_lengths, 90.0)
+            dimensions = np.hstack((cell_lengths, cell_angles))
+        else:
+            return None
+
+        # Overwrite units, if necessary
+        if units in {None, "lj"}:
+            warnings.warn(
+                "No or invalid units were found for system dimensions. "
+                "It will be assumed that the trajectory uses reduced "
+                "units."
             )
-        )
-        if convert_units:
+            self._reduced = True
+            self._units["length"] = ureg.dimensionless
+        elif self._units["length"] != (units := U_(units)):
+            self._units["length"] = units
+
+        if convert_units and not self._reduced:
             dimensions[:3] = (dimensions[:3] * self._units["length"]).m_as(
                 INTERNAL_UNITS["length"]
             )
@@ -2179,16 +2220,45 @@ class NetCDFReader(BaseTrajectoryReader):
         if frame_indices is None:
             frame_indices = slice(None)
 
-        if "forces" not in _file.variables:
-            warnings.warn(
-                "The NetCDF file "
-                f"'{Path(_file.filepath()).resolve().name}' does not "
-                "contain the forces acting on the atoms."
-            )
+        if "forces" in _file.variables:
+            var = _file.variables["forces"]
+            forces = var[frame_indices]
+            units = getattr(var, "units", None)
+        else:
             return None
 
-        forces = _file.variables["forces"][frame_indices]
-        if convert_units:
+        # Overwrite units, if necessary
+        if units in {None, "lj"}:
+            warnings.warn(
+                "No or invalid units were found for forces exerted on "
+                "atoms. It will be assumed that the trajectory uses "
+                "reduced units."
+            )
+            self._reduced = True
+            self._units["length"] = self._units["time"] = ureg.dimensionless
+        else:
+            base_units = self._units["energy"] / self._units["length"]
+            try:
+                units = U_(units)
+            except DefinitionSyntaxError:
+                # Fix extra parenthesis and wrong capitalization in LAMMPS units
+                units = U_(units[:-1].lower())
+            if base_units != units:
+                try:
+                    forces = (forces * units).m_as(base_units)
+                    warnings.warn(
+                        "Units for forces exerted on atoms were found to be "
+                        f"{units}, but are expected to be {base_units}. "
+                        "They will be converted for consistency with other "
+                        "physical quantities in the trajectory."
+                    )
+                except DimensionalityError:
+                    raise RuntimeError(
+                        "Units for forces exerted on atoms are not compatible "
+                        f"with {base_units}."
+                    )
+
+        if convert_units and not self._reduced:
             forces = (
                 forces * self._units["energy"] / self._units["length"]
             ).m_as(INTERNAL_UNITS["energy"] / INTERNAL_UNITS["length"])
@@ -2240,8 +2310,108 @@ class NetCDFReader(BaseTrajectoryReader):
         if frame_indices is None:
             frame_indices = slice(None)
 
-        positions = _file.variables["coordinates"][frame_indices]
-        if convert_units:
+        # NOTE: The following logic is complex due to support for NetCDF
+        #       files written by LAMMPS, which stores scaled and/or
+        #       wrapped coordinates to the nonstandard
+        #       "scaled_coordinates", "wrapped_coordinates", and
+        #       "xsu"/"ysu"/"zsu" keys.
+
+        standard = "coordinates" in _file.variables
+        scaled_flags = np.full(3, True, dtype=bool)
+        if standard:
+            var = _file.variables["coordinates"]
+            positions = var[frame_indices]
+            units = getattr(var, "units", None)
+
+            # Check for empty coordinate axes
+            empty_flags = np.any(positions == var.get_fill_value(), axis=0)
+            scaled_flags[~empty_flags] = False
+        else:
+            positions = np.empty(
+                (
+                    ()
+                    if isinstance(frame_indices, int)
+                    else (len(self.times[frame_indices]),)
+                )
+                + (self.n_atoms, 3),
+                dtype=np.float64 if self._restart else np.float32,
+            )
+            empty_flags = scaled_flags.copy()
+            units = None
+
+        # Special logic for when "coordinates" key is not found or
+        # empty coordinate axes are found
+        if not standard or empty_flags.any():
+            # Check for unwrapped coordinates
+            if "unwrapped_coordinates" in _file.variables:
+                var = _file.variables["unwrapped_coordinates"]
+                unwrapped_positions = var[frame_indices]
+                unwrapped_filled = ~np.any(
+                    unwrapped_positions == var.get_fill_value(), axis=0
+                )
+                positions[..., unwrapped_filled] = unwrapped_positions[
+                    ..., unwrapped_filled
+                ]
+                empty_flags[unwrapped_filled] = False
+                scaled_flags[unwrapped_filled] = False
+                units = units or getattr(var, "units", None)
+
+            # Check for scaled and unwrapped coordinates
+            if empty_flags.any():
+                for axis in np.where(empty_flags)[0]:
+                    if (key := f"{chr(120 + axis)}su") in _file.variables:
+                        var = _file.variables[key]
+                        positions[..., axis] = var[frame_indices]
+                        empty_flags[axis] = False
+                        units = units or getattr(var, "units", None)
+
+            # Check for scaled coordinates
+            if empty_flags.any() and "scaled_coordinates" in _file.variables:
+                var = _file.variables["scaled_coordinates"]
+                scaled_positions = var[frame_indices]
+                scaled_filled = ~np.any(
+                    scaled_positions == var.get_fill_value(), axis=0
+                )
+                positions[..., scaled_filled] = scaled_positions[
+                    ..., scaled_filled
+                ]
+                empty_flags[scaled_filled] = False
+                units = units or getattr(var, "units", None)
+
+            # Fill empty coordinate axes with zeros
+            positions[..., empty_flags] = 0
+
+            # Recover Cartesian coordinates from scaled coordinates and system dimensions
+            if any(scaled_flags):
+                dimensions = self._get_dimensions(
+                    frame_indices, convert_units, _file=_file
+                )
+                if np.allclose(dimensions[3:], 90):
+                    positions[..., scaled_flags] *= dimensions[:3][scaled_flags]
+                else:
+                    box_vectors = convert_cell_representation(
+                        dimensions, "vectors"
+                    )
+                    scale_triclinic_coordinates(
+                        positions[..., scaled_flags],
+                        box_vectors,
+                        scaled_flags,
+                    )
+                    positions @= box_vectors
+
+            # Overwrite units, if necessary
+            if units in {None, "lj"}:
+                warnings.warn(
+                    "No or invalid units were found for atom "
+                    "positions. It will be assumed that the trajectory "
+                    "uses reduced units."
+                )
+                self._reduced = True
+                self._units["length"] = ureg.dimensionless
+            elif self._units["length"] != (units := U_(units)):
+                self._units["length"] = units
+
+        if convert_units and not self._reduced:
             positions = (positions * self._units["length"]).m_as(
                 INTERNAL_UNITS["length"]
             )
@@ -2292,8 +2462,26 @@ class NetCDFReader(BaseTrajectoryReader):
         if frame_indices is None:
             frame_indices = slice(None)
 
-        times = _file.variables["time"][frame_indices]
-        if convert_units:
+        if "time" in _file.variables:
+            var = _file.variables["time"]
+            times = var[frame_indices]
+            units = getattr(var, "units", None)
+        else:
+            return None
+
+        # Overwrite units, if necessary
+        if units in {None, "lj"}:
+            warnings.warn(
+                "No or invalid units were found for simulation times. "
+                "It will be assumed that the trajectory uses reduced "
+                "units."
+            )
+            self._reduced = True
+            self._units["time"] = ureg.dimensionless
+        elif self._units["time"] != (units := U_(units)):
+            self._units["time"] = units
+
+        if convert_units and not self._reduced:
             times = (times * self._units["time"]).m_as(INTERNAL_UNITS["time"])
 
         if manual:
@@ -2344,16 +2532,40 @@ class NetCDFReader(BaseTrajectoryReader):
         if frame_indices is None:
             frame_indices = slice(None)
 
-        if "velocities" not in _file.variables:
-            warnings.warn(
-                "The NetCDF file "
-                f"'{Path(_file.filepath()).resolve().name}' does not "
-                "contain atom velocities."
-            )
+        if "velocities" in _file.variables:
+            var = _file.variables["velocities"]
+            velocities = var[frame_indices]
+            units = getattr(var, "units", None)
+        else:
             return None
 
-        velocities = _file.variables["velocities"][frame_indices]
-        if convert_units:
+        # Overwrite units, if necessary
+        if units in {None, "lj"}:
+            warnings.warn(
+                "No or invalid units were found for atom velocities. "
+                "It will be assumed that the trajectory uses reduced "
+                "units."
+            )
+            self._reduced = True
+            self._units["length"] = self._units["time"] = ureg.dimensionless
+        elif (base_units := self._units["length"] / self._units["time"]) != (
+            units := U_(units)
+        ):
+            try:
+                velocities = (velocities * units).m_as(base_units)
+                warnings.warn(
+                    "Units for atom velocities were found to be "
+                    f"{units}, but are expected to be {base_units}. "
+                    "They will be converted for consistency with other "
+                    "physical quantities in the trajectory."
+                )
+            except DimensionalityError:
+                raise RuntimeError(
+                    "Units for atom velocities are not compatible "
+                    f"with {base_units}."
+                )
+
+        if convert_units and not self._reduced:
             velocities = (
                 velocities * self._units["length"] / self._units["time"]
             ).m_as(INTERNAL_UNITS["length"] / INTERNAL_UNITS["time"])
@@ -2362,6 +2574,15 @@ class NetCDFReader(BaseTrajectoryReader):
             _file.close()
 
         return velocities
+
+    def get_extra_attributes(
+        self,
+        frame_indices: int | list[int] | slice | None = None,
+        convert_units: bool = True,
+        *,
+        _file: "nc.Dataset" | netcdf_file | None = None,
+    ) -> dict[str, np.ndarray[float]]:
+        return {}  # TODO
 
 
 if FOUND["MDAnalysis"]:
@@ -2374,7 +2595,7 @@ if FOUND["MDAnalysis"]:
         .. seealso::
 
         For more information on the features of this reader, see the
-        documentation for :class:`mdcraft.io.LAMMPSDumpReader`.
+        documentation for :class:`~mdcraft.io.LAMMPSDumpReader`.
 
         Parameters
         ----------

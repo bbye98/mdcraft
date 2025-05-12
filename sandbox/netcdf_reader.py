@@ -4,26 +4,28 @@ from mdcraft.core import Trajectory
 from mdcraft.io.writer import NetCDFWriter
 
 
-# os.chdir(
-#     "/mnt/c/Users/Benjamin/Documents/GitHub/mdcraft-dev/tests/data/trajectories/lammps"
-# )
-# trajectory = Trajectory("ljmelt_real.nc")
-# reader = trajectory._readers[0]
-
 os.chdir(
-    "/mnt/c/Users/Benjamin/Documents/GitHub/mdcraft-dev/tests/data/trajectories"
+    "/mnt/c/Users/Benjamin/Documents/GitHub/mdcraft-dev/tests/data/trajectories/lammps"
 )
-writer = NetCDFWriter("test.nc")
-writer._write_header(
-    N=1000,
-    cell=True,
-    time=True,
-    positions=True,
-    velocities=True,
-    forces=True,
-    title="Test",
-    remd_dimensions=["Temperature", "Partial", "Hamiltonian", "pH", "RedOx"],
-)
+trajectory = Trajectory("ljmelt_real.nc")
+reader = trajectory._readers[0]
+nc = reader._file
+frame = trajectory[0]
+
+# os.chdir(
+#     "/mnt/c/Users/Benjamin/Documents/GitHub/mdcraft-dev/tests/data/trajectories"
+# )
+# writer = NetCDFWriter("test.nc")
+# writer._write_header(
+#     N=1000,
+#     cell=True,
+#     time=True,
+#     positions=True,
+#     velocities=True,
+#     forces=True,
+#     title="Test",
+#     remd_dimensions=["Temperature", "Partial", "Hamiltonian", "pH", "RedOx"],
+# )
 
 debug = True
 

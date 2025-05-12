@@ -369,7 +369,9 @@ class BaseTrajectoryReader(BaseReader):
         Returns
         -------
         frame_data : `dict`
-            Data from the frame.
+            Data from the frame. Keys for common values should match the
+            parameter names in the :class:`~mdcraft.core.TrajectoryFrame`
+            class constructor.
         """
 
         pass

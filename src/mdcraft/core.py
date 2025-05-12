@@ -240,7 +240,7 @@ class Trajectory:
         self,
         filenames: str | Path | Iterable[str | Path],
         *,
-        formats: str | Iterable[str] = None,
+        formats: str | Iterable[str] | None = None,
         **kwargs,
     ) -> None:
         # Resolve full paths to files
