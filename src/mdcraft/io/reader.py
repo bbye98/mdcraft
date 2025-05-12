@@ -1902,15 +1902,6 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
     _EXTENSIONS = {".nc", ".ncdf"}
     _FORMAT = "NETCDF"
     _PARALLELIZABLE = False
-    _reduced = False
-    _units = {
-        "charge": ureg.elementary_charge,
-        "energy": ureg.kilocalorie / ureg.mole,
-        "length": ureg.angstrom,
-        "mass": ureg.gram / ureg.mole,
-        "temperature": ureg.kelvin,
-        "time": ureg.picosecond,
-    }
 
     def __init__(
         self,
@@ -1949,7 +1940,17 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
         # Define cached version of self.get_dimensions()
         self._get_dimensions = lru_cache()(self.get_dimensions)
 
-        # TODO: Add LJ units check for LAMMPS trajectories.
+        # Define instance variables
+        self._reduced = False
+        self._units = {
+            "charge": ureg.elementary_charge,
+            "energy": ureg.kilocalorie / ureg.mole,
+            "length": ureg.angstrom,
+            "mass": ureg.gram / ureg.mole,
+            "temperature": ureg.kelvin,
+            "time": ureg.picosecond,
+        }
+        self._custom_units = {q: False for q in self._units}
 
     def __repr__(self) -> str:
         return (
@@ -2123,7 +2124,7 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
 
             **Shape**: :math:`(6,)` or :math:`(N_\\mathrm{frames},6)`.
 
-            **Units**: :math:`\\mathrm{Å}` for the lengths and
+            **Reference units**: :math:`\\mathrm{Å}` for the lengths and
             :math:`^\\circ` for the angles.
         """
 
@@ -2141,7 +2142,7 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
         if "cell_lengths" in _file.variables:
             var = _file.variables["cell_lengths"]
             cell_lengths = var[frame_indices]
-            units = getattr(var, "units", None)
+            unit = getattr(var, "units", None)
             if "cell_angles" in _file.variables:
                 cell_angles = _file.variables["cell_angles"][frame_indices]
             else:
@@ -2156,16 +2157,22 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
             return None
 
         # Overwrite units, if necessary
-        if units in {None, "lj"}:
+        if unit in {None, "lj"}:
             warnings.warn(
-                "No or invalid units were found for system dimensions. "
-                "It will be assumed that the trajectory uses reduced "
-                "units."
+                "No or 'lj' units were found for system dimensions. It "
+                "will be assumed that the trajectory uses reduced units."
             )
             self._reduced = True
             self._units["length"] = ureg.dimensionless
-        elif self._units["length"] != (units := U_(units)):
-            self._units["length"] = units
+        elif self._units["length"] != (unit := U_(unit)):
+            if self._reduced or self._custom_units["length"]:
+                raise RuntimeError(
+                    f"System dimensions have a unit of '{unit}', which "
+                    f"does not match '{self._units['length']}' of the "
+                    "other lengths in the trajectory."
+                )
+            self._units["length"] = unit
+            self._custom_units["length"] = True
 
         if convert_units and not self._reduced:
             dimensions[:3] = (dimensions[:3] * self._units["length"]).m_as(
@@ -2206,7 +2213,7 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
             **Shape**: :math:`(N_\\mathrm{atoms},3)` or
             :math:`(N_\\mathrm{frames},N_\\mathrm{atoms},3)`.
 
-            **Unit**: :math:`\\mathrm{kJ/(mol\\cdot Å)}`.
+            **Reference unit**: :math:`\\mathrm{kJ/(mol\\cdot Å)}`.
         """
 
         if _file is None:
@@ -2230,33 +2237,55 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
         # Overwrite units, if necessary
         if units in {None, "lj"}:
             warnings.warn(
-                "No or invalid units were found for forces exerted on "
+                "No or 'lj' units were found for forces exerted on "
                 "atoms. It will be assumed that the trajectory uses "
                 "reduced units."
             )
             self._reduced = True
-            self._units["length"] = self._units["time"] = ureg.dimensionless
+            self._units["energy"] = self._units["length"] = ureg.dimensionless
         else:
-            base_units = self._units["energy"] / self._units["length"]
             try:
                 units = U_(units)
             except DefinitionSyntaxError:
                 # Fix extra parenthesis and wrong capitalization in LAMMPS units
                 units = U_(units[:-1].lower())
-            if base_units != units:
-                try:
-                    forces = (forces * units).m_as(base_units)
-                    warnings.warn(
-                        "Units for forces exerted on atoms were found to be "
-                        f"{units}, but are expected to be {base_units}. "
-                        "They will be converted for consistency with other "
-                        "physical quantities in the trajectory."
-                    )
-                except DimensionalityError:
+            if not (
+                units.is_compatible_with("J/m")
+                or units.is_compatible_with("J/(mol*m)")
+            ):
+                raise RuntimeError(
+                    f"Invalid unit '{units}' found for forces exerted on atoms."
+                )
+
+            length_unit = U_(
+                next(
+                    u
+                    for u in units._units
+                    if U_(u).dimensionality == "[length]"
+                )
+            )
+            if self._units["length"] != length_unit:
+                if self._reduced or self._custom_units["length"]:
                     raise RuntimeError(
-                        "Units for forces exerted on atoms are not compatible "
-                        f"with {base_units}."
+                        "Forces exerted on atoms have a length unit of "
+                        f"'{length_unit}', which does not match "
+                        f"'{self._units['length']}' of the other "
+                        "lengths in the trajectory."
                     )
+                self._units["length"] = length_unit
+                self._custom_units["length"] = True
+
+            energy_unit = units * length_unit
+            if self._units["energy"] != energy_unit:
+                if self._reduced or self._custom_units["energy"]:
+                    raise RuntimeError(
+                        "Forces exerted on atoms have an energy unit "
+                        f"of '{energy_unit}', which does not match "
+                        f"'{self._units['energy']}' of the other "
+                        "energies in the trajectory."
+                    )
+                self._units["energy"] = energy_unit
+                self._custom_units["energy"] = True
 
         if convert_units and not self._reduced:
             forces = (
@@ -2296,7 +2325,7 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
             **Shape**: :math:`(N_\\mathrm{atoms},3)` or
             :math:`(N_\\mathrm{frames},N_\\mathrm{atoms},3)`.
 
-            **Unit**: :math:`\\mathrm{Å}`.
+            **Reference unit**: :math:`\\mathrm{Å}`.
         """
 
         if _file is None:
@@ -2321,7 +2350,7 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
         if standard:
             var = _file.variables["coordinates"]
             positions = var[frame_indices]
-            units = getattr(var, "units", None)
+            unit = getattr(var, "units", None)
 
             # Check for empty coordinate axes
             empty_flags = np.any(positions == var.get_fill_value(), axis=0)
@@ -2337,10 +2366,11 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
                 dtype=np.float64 if self._restart else np.float32,
             )
             empty_flags = scaled_flags.copy()
-            units = None
+            unit = None
 
         # Special logic for when "coordinates" key is not found or
         # empty coordinate axes are found
+        reduced_units = {None, "lj"}
         if not standard or empty_flags.any():
             # Check for unwrapped coordinates
             if "unwrapped_coordinates" in _file.variables:
@@ -2354,7 +2384,15 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
                 ]
                 empty_flags[unwrapped_filled] = False
                 scaled_flags[unwrapped_filled] = False
-                units = units or getattr(var, "units", None)
+                if unit != (_unit := getattr(var, "units", None)):
+                    if unit is None:
+                        unit = _unit
+                    elif not (unit in reduced_units and _unit in reduced_units):
+                        raise RuntimeError(
+                            f"Unwrapped coordinates have a unit of '{_unit}', "
+                            f"which does not match '{unit}' of the other "
+                            "coordinates in the trajectory."
+                        )
 
             # Check for scaled and unwrapped coordinates
             if empty_flags.any():
@@ -2363,7 +2401,23 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
                         var = _file.variables[key]
                         positions[..., axis] = var[frame_indices]
                         empty_flags[axis] = False
-                        units = units or getattr(var, "units", None)
+
+                        # NOTE: The following code block is disabled because
+                        #       LAMMPS currently does not provide units for
+                        #       scaled and unwrapped coordinates.
+
+                        # if unit != (_unit := getattr(var, "units", None)):
+                        #     if unit is None:
+                        #         unit = _unit
+                        #     elif not (
+                        #         unit in reduced_units and _unit in reduced_units
+                        #     ):
+                        #         raise RuntimeError(
+                        #             "Scaled and unwrapped coordinates "
+                        #             f"have a unit of '{_unit}', which does not "
+                        #             f"match '{unit}' of the other coordinates "
+                        #             "in the trajectory."
+                        #         )
 
             # Check for scaled coordinates
             if empty_flags.any() and "scaled_coordinates" in _file.variables:
@@ -2376,7 +2430,19 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
                     ..., scaled_filled
                 ]
                 empty_flags[scaled_filled] = False
-                units = units or getattr(var, "units", None)
+
+                # NOTE: The following code block is disabled because LAMMPS
+                #       currently does not provide units for scaled coordinates.
+
+                # if unit != (_unit := getattr(var, "units", None)):
+                #     if unit is None:
+                #         unit = _unit
+                #     elif not (unit in reduced_units and _unit in reduced_units):
+                #         raise RuntimeError(
+                #             f"Scaled coordinates have a unit of '{_unit}', "
+                #             f"which does not match '{unit}' of the other "
+                #             "coordinates in the trajectory."
+                #         )
 
             # Fill empty coordinate axes with zeros
             positions[..., empty_flags] = 0
@@ -2400,16 +2466,23 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
                     positions @= box_vectors
 
             # Overwrite units, if necessary
-            if units in {None, "lj"}:
+            if unit in reduced_units:
                 warnings.warn(
-                    "No or invalid units were found for atom "
-                    "positions. It will be assumed that the trajectory "
-                    "uses reduced units."
+                    "No or 'lj' units were found for atom positions. "
+                    "It will be assumed that the trajectory uses "
+                    "reduced units."
                 )
                 self._reduced = True
                 self._units["length"] = ureg.dimensionless
-            elif self._units["length"] != (units := U_(units)):
-                self._units["length"] = units
+            elif self._units["length"] != (unit := U_(unit)):
+                if self._reduced or self._custom_units["length"]:
+                    raise RuntimeError(
+                        f"Atom positions have a unit of '{unit}', "
+                        f"which does not match '{self._units['length']}' "
+                        "of the other lengths in the trajectory."
+                    )
+                self._units["length"] = unit
+                self._custom_units["length"] = True
 
         if convert_units and not self._reduced:
             positions = (positions * self._units["length"]).m_as(
@@ -2448,7 +2521,7 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
 
             **Shape**: Scalar or :math:`(N_\\mathrm{frames},)`.
 
-            **Unit**: :math:`\\mathrm{ps}`.
+            **Reference unit**: :math:`\\mathrm{ps}`.
         """
 
         if _file is None:
@@ -2472,14 +2545,21 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
         # Overwrite units, if necessary
         if units in {None, "lj"}:
             warnings.warn(
-                "No or invalid units were found for simulation times. "
+                "No or 'lj' units were found for simulation times. "
                 "It will be assumed that the trajectory uses reduced "
                 "units."
             )
             self._reduced = True
             self._units["time"] = ureg.dimensionless
         elif self._units["time"] != (units := U_(units)):
+            if self._reduced or self._custom_units["time"]:
+                raise RuntimeError(
+                    f"Simulation times have a unit of '{units}', which "
+                    f"does not match '{self._units['time']}' of the "
+                    "other times in the trajectory."
+                )
             self._units["time"] = units
+            self._custom_units["time"] = True
 
         if convert_units and not self._reduced:
             times = (times * self._units["time"]).m_as(INTERNAL_UNITS["time"])
@@ -2518,7 +2598,7 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
             **Shape**: :math:`(N_\\mathrm{atoms},3)` or
             :math:`(N_\\mathrm{frames},N_\\mathrm{atoms},3)`.
 
-            **Unit**: :math:`\\mathrm{Å/ps}`.
+            **Reference unit**: :math:`\\mathrm{Å/ps}`.
         """
 
         if _file is None:
@@ -2542,28 +2622,47 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
         # Overwrite units, if necessary
         if units in {None, "lj"}:
             warnings.warn(
-                "No or invalid units were found for atom velocities. "
-                "It will be assumed that the trajectory uses reduced "
-                "units."
+                "No or 'lj' units were found for atom velocities. It "
+                "will be assumed that the trajectory uses reduced units."
             )
             self._reduced = True
             self._units["length"] = self._units["time"] = ureg.dimensionless
-        elif (base_units := self._units["length"] / self._units["time"]) != (
-            units := U_(units)
-        ):
-            try:
-                velocities = (velocities * units).m_as(base_units)
-                warnings.warn(
-                    "Units for atom velocities were found to be "
-                    f"{units}, but are expected to be {base_units}. "
-                    "They will be converted for consistency with other "
-                    "physical quantities in the trajectory."
-                )
-            except DimensionalityError:
+        else:
+            units = U_(units)
+            if not units.is_compatible_with("m/s"):
                 raise RuntimeError(
-                    "Units for atom velocities are not compatible "
-                    f"with {base_units}."
+                    f"Invalid unit '{units}' found for atom velocities."
                 )
+
+            length_unit = U_(
+                next(
+                    u
+                    for u in units._units
+                    if U_(u).dimensionality == "[length]"
+                )
+            )
+            if self._units["length"] != length_unit:
+                if self._reduced or self._custom_units["length"]:
+                    raise RuntimeError(
+                        "Atom velocities have a length unit of "
+                        f"'{length_unit}', which does not match "
+                        f"'{self._units['length']}' of the other "
+                        "lengths in the trajectory."
+                    )
+                self._units["length"] = length_unit
+                self._custom_units["length"] = True
+
+            time_unit = length_unit / units
+            if self._units["time"] != time_unit:
+                if self._reduced or self._custom_units["time"]:
+                    raise RuntimeError(
+                        "Atom velocities have a time unit of "
+                        f"'{time_unit}', which does not match "
+                        f"'{self._units['time']}' of the other "
+                        "times in the trajectory."
+                    )
+                self._units["time"] = time_unit
+                self._custom_units["time"] = True
 
         if convert_units and not self._reduced:
             velocities = (
