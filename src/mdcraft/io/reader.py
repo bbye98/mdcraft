@@ -1903,6 +1903,36 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
     _FORMAT = "NETCDF"
     _PARALLELIZABLE = False
 
+    _VARIABLES = {
+        "spatial",
+        "cell_spatial",
+        "cell_angular",
+        "time",
+        "coordinates",
+        "cell_lengths",
+        "cell_angles",
+        "velocities",
+        "forces",
+    }
+    _REMD_VARIABLES = {
+        "temp0",
+        "remd_dimtype",
+        "remd_indices",
+        "remd_repidx",
+        "remd_crdidx",
+        "remd_values",
+    }
+    _LAMMPS_COORDINATE_VARIABLES = {
+        "scaled_coordinates",
+        "unwrapped_coordinates",
+        "xsu",
+        "ysu",
+        "zsu",
+        "ix",
+        "iy",
+        "iz",
+    }
+
     def __init__(
         self,
         filename: str | Path,
@@ -1931,10 +1961,12 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
             self._n_atoms = self._file.dimensions["atom"]
             self._n_frames = self._file._recs
             self._restart = b"AMBERRESTART" in self._file.Conventions
+            self._lammps = self._file.program == b"LAMMPS"
         else:
             self._n_atoms = self._file.dimensions["atom"].size
             self._n_frames = self._file.dimensions["frame"].size
             self._restart = "AMBERRESTART" in self._file.Conventions
+            self._lammps = self._file.program == "LAMMPS"
         self._dt = strip_unit(dt, "ps")[0]
 
         # Define cached version of self.get_dimensions()
@@ -2015,7 +2047,8 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
                 frame_index, convert_units, _file=file
             ),
             "forces": self.get_forces(frame_index, convert_units, _file=file),
-            **self.get_extra_attributes(frame_index, convert_units, _file=file),
+            # **self.get_remd_variables(frame_index, convert_units, _file=file),
+            **self.get_extra_variables(frame_index, _file=file),
         }
 
     @property
@@ -2158,11 +2191,12 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
 
         # Overwrite units, if necessary
         if unit in {None, "lj"}:
-            warnings.warn(
-                "No or 'lj' units were found for system dimensions. It "
-                "will be assumed that the trajectory uses reduced units."
-            )
-            self._reduced = True
+            if not self._reduced:
+                warnings.warn(
+                    "No or 'lj' units were found for system dimensions. It "
+                    "will be assumed that the trajectory uses reduced units."
+                )
+                self._reduced = True
             self._units["length"] = ureg.dimensionless
         elif self._units["length"] != (unit := U_(unit)):
             if self._reduced or self._custom_units["length"]:
@@ -2236,12 +2270,13 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
 
         # Overwrite units, if necessary
         if units in {None, "lj"}:
-            warnings.warn(
-                "No or 'lj' units were found for forces exerted on "
-                "atoms. It will be assumed that the trajectory uses "
-                "reduced units."
-            )
-            self._reduced = True
+            if not self._reduced:
+                warnings.warn(
+                    "No or 'lj' units were found for forces exerted on "
+                    "atoms. It will be assumed that the trajectory uses "
+                    "reduced units."
+                )
+                self._reduced = True
             self._units["energy"] = self._units["length"] = ureg.dimensionless
         else:
             try:
@@ -2345,9 +2380,8 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
         #       "scaled_coordinates", "wrapped_coordinates", and
         #       "xsu"/"ysu"/"zsu" keys.
 
-        standard = "coordinates" in _file.variables
         scaled_flags = np.full(3, True, dtype=bool)
-        if standard:
+        if "coordinates" in _file.variables:
             var = _file.variables["coordinates"]
             positions = var[frame_indices]
             unit = getattr(var, "units", None)
@@ -2355,7 +2389,7 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
             # Check for empty coordinate axes
             empty_flags = np.any(positions == var.get_fill_value(), axis=0)
             scaled_flags[~empty_flags] = False
-        else:
+        elif self._lammps:
             positions = np.empty(
                 (
                     ()
@@ -2367,88 +2401,97 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
             )
             empty_flags = scaled_flags.copy()
             unit = None
+        else:
+            return None
 
         # Special logic for when "coordinates" key is not found or
         # empty coordinate axes are found
         reduced_units = {None, "lj"}
-        if not standard or empty_flags.any():
-            # Check for unwrapped coordinates
-            if "unwrapped_coordinates" in _file.variables:
-                var = _file.variables["unwrapped_coordinates"]
-                unwrapped_positions = var[frame_indices]
-                unwrapped_filled = ~np.any(
-                    unwrapped_positions == var.get_fill_value(), axis=0
-                )
-                positions[..., unwrapped_filled] = unwrapped_positions[
-                    ..., unwrapped_filled
-                ]
-                empty_flags[unwrapped_filled] = False
-                scaled_flags[unwrapped_filled] = False
-                if unit != (_unit := getattr(var, "units", None)):
-                    if unit is None:
-                        unit = _unit
-                    elif not (unit in reduced_units and _unit in reduced_units):
-                        raise RuntimeError(
-                            f"Unwrapped coordinates have a unit of '{_unit}', "
-                            f"which does not match '{unit}' of the other "
-                            "coordinates in the trajectory."
-                        )
-
-            # Check for scaled and unwrapped coordinates
+        if self._lammps:
             if empty_flags.any():
-                for axis in np.where(empty_flags)[0]:
-                    if (key := f"{chr(120 + axis)}su") in _file.variables:
-                        var = _file.variables[key]
-                        positions[..., axis] = var[frame_indices]
-                        empty_flags[axis] = False
+                # Check for unwrapped coordinates
+                if "unwrapped_coordinates" in _file.variables:
+                    var = _file.variables["unwrapped_coordinates"]
+                    unwrapped_positions = var[frame_indices]
+                    unwrapped_filled = ~np.any(
+                        unwrapped_positions == var.get_fill_value(), axis=0
+                    )
+                    positions[..., unwrapped_filled] = unwrapped_positions[
+                        ..., unwrapped_filled
+                    ]
+                    empty_flags[unwrapped_filled] = False
+                    scaled_flags[unwrapped_filled] = False
+                    if unit != (_unit := getattr(var, "units", None)):
+                        if unit is None:
+                            unit = _unit
+                        elif not (
+                            unit in reduced_units and _unit in reduced_units
+                        ):
+                            raise RuntimeError(
+                                f"Unwrapped coordinates have a unit of '{_unit}', "
+                                f"which does not match '{unit}' of the other "
+                                "coordinates in the trajectory."
+                            )
 
-                        # NOTE: The following code block is disabled because
-                        #       LAMMPS currently does not provide units for
-                        #       scaled and unwrapped coordinates.
+                # Check for scaled and unwrapped coordinates
+                if empty_flags.any():
+                    for axis in np.where(empty_flags)[0]:
+                        if (key := f"{chr(120 + axis)}su") in _file.variables:
+                            var = _file.variables[key]
+                            positions[..., axis] = var[frame_indices]
+                            empty_flags[axis] = False
 
-                        # if unit != (_unit := getattr(var, "units", None)):
-                        #     if unit is None:
-                        #         unit = _unit
-                        #     elif not (
-                        #         unit in reduced_units and _unit in reduced_units
-                        #     ):
-                        #         raise RuntimeError(
-                        #             "Scaled and unwrapped coordinates "
-                        #             f"have a unit of '{_unit}', which does not "
-                        #             f"match '{unit}' of the other coordinates "
-                        #             "in the trajectory."
-                        #         )
+                            # NOTE: The following code block is disabled because
+                            #       LAMMPS currently does not provide units for
+                            #       scaled and unwrapped coordinates.
 
-            # Check for scaled coordinates
-            if empty_flags.any() and "scaled_coordinates" in _file.variables:
-                var = _file.variables["scaled_coordinates"]
-                scaled_positions = var[frame_indices]
-                scaled_filled = ~np.any(
-                    scaled_positions == var.get_fill_value(), axis=0
-                )
-                positions[..., scaled_filled] = scaled_positions[
-                    ..., scaled_filled
-                ]
-                empty_flags[scaled_filled] = False
+                            # if unit != (_unit := getattr(var, "units", None)):
+                            #     if unit is None:
+                            #         unit = _unit
+                            #     elif not (
+                            #         unit in reduced_units and _unit in reduced_units
+                            #     ):
+                            #         raise RuntimeError(
+                            #             "Scaled and unwrapped coordinates "
+                            #             f"have a unit of '{_unit}', which does not "
+                            #             f"match '{unit}' of the other coordinates "
+                            #             "in the trajectory."
+                            #         )
 
-                # NOTE: The following code block is disabled because LAMMPS
-                #       currently does not provide units for scaled coordinates.
+                # Check for scaled coordinates
+                if (
+                    empty_flags.any()
+                    and "scaled_coordinates" in _file.variables
+                ):
+                    var = _file.variables["scaled_coordinates"]
+                    scaled_positions = var[frame_indices]
+                    scaled_filled = ~np.any(
+                        scaled_positions == var.get_fill_value(), axis=0
+                    )
+                    positions[..., scaled_filled] = scaled_positions[
+                        ..., scaled_filled
+                    ]
+                    empty_flags[scaled_filled] = False
 
-                # if unit != (_unit := getattr(var, "units", None)):
-                #     if unit is None:
-                #         unit = _unit
-                #     elif not (unit in reduced_units and _unit in reduced_units):
-                #         raise RuntimeError(
-                #             f"Scaled coordinates have a unit of '{_unit}', "
-                #             f"which does not match '{unit}' of the other "
-                #             "coordinates in the trajectory."
-                #         )
+                    # NOTE: The following code block is disabled because LAMMPS
+                    #       currently does not provide units for scaled coordinates.
 
-            # Fill empty coordinate axes with zeros
-            positions[..., empty_flags] = 0
+                    # if unit != (_unit := getattr(var, "units", None)):
+                    #     if unit is None:
+                    #         unit = _unit
+                    #     elif not (unit in reduced_units and _unit in reduced_units):
+                    #         raise RuntimeError(
+                    #             f"Scaled coordinates have a unit of '{_unit}', "
+                    #             f"which does not match '{unit}' of the other "
+                    #             "coordinates in the trajectory."
+                    #         )
 
-            # Recover Cartesian coordinates from scaled coordinates and system dimensions
-            if any(scaled_flags):
+                # Fill remaining empty coordinate axes with zeros
+                positions[..., empty_flags] = 0
+
+            # Recover Cartesian coordinates from scaled coordinates and
+            # system dimensions
+            if scaled_flags.any():
                 dimensions = self._get_dimensions(
                     frame_indices, convert_units, _file=_file
                 )
@@ -2465,24 +2508,29 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
                     )
                     positions @= box_vectors
 
-            # Overwrite units, if necessary
-            if unit in reduced_units:
+            # TODO: Check for image flags
+            # TODO: Apply the same fix to LAMMPSDumpReader
+            debug = True
+
+        # Overwrite units, if necessary
+        if unit in reduced_units:
+            if not self._reduced:
                 warnings.warn(
                     "No or 'lj' units were found for atom positions. "
                     "It will be assumed that the trajectory uses "
                     "reduced units."
                 )
                 self._reduced = True
-                self._units["length"] = ureg.dimensionless
-            elif self._units["length"] != (unit := U_(unit)):
-                if self._reduced or self._custom_units["length"]:
-                    raise RuntimeError(
-                        f"Atom positions have a unit of '{unit}', "
-                        f"which does not match '{self._units['length']}' "
-                        "of the other lengths in the trajectory."
-                    )
-                self._units["length"] = unit
-                self._custom_units["length"] = True
+            self._units["length"] = ureg.dimensionless
+        elif self._units["length"] != (unit := U_(unit)):
+            if self._reduced or self._custom_units["length"]:
+                raise RuntimeError(
+                    f"Atom positions have a unit of '{unit}', "
+                    f"which does not match '{self._units['length']}' "
+                    "of the other lengths in the trajectory."
+                )
+            self._units["length"] = unit
+            self._custom_units["length"] = True
 
         if convert_units and not self._reduced:
             positions = (positions * self._units["length"]).m_as(
@@ -2544,12 +2592,13 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
 
         # Overwrite units, if necessary
         if units in {None, "lj"}:
-            warnings.warn(
-                "No or 'lj' units were found for simulation times. "
-                "It will be assumed that the trajectory uses reduced "
-                "units."
-            )
-            self._reduced = True
+            if not self._reduced:
+                warnings.warn(
+                    "No or 'lj' units were found for simulation times. "
+                    "It will be assumed that the trajectory uses reduced "
+                    "units."
+                )
+                self._reduced = True
             self._units["time"] = ureg.dimensionless
         elif self._units["time"] != (units := U_(units)):
             if self._reduced or self._custom_units["time"]:
@@ -2621,11 +2670,12 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
 
         # Overwrite units, if necessary
         if units in {None, "lj"}:
-            warnings.warn(
-                "No or 'lj' units were found for atom velocities. It "
-                "will be assumed that the trajectory uses reduced units."
-            )
-            self._reduced = True
+            if not self._reduced:
+                warnings.warn(
+                    "No or 'lj' units were found for atom velocities. It "
+                    "will be assumed that the trajectory uses reduced units."
+                )
+                self._reduced = True
             self._units["length"] = self._units["time"] = ureg.dimensionless
         else:
             units = U_(units)
@@ -2674,14 +2724,62 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
 
         return velocities
 
-    def get_extra_attributes(
+    def get_remd_variables(
         self,
         frame_indices: int | list[int] | slice | None = None,
-        convert_units: bool = True,
         *,
         _file: "nc.Dataset" | netcdf_file | None = None,
     ) -> dict[str, np.ndarray[float]]:
-        return {}  # TODO
+
+        raise NotImplementedError
+
+    def get_extra_variables(
+        self,
+        frame_indices: int | list[int] | slice | None = None,
+        *,
+        _file: "nc.Dataset" | netcdf_file | None = None,
+    ) -> dict[str, np.ndarray[float]]:
+        """
+        Gets extra attvariablesributes found in the NetCDF file.
+
+        Parameters
+        ----------
+        frame_indices : `int`, `list`, or `slice`, optional
+            Frame indices. If :code:`None`, the dimensions across all
+            frames are returned.
+
+        Returns
+        -------
+        variables : `dict`
+            Extra variables found in the NetCDF file.
+        """
+
+        if _file is None:
+            _file = getattr(self, "_file", None)
+        if _file is None:
+            _file = self._open()
+            manual = True
+        else:
+            manual = False
+
+        if frame_indices is None:
+            frame_indices = slice(None)
+
+        variables = {}
+
+        # Handle other extra attributes generally
+        for var in (
+            _file.variables.keys()
+            - self._VARIABLES
+            - self._REMD_VARIABLES
+            - self._LAMMPS_COORDINATE_VARIABLES
+        ):
+            debug = True
+
+        if manual:
+            _file.close()
+
+        return variables
 
 
 if FOUND["MDAnalysis"]:

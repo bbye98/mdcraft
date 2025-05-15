@@ -7,7 +7,7 @@ from mdcraft.io.writer import NetCDFWriter
 os.chdir(
     "/mnt/c/Users/Benjamin/Documents/GitHub/mdcraft-dev/tests/data/trajectories/lammps"
 )
-trajectory = Trajectory("ljmelt_lj.nc")
+trajectory = Trajectory("ljmelt_real.nc")
 reader = trajectory._readers[0]
 nc = reader._file
 frame = trajectory[0]
