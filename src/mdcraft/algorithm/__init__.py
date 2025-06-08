@@ -1,1 +1,1 @@
-__all__ = ["correlation"]
+__all__ = ["correlation", "neighbor"]
