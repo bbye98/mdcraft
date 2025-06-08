@@ -10,8 +10,8 @@ if FOUND["openmm"]:
 
 
 def reduce_box_vectors(
-    vectors: np.ndarray[float] | "unit.Quantity" | Q_, /
-) -> np.ndarray[float] | "unit.Quantity" | Q_:
+    vectors: np.ndarray[np.floating] | "unit.Quantity" | Q_, /
+) -> np.ndarray[np.floating] | "unit.Quantity" | Q_:
     """
     Reduces the box vectors of a general triclinic simulation box to
     those of a restricted one.
@@ -49,13 +49,17 @@ def reduce_box_vectors(
          b_x&=\\mathbf{B}\\cdot\\hat{\\mathbf{A}},\\\\
          b_y&=\\|\\hat{\\mathbf{A}}\\times\\mathbf{B}\\|,\\\\
          c_x&=\\mathbf{C}\\cdot\\hat{\\mathbf{A}},\\\\
-         c_y&=\\mathbf{C}\\cdot[(\\widehat{\\mathbf{A}\\times\\mathbf{B}})\\times\\hat{\\mathbf{A}}],\\\\
-         c_z&=\\|\\mathbf{C}\\cdot(\\widehat{\\mathbf{A}\\times\\mathbf{B}})\\|,
+         c_y&=\\mathbf{C}\\cdot[
+         (\\widehat{\\mathbf{A}\\times\\mathbf{B}})
+         \\times\\hat{\\mathbf{A}}],\\\\
+         c_z&=\\|\\mathbf{C}\\cdot
+         (\\widehat{\\mathbf{A}\\times\\mathbf{B}})\\|,
        \\end{align*}
 
     where :math:`v=\\|\\mathbf{v}\\|` is the norm of a vector
-    :math:`\\mathbf{v}` and :math:`\\hat{\\mathbf{v}}\\equiv\\mathbf{v}/\\|\\mathbf{v}\\|`
-    is the unit vector in the direction of :math:`\\mathbf{v}`.
+    :math:`\\mathbf{v}` and 
+    :math:`\\hat{\\mathbf{v}}\\equiv\\mathbf{v}/\\|\\mathbf{v}\\|` is
+    the unit vector in the direction of :math:`\\mathbf{v}`.
 
     Parameters
     ----------
@@ -148,10 +152,10 @@ def reduce_box_vectors(
 
 
 def convert_cell_representation(
-    representation: np.ndarray[float] | "unit.Quantity" | Q_,
+    representation: np.ndarray[np.floating] | "unit.Quantity" | Q_,
     output_format: str,
     /,
-) -> np.ndarray[float] | "unit.Quantity" | Q_:
+) -> np.ndarray[np.floating] | "unit.Quantity" | Q_:
     """
     Converts between cell representations for a simulation box.
 
@@ -255,29 +259,24 @@ def convert_cell_representation(
 
     representation, length_unit = strip_unit(representation)
     representation = np.asarray(representation)
-    match representation.shape:
-        case (3,):
-            input_format = "dimensions"
-        case (6,):
-            input_format = "parameters"
-        case (3, 3):
-            input_format = "vectors"
-        case _:
-            raise ValueError(
-                f"Invalid shape {representation.shape} for `representation`. "
-                "Valid shapes: (3,), (6,), (3, 3)."
-            )
+    if (shape := representation.shape) == (3,):
+        input_format = "dimensions"
+    elif shape == (6,):
+        input_format = "parameters"
+    elif shape == (3, 3):
+        input_format = "vectors"
+    else:
+        raise ValueError(
+            f"Invalid shape {shape} for `representation`. "
+            "Valid shapes: (3,), (6,), (3, 3)."
+        )
 
     if input_format == "dimensions":
         if output_format == "parameters":
             return np.concatenate((representation, (90.0, 90.0, 90.0)))
         elif output_format == "vectors":
             representation = np.diag(representation)
-        return (
-            representation
-            if length_unit is None
-            else representation * length_unit
-        )
+        return representation if length_unit is None else representation * length_unit
     elif input_format == "parameters":
         alpha, beta, gamma = np.radians(representation[3:])
         if output_format == "dimensions":
@@ -336,16 +335,12 @@ def convert_cell_representation(
             )
         elif output_format == "dimensions":
             representation = np.diag(representation)
-        return (
-            representation
-            if length_unit is None
-            else representation * length_unit
-        )
+        return representation if length_unit is None else representation * length_unit
 
 
 def scale_triclinic_coordinates(
-    coordinates: np.ndarray[float],
-    box_vectors: np.ndarray[float],
+    coordinates: np.ndarray[np.float64],
+    box_vectors: np.ndarray[np.float64],
     scaled_flags: list[bool] | None = None,
 ) -> None:
     """
@@ -457,13 +452,11 @@ def scale_triclinic_coordinates(
         raise TypeError("`coordinates` must be a NumPy array.")
     if coordinates.ndim != 2 or coordinates.shape[1] != 3:
         raise ValueError(
-            f"Invalid shape {coordinates.shape} for `coordinates`. "
-            "Valid shape: (N, 3)."
+            f"Invalid shape {coordinates.shape} for `coordinates`. Valid shape: (N, 3)."
         )
     if box_vectors.shape != (3, 3):
         raise ValueError(
-            f"Invalid shape {box_vectors.shape} for `box_vectors`. "
-            "Valid shape: (3, 3)."
+            f"Invalid shape {box_vectors.shape} for `box_vectors`. Valid shape: (3, 3)."
         )
     if scaled_flags is None:
         scaled_flags = [False, False, False]
@@ -485,9 +478,7 @@ def scale_triclinic_coordinates(
                             coordinates[:, other_index]
                             * box_vectors[axis_index, other_index]
                         )
-                    coordinates[:, axis_index] /= box_vectors[
-                        axis_index, axis_index
-                    ]
+                    coordinates[:, axis_index] /= box_vectors[axis_index, axis_index]
                 else:
                     scaled_index, unscaled_index = other_indices[
                         :: (2 * other_scaled_flags[0] - 1)

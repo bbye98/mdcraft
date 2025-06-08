@@ -31,9 +31,7 @@ class BaseReader:
 
     _PARALLELIZABLE: bool
 
-    def __init__(
-        self, filename: str | Path, /, *, n_workers: int | None
-    ) -> None:
+    def __init__(self, filename: str | Path, /, *, n_workers: int | None) -> None:
         # Resolve full path to file
         self._filename = Path(filename).resolve(True)
 
@@ -156,7 +154,7 @@ class BaseTopologyReader(BaseReader):  # TODO
 
     @property
     @abstractmethod
-    def dimensions(self) -> np.ndarray[float] | None:
+    def dimensions(self) -> np.ndarray[np.float64] | None:
         """
         Simulation box dimensions (or lattice parameters). If `None`,
         the system size could not be determined from the topology.
@@ -403,7 +401,7 @@ class BaseTrajectoryReader(BaseReader):
 
     @property
     @abstractmethod
-    def times(self) -> np.ndarray[float]:
+    def times(self) -> np.ndarray[np.float64]:
         """
         Simulation times found in the trajectory.
 
@@ -414,7 +412,7 @@ class BaseTrajectoryReader(BaseReader):
 
     @property
     @abstractmethod
-    def timesteps(self) -> np.ndarray[int] | None:
+    def timesteps(self) -> np.ndarray[np.uint32] | None:
         """
         Simulation timesteps found in the trajectory. If `None`, the
         timesteps could not be determined from the trajectory.
@@ -480,14 +478,10 @@ class BaseTrajectoryReader(BaseReader):
 
         # Read data from frame(s)
         data = (
-            self._parse_frame(
-                file, frame_indices, _convert_units and not self._reduced
-            )
+            self._parse_frame(file, frame_indices, _convert_units and not self._reduced)
             if isinstance(frame_indices, (int, np.integer))
             else [
-                self._parse_frame(
-                    file, fi, _convert_units and not self._reduced
-                )
+                self._parse_frame(file, fi, _convert_units and not self._reduced)
                 for fi in frame_indices
             ]
         )

@@ -74,9 +74,7 @@ class Topology:  # TODO
         Additional keyword arguments to pass to the topology reader.
     """
 
-    def __init__(
-        self, filename: str | Path, *, format: str = None, **kwargs
-    ) -> None:
+    def __init__(self, filename: str | Path, *, format: str = None, **kwargs) -> None:
         self._filename = Path(filename).resolve(True)
         if format is None:
             try:
@@ -113,7 +111,7 @@ class Topology:  # TODO
         return string
 
     @property
-    def dimensions(self) -> np.ndarray[float] | None:
+    def dimensions(self) -> np.ndarray[np.float64] | None:
         """
         Simulation box dimensions (or lattice parameters). If `None`,
         the dimensions are not available in the topology.
@@ -249,8 +247,8 @@ class Trajectory:
         else:
             self._filenames = np.fromiter(
                 (Path(f).resolve(True) for f in filenames),
-                dtype=object,
-                count=len(filenames),
+                object,
+                len(filenames),
             )
 
         # Determine the format of and instantiate readers for the
@@ -266,8 +264,8 @@ class Trajectory:
                         )(f, **kwargs)
                         for f in self._filenames
                     ),
-                    dtype=object,
-                    count=len(self._filenames),
+                    object,
+                    len(self._filenames),
                 )
             except RuntimeError:
                 raise RuntimeError(
@@ -286,8 +284,8 @@ class Trajectory:
                 Reader = supported_formats[formats]
                 self._readers = np.fromiter(
                     (Reader(f, **kwargs) for f in self._filenames),
-                    dtype=object,
-                    count=len(self._filenames),
+                    object,
+                    len(self._filenames),
                 )
             elif len(formats) == len(self._filenames):
                 try:
@@ -296,8 +294,8 @@ class Trajectory:
                             supported_formats[fmt.upper()](f, **kwargs)
                             for f, fmt in zip(self._filenames, formats)
                         ),
-                        dtype=object,
-                        count=len(self._filenames),
+                        object,
+                        len(self._filenames),
                     )
                 except KeyError as e:
                     raise ValueError(
@@ -312,18 +310,14 @@ class Trajectory:
 
         # Order readers by starting time then by ending time
         time_ranges = [(r.times[0], r.times[-1]) for r in self._readers]
-        order = [
-            x[0] for x in sorted(enumerate(time_ranges), key=lambda x: x[1])
-        ]
+        order = [x[0] for x in sorted(enumerate(time_ranges), key=lambda x: x[1])]
         time_ranges = np.array(time_ranges)
         if not all(o > order[i] for i, o in enumerate(order[1:])):
             time_ranges = time_ranges[order]
             self._filenames = self._filenames[order]
             self._readers = self._readers[order]
 
-        self._overlap_frames = (
-            {}
-        )  # <time>: (<reader_index>, <reader_frame_index>)
+        self._overlap_frames = {}  # <time>: (<reader_index>, <reader_frame_index>)
         if len(self._readers) > 1:
             # Combine trajectories from individual readers into a
             # continuous trajectory
@@ -404,9 +398,7 @@ class Trajectory:
             # overlap frames
             self._overlap_frames = dict(
                 zip(
-                    np.searchsorted(
-                        sorted(seen_times), list(self._overlap_frames)
-                    ),
+                    np.searchsorted(sorted(seen_times), list(self._overlap_frames)),
                     self._overlap_frames.values(),
                 )
             )
@@ -503,9 +495,7 @@ class Trajectory:
             if frame_indices < 0:
                 frame_indices %= self.n_frames
             if frame_indices in self._overlap_frames:
-                reader_index, reader_frame_index = self._overlap_frames[
-                    frame_indices
-                ]
+                reader_index, reader_frame_index = self._overlap_frames[frame_indices]
             else:
                 reader_index = bisect(self._start_frames, frame_indices) - 1
                 reader_frame_index = (
@@ -547,13 +537,11 @@ class Trajectory:
         **Reference unit**: :math:`\\mathrm{ps}`.
         """
 
-        time_steps = set(
-            np.round(np.diff(self.times), np.finfo(float).precision)
-        )
+        time_steps = set(np.round(np.diff(self.times), np.finfo(float).precision))
         return None if len(time_steps) != 1 else time_steps.pop()
 
     @cached_property
-    def times(self) -> np.ndarray[float]:
+    def times(self) -> np.ndarray[np.float64]:
         """
         Simulation times found in the trajectory.
 
@@ -565,12 +553,12 @@ class Trajectory:
                 self._readers[ri].times[rfi]
                 for ri, rfi in self._get_reader_indices(range(self.n_frames))
             ),
-            dtype=float,
-            count=self.n_frames,
+            float,
+            self.n_frames,
         )
 
     @cached_property
-    def timesteps(self) -> np.ndarray[int] | None:
+    def timesteps(self) -> np.ndarray[np.uint32] | None:
         """
         Simulation timesteps found in the trajectory. If `None`, the
         timesteps could not be determined from the trajectory.
@@ -584,8 +572,8 @@ class Trajectory:
                 self._readers[ri].timesteps[rfi]
                 for ri, rfi in self._get_reader_indices(range(self.n_frames))
             ),
-            dtype=float,
-            count=self.n_frames,
+            float,
+            self.n_frames,
         )
 
     @cached_property
@@ -652,9 +640,7 @@ class Trajectory:
             frames.extend(self._readers[ri].read_frames(rfis))
         return [
             TrajectoryFrame(f % self.n_frames, **d)
-            for f, d in zip(
-                frame_indices, sorted(frames, key=lambda f: f["time"])
-            )
+            for f, d in zip(frame_indices, sorted(frames, key=lambda f: f["time"]))
         ]
 
 
@@ -687,9 +673,7 @@ class TrajectorySubset:
         )
         self._index = 0
 
-    def __getitem__(
-        self, indices: int | slice | Iterable[int]
-    ) -> TrajectoryFrame:
+    def __getitem__(self, indices: int | slice | Iterable[int]) -> TrajectoryFrame:
         if isinstance(indices, int):
             self._check_frame(indices)
             return self.get_frames(indices)
@@ -761,9 +745,7 @@ class TrajectorySubset:
                 self._trajectory._readers[ri].dt
                 for ri in {
                     ri[0]
-                    for ri in self._trajectory._get_reader_indices(
-                        self._frame_indices
-                    )
+                    for ri in self._trajectory._get_reader_indices(self._frame_indices)
                 }
             )
             if self.timesteps is None
@@ -783,13 +765,11 @@ class TrajectorySubset:
         **Reference unit**: :math:`\\mathrm{ps}`.
         """
 
-        time_steps = set(
-            np.round(np.diff(self.times), np.finfo(float).precision)
-        )
+        time_steps = set(np.round(np.diff(self.times), np.finfo(float).precision))
         return None if len(time_steps) != 1 else time_steps.pop()
 
     @cached_property
-    def times(self) -> np.ndarray[float]:
+    def times(self) -> np.ndarray[np.float64]:
         """
         Simulation times found in the trajectory subset.
 
@@ -801,12 +781,12 @@ class TrajectorySubset:
                 self._trajectory.times[self._frame_indices[i]]
                 for i in range(self.n_frames)
             ),
-            dtype=float,
-            count=self.n_frames,
+            float,
+            self.n_frames,
         )
 
     @cached_property
-    def timesteps(self) -> np.ndarray[int] | None:
+    def timesteps(self) -> np.ndarray[np.uint32] | None:
         """
         Simulation timesteps found in the trajectory subset. If `None`,
         the timesteps could not be determined from the subset.
@@ -817,8 +797,8 @@ class TrajectorySubset:
                 self._trajectory.timesteps[self._frame_indices[i]]
                 for i in range(self.n_frames)
             ),
-            dtype=float,
-            count=self.n_frames,
+            float,
+            self.n_frames,
         )
 
     @property
@@ -833,9 +813,7 @@ class TrajectorySubset:
             self._trajectory._readers[ri].n_atoms
             for ri in {
                 ri[0]
-                for ri in self._trajectory._get_reader_indices(
-                    self._frame_indices
-                )
+                for ri in self._trajectory._get_reader_indices(self._frame_indices)
             }
         }
         return None if len(n_atoms) != 1 else n_atoms.pop()
@@ -991,12 +969,12 @@ class TrajectoryFrame:
         time: float,
         *,
         timestep: int = None,
-        dimensions: np.ndarray[float] = None,
+        dimensions: np.ndarray[np.float64] = None,
         n_atoms: int = None,
-        ids: np.ndarray[int] = None,
-        positions: np.ndarray[float] = None,
-        forces: np.ndarray[float] = None,
-        velocities: np.ndarray[float] = None,
+        ids: np.ndarray[np.uint32] = None,
+        positions: np.ndarray[np.float64] = None,
+        forces: np.ndarray[np.float64] = None,
+        velocities: np.ndarray[np.float64] = None,
         **kwargs,
     ) -> None:
         self._frame = frame
@@ -1006,19 +984,19 @@ class TrajectoryFrame:
 
         self._dimensions = dimensions
         if self._dimensions is not None:
-            self._dimensions = np.asarray(self._dimensions)
+            self._dimensions = np.asarray(self._dimensions, np.float64)
             if self._dimensions.ndim != 1 or self._dimensions.shape[0] != 6:
                 raise ValueError("Invalid shape for `dimensions`.")
 
         self._ids = ids
         if self._ids is not None:
-            self._ids = np.asarray(self._ids)
+            self._ids = np.asarray(self._ids, np.uint32)
             if self._ids.ndim != 1 or self._ids.shape[0] != self._n_atoms:
                 raise ValueError("Invalid shape for `ids`.")
 
         self._positions = positions
         if self._positions is None:
-            self._positions = np.asarray(positions)
+            self._positions = np.asarray(positions, np.float64)
             if (
                 self._positions.ndim != 2
                 or self._positions.shape[0] != self._n_atoms
@@ -1028,7 +1006,7 @@ class TrajectoryFrame:
 
         self._forces = forces
         if self._forces is not None:
-            self._forces = np.asarray(self._forces)
+            self._forces = np.asarray(self._forces, np.float64)
             if (
                 self._forces.ndim != 2
                 or self._forces.shape[0] != self._n_atoms
@@ -1038,7 +1016,7 @@ class TrajectoryFrame:
 
         self._velocities = velocities
         if self._velocities is not None:
-            self._velocities = np.asarray(self._velocities)
+            self._velocities = np.asarray(self._velocities, np.float64)
             if (
                 self._velocities.ndim != 2
                 or self._velocities.shape[0] != self._n_atoms
@@ -1057,8 +1035,7 @@ class TrajectoryFrame:
 
     def __str__(self) -> str:
         return (
-            f"{self.__class__.__qualname__}: "
-            f"frame {self._frame}, {self._n_atoms} atoms"
+            f"{self.__class__.__qualname__}: frame {self._frame}, {self._n_atoms} atoms"
         )
 
     @property
@@ -1106,7 +1083,7 @@ class TrajectoryFrame:
         return self._time
 
     @property
-    def dimensions(self) -> np.ndarray[float]:
+    def dimensions(self) -> np.ndarray[np.float64]:
         """
         Simulation box dimensions (or lattice parameters).
 
@@ -1137,7 +1114,7 @@ class TrajectoryFrame:
         return self._n_atoms
 
     @property
-    def ids(self) -> np.ndarray[int]:
+    def ids(self) -> np.ndarray[np.uint32]:
         """
         Atom indices or identifiers.
 
@@ -1151,7 +1128,7 @@ class TrajectoryFrame:
         return self._ids
 
     @property
-    def positions(self) -> np.ndarray[float]:
+    def positions(self) -> np.ndarray[np.float64]:
         """
         Atom positions.
 
@@ -1168,7 +1145,7 @@ class TrajectoryFrame:
         return self._positions
 
     @property
-    def forces(self) -> np.ndarray[float]:
+    def forces(self) -> np.ndarray[np.float64]:
         """
         Forces exerted on the atoms.
 
@@ -1185,7 +1162,7 @@ class TrajectoryFrame:
         return self._forces
 
     @property
-    def velocities(self) -> np.ndarray[float]:
+    def velocities(self) -> np.ndarray[np.float64]:
         """
         Atom velocities.
 
