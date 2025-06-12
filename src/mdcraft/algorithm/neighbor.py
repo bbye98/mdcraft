@@ -1,60 +1,38 @@
 from __future__ import annotations
 
 from math import floor
+from typing import TYPE_CHECKING
 
 from numba import njit
 from numba.typed import List
 import numpy as np
 
+from .. import Q_
+from ..utility.topology import convert_cell_representation
+from ..utility.unit import strip_unit
 
-@njit(fastmath=True)
-def build_neighbor_list(
-    positions: np.ndarray[np.floating],
-    cutoff: np.floating,
-    dimensions: np.ndarray[np.floating],
-) -> List[set[np.uint32]]:
-    """
-    Builds a neighbor list for particles in an orthogonal
-    simulation box using a cell list algorithm.
+if TYPE_CHECKING:
+    from .. import float_t, int_t
 
-    Parameters
-    ----------
-    positions : `numpy.ndarray`
-        Particle positions.
 
-        **Shape**: :math:`(N,3)`.
-
-        **Reference unit**: :math:`\\mathrm{nm}`.
-
-    cutoff : `float`
-        Cutoff distance for neighbor search.
-
-        **Reference unit**: :math:`\\mathrm{nm}`.
-
-    dimensions : `numpy.ndarray`
-        Dimensions of the orthogonal simulation box.
-
-        **Shape**: :math:`(3,)`.
-
-        **Reference unit**: :math:`\\mathrm{nm}`.
-
-    Returns
-    -------
-    neighbor_lists : `list`
-        Neighbor lists for each particle, with each list being a
-        set of particle indices that are within the cutoff distance
-        from the corresponding particle.
-
-        **Shape**: :math:`(N,)`.
-    """
-
+@njit(fastmath=True, inline="always")
+def _build_cell_lists(
+    positions: np.ndarray[float_t],
+    cutoff: float_t,
+    dimensions: np.ndarray[float_t],
+) -> tuple[
+    np.ndarray[np.uint32],
+    np.ndarray[np.uint32],
+    np.ndarray[int_t],
+    np.ndarray[int_t],
+]:
     # Split simulation domain into cells
     n_particles = len(positions)
     n_dimensions = len(dimensions)
     n_cells = np.empty(n_dimensions, np.uint32)
-    inv_cell_sizes = np.empty(n_dimensions, np.float64)
+    inv_cell_sizes = np.empty(n_dimensions, dimensions.dtype)
     for dim in range(n_dimensions):
-        n_cells[dim] = floor(dimensions[dim] / cutoff)
+        n_cells[dim] = max(floor(dimensions[dim] / cutoff), 1)
         inv_cell_sizes[dim] = n_cells[dim] / dimensions[dim]
 
     # Get cell indices for each particle and create linked list for
@@ -64,25 +42,60 @@ def build_neighbor_list(
         -1,
         np.int64,
     )
-    cell_linked_lists = np.empty(n_particles, np.int32)
+    cell_lists = np.empty(n_particles, np.int64)
     particle_cell_indices = np.empty((n_particles, n_dimensions), np.uint32)
     for pid in range(n_particles):
         for dim in range(n_dimensions):
             particle_cell_indices[pid, dim] = (
-                np.uint32(positions[pid, dim] * inv_cell_sizes[dim]) % n_cells[dim]
+                np.uint32(positions[pid, dim] * inv_cell_sizes[dim])
+                % n_cells[dim]
             )
         if n_dimensions == 2:
             cix, ciy = particle_cell_indices[pid]
             ciz = 0
         else:
             cix, ciy, ciz = particle_cell_indices[pid]
-        cell_linked_lists[pid] = cell_heads[cix, ciy, ciz]
-        cell_heads[cix, ciy, ciz] = pid
+        cell_lists[pid] = cell_heads[cix, ciy, ciz]
+        cell_heads[cix, ciy, ciz] = np.uint32(pid)
+
+    return n_cells, particle_cell_indices, cell_heads, cell_lists
+
+
+@njit(fastmath=True, inline="always")
+def _compute_squared_separation_distance(
+    position_i: np.ndarray[float_t],
+    position_j: np.ndarray[float_t],
+    dimensions: np.ndarray[float_t],
+    pbc: bool,
+) -> float_t:
+    dr_squared = 0.0
+    for dim in range(len(dimensions)):
+        dr = position_j[dim] - position_i[dim]
+        if pbc:
+            dr -= dimensions[dim] * round(dr / dimensions[dim])
+        dr_squared += dr * dr
+    return dr_squared
+
+
+@njit(fastmath=True)
+def _build_neighbor_list_orthogonal(
+    positions: np.ndarray[float_t],
+    cutoff: float_t,
+    dimensions: np.ndarray[float_t],
+    pbc: bool,
+) -> List[set[np.uint32]]:
+    # Build cell lists
+    n_dimensions = len(dimensions)
+    n_cells, particle_cell_indices, cell_heads, cell_lists = _build_cell_lists(
+        positions, cutoff, dimensions
+    )
 
     # Define offsets for neighboring cells
     if n_dimensions == 2:
         n_offsets = 5
-        cell_offsets = np.array(((0, 0), (0, 1), (1, -1), (1, 0), (1, 1)), np.int8)
+        cell_offsets = np.array(
+            ((0, 0), (0, 1), (1, -1), (1, 0), (1, 1)), np.int8
+        )
     else:
         n_offsets = 14
         cell_offsets = np.array(
@@ -108,7 +121,7 @@ def build_neighbor_list(
     # Build neighbor list for each particle
     neighbor_lists = List()
     cutoff_squared = cutoff * cutoff
-    for pid in range(n_particles):
+    for pid in range(len(positions)):
         neighbor_list = set()
         ix, iy = particle_cell_indices[pid, :2]
 
@@ -122,26 +135,121 @@ def build_neighbor_list(
                 nid = cell_heads[
                     jx,
                     jy,
-                    (particle_cell_indices[pid, 2] + cell_offsets[idx, 2]) % n_cells[2],
+                    (particle_cell_indices[pid, 2] + cell_offsets[idx, 2])
+                    % n_cells[2],
                 ]
 
             # Traverse linked list of particles in current and
             # neighboring cells
             while nid != -1:
                 if pid != nid:
-                    dr_squared = 0.0
-                    for dim in range(n_dimensions):
-                        dr = positions[nid, dim] - positions[pid, dim]
-                        dr -= dimensions[dim] * round(dr / dimensions[dim])
-                        dr_squared += dr * dr
-                    if dr_squared < cutoff_squared:
+                    if (
+                        _compute_squared_separation_distance(
+                            positions[pid],
+                            positions[nid],
+                            dimensions,
+                            pbc,
+                        )
+                        < cutoff_squared
+                    ):
                         if pid < nid:
                             neighbor_list.add(nid)
                         else:
                             neighbor_lists[nid].add(np.uint32(pid))
-                nid = cell_linked_lists[nid]
+                nid = cell_lists[nid]
 
         # Add the neighbor list for the current particle
         neighbor_lists.append(neighbor_list)
 
     return neighbor_lists
+
+
+def build_neighbor_list(
+    positions: np.ndarray[float_t] | Q_,
+    cutoff: float_t | Q_,
+    box_size: np.ndarray[float_t] | Q_ | None = None,
+    *,
+    pbc: bool = True,
+) -> List[set[np.uint32]]:
+    """
+    Builds a neighbor list for interacting particles using a cell list
+    algorithm.
+
+    Parameters
+    ----------
+    positions : `numpy.ndarray` or `pint.Quantity`
+        Particle positions.
+
+        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    cutoff : `float` or `pint.Quantity`
+        Cutoff distance for neighbor search.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    box_size : `numpy.ndarray` or `pint.Quantity`, optional
+        Size of the simulation box in dimensions :math:`(L_x,L_y,L_z)`,
+        lattice parameters :math:`(a,b,c,\\alpha,\\beta,\\gamma)`, or
+        box vectors :math:`(\\mathbf{a};\\mathbf{b};\\mathbf{c})`. If
+        not provided, the simulation box is assumed to be orthogonal and
+        non-periodic.
+
+        **Shape**: :math:`(3,)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    pbc : `bool`, keyword-only, default: `True`
+        Specifies whether to apply periodic boundary conditions (PBC)
+        and use the minimum image convention when calculating
+        separation distances between particles.
+
+    Returns
+    -------
+    neighbor_lists : `list`
+        Neighbor lists for each particle, with each list being a
+        set of particle indices that are within the cutoff distance
+        from the corresponding particle.
+
+        **Shape**: :math:`(N,)`.
+    """
+
+    positions = strip_unit(positions, "nm")[0]
+    if positions.ndim != 2:
+        raise ValueError(
+            "`positions` must be a two-dimensional array with shape (N, 2) or (N, 3)."
+        )
+    cutoff = strip_unit(cutoff, "nm")[0]
+    if box_size is None:
+        n_dimensions = positions.shape[1]
+        dtype = positions.dtype
+        return _build_neighbor_list_orthogonal(
+            positions,
+            cutoff,
+            np.fromiter(
+                (
+                    positions[:, dim].max()
+                    - positions[:, dim].min()
+                    + 2 * np.finfo(dtype).eps
+                    for dim in range(n_dimensions)
+                ),
+                dtype,
+                n_dimensions,
+            ),
+            False,
+        )
+    else:
+        box_size = strip_unit(box_size, "nm")[0]
+        if box_size.ndim == 1 and len(box_size) == 2:  # 2D orthogonal
+            return _build_neighbor_list_orthogonal(
+                positions, cutoff, box_size, pbc
+            )
+        box_size = convert_cell_representation(box_size, "vectors")
+        if np.array_equal(
+            box_size, np.diag(dimensions := np.diag(box_size))
+        ):  # 3D orthogonal
+            return _build_neighbor_list_orthogonal(
+                positions, cutoff, dimensions, pbc
+            )
+        return  # 3D general triclinic

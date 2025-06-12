@@ -1,5 +1,7 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
 
+from numba import njit
 import numpy as np
 
 from .. import FOUND, Q_
@@ -8,77 +10,119 @@ from ..utility.unit import strip_unit
 if FOUND["openmm"]:
     from openmm import unit
 
+if TYPE_CHECKING:
+    from .. import float_t
+
 
 def reduce_box_vectors(
-    vectors: np.ndarray[np.floating] | "unit.Quantity" | Q_, /
-) -> np.ndarray[np.floating] | "unit.Quantity" | Q_:
+    box_vectors: np.ndarray[float_t] | "unit.Quantity" | Q_, /
+) -> np.ndarray[float_t] | "unit.Quantity" | Q_:
     """
     Reduces the box vectors of a general triclinic simulation box to
     those of a restricted one.
 
-    General triclinic box vectors have the form
+    .. dropdown:: Two-dimensional box vectors
 
-    .. math::
+       General parallelogram box vectors have the form
 
-       \\begin{align*}
-         \\mathbf{A}&=(A_x,A_y,A_z),\\\\
-         \\mathbf{B}&=(B_x,B_y,B_z),\\\\
-         \\mathbf{C}&=(C_x,C_y,C_z),
-       \\end{align*}
+       .. math::
 
-    whereas restricted box vectors have the form
+          \\begin{align*}
+            \\mathbf{A}&=(A_x,A_y),\\\\
+            \\mathbf{B}&=(B_x,B_y),
+          \\end{align*}
 
-    .. math::
+       whereas restricted box vectors have the form
 
-       \\begin{align*}
-         \\mathbf{a}&=(a_x,0,0),\\\\
-         \\mathbf{b}&=(b_x,b_y,0),\\\\
-         \\mathbf{c}&=(c_x,c_y,c_z),
-       \\end{align*}
+       .. math::
 
-    where :math:`a_x>0`, :math:`b_y>0`, :math:`c_z>0`,
-    :math:`a_x\\geq2|b_x|`, :math:`a_x\\geq2|c_x|`, and
-    :math:`b_y\\geq2|c_y|`.
+          \\begin{align*}
+            \\mathbf{a}&=(a_x,0),\\\\
+            \\mathbf{b}&=(b_x,b_y),
+          \\end{align*}
 
-    The conversion is done using
+       where :math:`a_x>0`, :math:`b_y>0`, and :math:`a_x\\geq2|b_x|`.
 
-    .. math::
+       The conversion is done using
 
-       \\begin{align*}
-         a_x&=\\|\\mathbf{A}\\|,\\\\
-         b_x&=\\mathbf{B}\\cdot\\hat{\\mathbf{A}},\\\\
-         b_y&=\\|\\hat{\\mathbf{A}}\\times\\mathbf{B}\\|,\\\\
-         c_x&=\\mathbf{C}\\cdot\\hat{\\mathbf{A}},\\\\
-         c_y&=\\mathbf{C}\\cdot[
-         (\\widehat{\\mathbf{A}\\times\\mathbf{B}})
-         \\times\\hat{\\mathbf{A}}],\\\\
-         c_z&=\\|\\mathbf{C}\\cdot
-         (\\widehat{\\mathbf{A}\\times\\mathbf{B}})\\|,
-       \\end{align*}
+       .. math::
 
-    where :math:`v=\\|\\mathbf{v}\\|` is the norm of a vector
-    :math:`\\mathbf{v}` and 
-    :math:`\\hat{\\mathbf{v}}\\equiv\\mathbf{v}/\\|\\mathbf{v}\\|` is
-    the unit vector in the direction of :math:`\\mathbf{v}`.
+          \\begin{align*}
+            a_x&=\\|\\mathbf{A}\\|,\\\\
+            b_x&=\\mathbf{B}\\cdot\\hat{\\mathbf{A}},\\\\
+            b_y&=\\|\\hat{\\mathbf{A}}\\times\\mathbf{B}\\|,
+          \\end{align*}
+
+       where :math:`v=\\|\\mathbf{v}\\|` is the norm of a vector
+       :math:`\\mathbf{v}` and 
+       :math:`\\hat{\\mathbf{v}}\\equiv\\mathbf{v}/\\|\\mathbf{v}\\|` is
+       the unit vector in the direction of :math:`\\mathbf{v}`.
+
+    .. dropdown:: Three-dimensional box vectors
+       :open:
+
+       General triclinic box vectors have the form
+
+       .. math::
+
+          \\begin{align*}
+            \\mathbf{A}&=(A_x,A_y,A_z),\\\\
+            \\mathbf{B}&=(B_x,B_y,B_z),\\\\
+            \\mathbf{C}&=(C_x,C_y,C_z),
+          \\end{align*}
+
+       whereas restricted box vectors have the form
+
+       .. math::
+
+          \\begin{align*}
+            \\mathbf{a}&=(a_x,0,0),\\\\
+            \\mathbf{b}&=(b_x,b_y,0),\\\\
+            \\mathbf{c}&=(c_x,c_y,c_z),
+          \\end{align*}
+
+       where :math:`a_x>0`, :math:`b_y>0`, :math:`c_z>0`,
+       :math:`a_x\\geq2|b_x|`, :math:`a_x\\geq2|c_x|`, and
+       :math:`b_y\\geq2|c_y|`.
+
+       The conversion is done using
+
+       .. math::
+
+          \\begin{align*}
+            a_x&=\\|\\mathbf{A}\\|,\\\\
+            b_x&=\\mathbf{B}\\cdot\\hat{\\mathbf{A}},\\\\
+            b_y&=\\|\\hat{\\mathbf{A}}\\times\\mathbf{B}\\|,\\\\
+            c_x&=\\mathbf{C}\\cdot\\hat{\\mathbf{A}},\\\\
+            c_y&=\\mathbf{C}\\cdot[
+            (\\widehat{\\mathbf{A}\\times\\mathbf{B}})
+            \\times\\hat{\\mathbf{A}}],\\\\
+            c_z&=\\|\\mathbf{C}\\cdot
+            (\\widehat{\\mathbf{A}\\times\\mathbf{B}})\\|,
+          \\end{align*}
+
+       where :math:`v=\\|\\mathbf{v}\\|` is the norm of a vector
+       :math:`\\mathbf{v}` and 
+       :math:`\\hat{\\mathbf{v}}\\equiv\\mathbf{v}/\\|\\mathbf{v}\\|` is
+       the unit vector in the direction of :math:`\\mathbf{v}`.
 
     Parameters
     ----------
-    vectors : `numpy.ndarray`, `openmm.unit.Quantity`, or \
+    box_vectors : `numpy.ndarray`, `openmm.unit.Quantity`, or \
     `pint.Quantity`, positional-only
-        Box vectors :math:`(\\mathbf{a};\\mathbf{b};\\mathbf{c})`.
+        Box vectors :math:`(\\mathbf{A};\\mathbf{B}[;\\mathbf{C}])`.
 
-        **Shape**: :math:`(3,3)`.
+        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
     Returns
     -------
-    reduced_vectors : `numpy.ndarray`, `openmm.unit.Quantity`, or \
+    reduced_box_vectors : `numpy.ndarray`, `openmm.unit.Quantity`, or \
     `pint.Quantity`
-        Reduced box vectors
-        :math:`(\\mathbf{a};\\mathbf{b};\\mathbf{c})`.
+        Reduced box vectors :math:`(\\mathbf{a};\\mathbf{b}[;\\mathbf{c}])`.
 
-        **Shape**: :math:`(3,3)`.
+        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
@@ -122,25 +166,46 @@ def reduce_box_vectors(
      [0., 0., 5.]], 'nanometer')>
     """
 
-    vectors, length_unit = strip_unit(vectors)
-    vectors = np.asarray(vectors)
-    if vectors.shape != (3, 3):
+    reduced_box_vectors, length_unit = strip_unit(box_vectors)
+    reduced_box_vectors = np.asarray(reduced_box_vectors)
+    if reduced_box_vectors.shape not in {(2, 2), (3, 3)}:
         raise ValueError(
-            f"Invalid shape {vectors.shape} for `vectors`. Valid shape: (3, 3)."
+            f"Invalid shape {reduced_box_vectors.shape} for "
+            "`box_vectors`. Valid shapes: (2, 2) and (3, 3)."
         )
 
-    if (
-        not np.allclose(vectors, np.tril(vectors))
-        or not np.all(np.diag(vectors) > 0)
-        or vectors[0, 0] < 2 * np.abs(vectors[1, 0])
-        or vectors[0, 0] < 2 * np.abs(vectors[2, 0])
-        or vectors[1, 1] < 2 * np.abs(vectors[2, 1])
-    ):
-        vectors = convert_cell_representation(
+    if len(reduced_box_vectors) == 2:
+        if (
+            np.allclose(reduced_box_vectors, np.tril(reduced_box_vectors))
+            and np.all(np.diag(reduced_box_vectors) > 0)
+            and reduced_box_vectors[0, 0]
+            >= 2 * np.abs(reduced_box_vectors[1, 0])
+        ):
+            return box_vectors
+
+        reduced_box_vectors = convert_cell_representation(
             (
-                (a := np.linalg.norm((A := vectors[0]))),
-                (b := np.linalg.norm((B := vectors[1]))),
-                (c := np.linalg.norm((C := vectors[2]))),
+                (a := np.linalg.norm((A := reduced_box_vectors[0]))),
+                (b := np.linalg.norm((B := reduced_box_vectors[1]))),
+                np.degrees(np.arccos(np.dot(A, B) / (a * b))),
+            ),
+            "vectors",
+            2,
+        )
+    elif (
+        np.allclose(reduced_box_vectors, np.tril(reduced_box_vectors))
+        and np.all(np.diag(reduced_box_vectors) > 0)
+        and reduced_box_vectors[0, 0] >= 2 * np.abs(reduced_box_vectors[1, 0])
+        and reduced_box_vectors[0, 0] >= 2 * np.abs(reduced_box_vectors[2, 0])
+        and reduced_box_vectors[1, 1] >= 2 * np.abs(reduced_box_vectors[2, 1])
+    ):
+        return box_vectors
+    else:
+        reduced_box_vectors = convert_cell_representation(
+            (
+                (a := np.linalg.norm((A := reduced_box_vectors[0]))),
+                (b := np.linalg.norm((B := reduced_box_vectors[1]))),
+                (c := np.linalg.norm((C := reduced_box_vectors[2]))),
                 np.degrees(np.arccos(np.dot(B, C) / (b * c))),
                 np.degrees(np.arccos(np.dot(A, C) / (a * c))),
                 np.degrees(np.arccos(np.dot(A, B) / (a * b))),
@@ -148,36 +213,57 @@ def reduce_box_vectors(
             "vectors",
         )
 
-    return vectors if length_unit is None else vectors * length_unit
+    return (
+        reduced_box_vectors
+        if length_unit is None
+        else reduced_box_vectors * length_unit
+    )
 
 
 def convert_cell_representation(
-    representation: np.ndarray[np.floating] | "unit.Quantity" | Q_,
+    representation: np.ndarray[float_t] | "unit.Quantity" | Q_,
     output_format: str,
+    n_dimensions: int = 3,
     /,
-) -> np.ndarray[np.floating] | "unit.Quantity" | Q_:
+) -> np.ndarray[float_t] | "unit.Quantity" | Q_:
     """
     Converts between cell representations for a simulation box.
 
-    The supported input and output formats are
+    .. dropdown:: Two-dimensional (2D) systems
 
-    * the dimensions :math:`(L_x,L_y,L_z)` of a cubic simulation box,
-      where :math:`L_x`, :math:`L_y`, and :math:`L_z` are the lengths
-      along the :math:`x`, :math:`y`, and :math:`z` axes, respectively,
-    * the lattice parameters :math:`(a,b,c,\\alpha,\\beta,\\gamma)` for
-      a triclinic simulation box, where :math:`a`, :math:`b`, and
-      :math:`c` are the cell lengths and :math:`\\alpha`,
-      :math:`\\beta`, and :math:`\\gamma` are the cell angles, and
-    * the box vectors :math:`(\\mathbf{a};\\mathbf{b};\\mathbf{c})` for
-      a triclinic simulation box.
+       For a square simulation box, the supported input and output 
+       formats are
+
+       * its dimensions :math:`(L_x,L_y)`, where :math:`L_x` and 
+         :math:`L_y` are the lengths along the :math:`x`- and 
+         :math:`y`-axes, respectively,
+       * its lattice parameters :math:`(a,b,\\gamma)`, where :math:`a`
+         and :math:`b` are the cell lengths and :math:`\\gamma` is the
+         cell angle, and
+       * its box vectors :math:`(\\mathbf{a};\\mathbf{b})`.
+
+    .. dropdown:: Three-dimensional (3D) systems
+       :open:
+
+       For a cubic simulation box, the supported input and output 
+       formats are
+
+       * its dimensions :math:`(L_x,L_y,L_z)`, where :math:`L_x`, 
+         :math:`L_y`, and :math:`L_z` are the lengths along the 
+         :math:`x`-, :math:`y`-, and :math:`z`-axes, respectively,
+       * its lattice parameters :math:`(a,b,c,\\alpha,\\beta,\\gamma)`,
+         where :math:`a`, :math:`b`, and :math:`c` are the cell lengths
+         and :math:`\\alpha`, :math:`\\beta`, and :math:`\\gamma` are 
+         the cell angles, and
+       * its box vectors :math:`(\\mathbf{a};\\mathbf{b};\\mathbf{c})`.
 
     Parameters
     ----------
     representation : `numpy.ndarray`, `openmm.unit.Quantity`, or \
     `pint.Quantity`, positional-only
-        Dimensions :math:`(L_x,L_y,L_z)`, lattice parameters
-        :math:`(a,b,c,\\alpha,\\beta,\\gamma)`, or box
-        vectors :math:`(\\mathbf{a};\\mathbf{b};\\mathbf{c})`.
+        Dimensions :math:`(L_x,L_y[,L_z])`, lattice parameters
+        :math:`(a,b[,c,\\alpha,\\beta],\\gamma)`, or box
+        vectors :math:`(\\mathbf{a};\\mathbf{b}[;\\mathbf{c}])`.
 
         .. note::
 
@@ -188,9 +274,10 @@ def convert_cell_representation(
 
            **Shapes**:
 
-           * :math:`(3,)` for dimensions,
-           * :math:`(6,)` for lattice parameters, or
-           * :math:`(3,3)` for box vectors.
+           * 2D: :math:`(2,)` for dimensions, :math:`(3,)` for lattice
+             parameters, or :math:`(2,2)` for box vectors.
+           * 3D: :math:`(3,)` for dimensions, :math:`(6,)` for lattice
+             parameters, or :math:`(3,3)` for box vectors.
 
         **Reference units**: :math:`\\mathrm{nm}` for lengths and
         degrees (:math:`^\\circ`) for angles.
@@ -205,6 +292,11 @@ def convert_cell_representation(
            * :code:`"dimensions"` for dimensions,
            * :code:`"parameters"` for lattice parameters, or
            * :code:`"vectors"` for box vectors.
+
+    n_dimensions : `int`, positional-only, default: :code:`3`
+        Dimensionality of the simulation box.
+
+        **Valid values**: :code:`2` or :code:`3`.
 
     Returns
     -------
@@ -222,9 +314,10 @@ def convert_cell_representation(
 
            **Shapes**:
 
-           * :math:`(3,)` for dimensions,
-           * :math:`(6,)` for lattice parameters, or
-           * :math:`(3,3)` for box vectors.
+           * 2D: :math:`(2,)` for dimensions, :math:`(3,)` for lattice
+             parameters, or :math:`(2,2)` for box vectors.
+           * 3D: :math:`(3,)` for dimensions, :math:`(6,)` for lattice
+             parameters, or :math:`(3,3)` for box vectors.
 
         **Reference units**: :math:`\\mathrm{nm}` for lengths and
         degrees (:math:`^\\circ`) for angles.
@@ -259,132 +352,264 @@ def convert_cell_representation(
 
     representation, length_unit = strip_unit(representation)
     representation = np.asarray(representation)
-    if (shape := representation.shape) == (3,):
-        input_format = "dimensions"
-    elif shape == (6,):
-        input_format = "parameters"
-    elif shape == (3, 3):
-        input_format = "vectors"
+
+    if n_dimensions == 2:
+        if (shape := representation.shape) == (2,):
+            input_format = "dimensions"
+        elif shape == (3,):
+            input_format = "parameters"
+        elif shape == (2, 2):
+            input_format = "vectors"
+        else:
+            raise ValueError(
+                f"Invalid shape {shape} for `representation`. "
+                "Valid shapes: (2,), (3,), (2, 2)."
+            )
+
+        if input_format == "dimensions":
+            if output_format == "parameters":
+                return np.concatenate((representation, (90.0,)))
+            elif output_format == "vectors":
+                representation = np.diag(representation)
+        elif input_format == "parameters":
+            gamma = np.radians(representation[2])
+            if output_format == "dimensions":
+                gamma = np.radians(representation[2])
+                return np.array(
+                    (representation[0], representation[1] * np.sin(gamma))
+                )
+            elif output_format == "vectors":
+                vectors = np.zeros((2, 2))
+                vectors[0, 0] = representation[0]
+                vectors[1, 0] = representation[1] * np.cos(gamma)
+                vectors[1, 1] = representation[1] * np.sin(gamma)
+                vectors[np.isclose(vectors, 0, atol=5e-6)] = 0
+                return vectors
+            return representation  # output_format == "parameters"
+        else:  # input_format == "vectors"
+            representation = reduce_box_vectors(representation)
+            if output_format == "parameters":
+                parameters = np.empty(4, dtype=representation.dtype)
+                parameters[:2] = np.linalg.norm(representation, axis=1)
+                parameters[2] = np.degrees(
+                    np.arccos(
+                        np.dot(representation[0], representation[1])
+                        / (parameters[0] * parameters[1])
+                    )
+                )
+                return parameters
+            elif output_format == "dimensions":
+                representation = np.diag(representation)
+
     else:
-        raise ValueError(
-            f"Invalid shape {shape} for `representation`. "
-            "Valid shapes: (3,), (6,), (3, 3)."
+        if (shape := representation.shape) == (3,):
+            input_format = "dimensions"
+        elif shape == (6,):
+            input_format = "parameters"
+        elif shape == (3, 3):
+            input_format = "vectors"
+        else:
+            raise ValueError(
+                f"Invalid shape {shape} for `representation`. "
+                "Valid shapes: (3,), (6,), (3, 3)."
+            )
+
+        if input_format == "dimensions":
+            if output_format == "parameters":
+                return np.concatenate((representation, (90.0, 90.0, 90.0)))
+            elif output_format == "vectors":
+                representation = np.diag(representation)
+        elif input_format == "parameters":
+            alpha, beta, gamma = np.radians(representation[3:])
+            if output_format == "dimensions":
+                return np.array(
+                    (
+                        representation[0],
+                        representation[1] * np.sin(gamma),
+                        np.sqrt(
+                            representation[2] ** 2
+                            - (representation[2] * np.cos(beta)) ** 2
+                            - (
+                                representation[2]
+                                * (np.cos(alpha) - np.cos(beta) * np.cos(gamma))
+                                / np.sin(gamma)
+                            )
+                            ** 2
+                        ),
+                    )
+                )
+            elif output_format == "vectors":
+                vectors = np.zeros((3, 3))
+                vectors[0, 0] = representation[0]
+                vectors[1, 0] = representation[1] * np.cos(gamma)
+                vectors[1, 1] = representation[1] * np.sin(gamma)
+                vectors[2, 0] = representation[2] * np.cos(beta)
+                vectors[2, 1] = (
+                    representation[2]
+                    * (np.cos(alpha) - np.cos(beta) * np.cos(gamma))
+                    / np.sin(gamma)
+                )
+                vectors[2, 2] = np.sqrt(
+                    representation[2] ** 2
+                    - vectors[2, 0] ** 2
+                    - vectors[2, 1] ** 2
+                )
+                vectors[np.isclose(vectors, 0, atol=5e-6)] = 0
+                return vectors
+            return representation  # output_format == "parameters"
+        else:  # input_format == "vectors"
+            representation = reduce_box_vectors(representation)
+            if output_format == "parameters":
+                return np.concatenate(
+                    (
+                        parameters := np.linalg.norm(representation, axis=1),
+                        np.degrees(
+                            np.arccos(
+                                (
+                                    np.dot(representation[1], representation[2])
+                                    / (parameters[1] * parameters[2]),
+                                    np.dot(representation[0], representation[2])
+                                    / (parameters[0] * parameters[2]),
+                                    np.dot(representation[0], representation[1])
+                                    / (parameters[0] * parameters[1]),
+                                )
+                            )
+                        ),
+                    )
+                )
+            elif output_format == "dimensions":
+                representation = np.diag(representation)
+
+        return (
+            representation
+            if length_unit is None
+            else representation * length_unit
         )
 
-    if input_format == "dimensions":
-        if output_format == "parameters":
-            return np.concatenate((representation, (90.0, 90.0, 90.0)))
-        elif output_format == "vectors":
-            representation = np.diag(representation)
-        return representation if length_unit is None else representation * length_unit
-    elif input_format == "parameters":
-        alpha, beta, gamma = np.radians(representation[3:])
-        if output_format == "dimensions":
-            return np.array(
-                (
-                    representation[0],
-                    representation[1] * np.sin(gamma),
-                    np.sqrt(
-                        representation[2] ** 2
-                        - (representation[2] * np.cos(beta)) ** 2
-                        - (
-                            representation[2]
-                            * (np.cos(alpha) - np.cos(beta) * np.cos(gamma))
-                            / np.sin(gamma)
-                        )
-                        ** 2
-                    ),
-                )
-            )
-        elif output_format == "vectors":
-            vectors = np.zeros((3, 3))
-            vectors[0, 0] = representation[0]
-            vectors[1, 0] = representation[1] * np.cos(gamma)
-            vectors[1, 1] = representation[1] * np.sin(gamma)
-            vectors[2, 0] = representation[2] * np.cos(beta)
-            vectors[2, 1] = (
-                representation[2]
-                * (np.cos(alpha) - np.cos(beta) * np.cos(gamma))
-                / np.sin(gamma)
-            )
-            vectors[2, 2] = np.sqrt(
-                representation[2] ** 2 - vectors[2, 0] ** 2 - vectors[2, 1] ** 2
-            )
-            vectors[np.isclose(vectors, 0, atol=5e-6)] = 0
-            return vectors
-        return representation  # output_format == "parameters"
-    else:  # input_format == "vectors"
-        representation = reduce_box_vectors(representation)
-        if output_format == "parameters":
-            return np.concatenate(
-                (
-                    parameters := np.linalg.norm(representation, axis=1),
-                    np.degrees(
-                        np.arccos(
-                            (
-                                np.dot(representation[1], representation[2])
-                                / (parameters[1] * parameters[2]),
-                                np.dot(representation[0], representation[2])
-                                / (parameters[0] * parameters[2]),
-                                np.dot(representation[0], representation[1])
-                                / (parameters[0] * parameters[1]),
-                            )
-                        )
-                    ),
-                )
-            )
-        elif output_format == "dimensions":
-            representation = np.diag(representation)
-        return representation if length_unit is None else representation * length_unit
+
+# @njit(fastmath=True)
+def _scale_coordinates(
+    coordinates: np.ndarray[float_t],
+    box_vectors: np.ndarray[float_t],
+    scaled_mask: np.uint8,
+) -> None:
+    n_dimensions = coordinates.shape[1]
+    if n_dimensions == 2:
+        other_indices = np.array(((1,), (0,)), np.uint8)
+    else:
+        other_indices = np.array(((1, 2), (0, 2), (0, 1)), np.uint8)
+    for axis in range(n_dimensions):
+        scaled = (scaled_mask >> axis) & 1
+        other_axes = other_indices[axis]
+        other_scaled_mask = scaled_mask[other_axes]
+
+        debug = True
+
+    # if not any(scaled_flags):
+    #     coordinates @= np.linalg.inv(box_vectors).T
+    #     return
+    # elif not all(scaled_flags):
+    #     for axis_index, scaled_flag in enumerate(scaled_flags):
+    #         if not scaled_flag:
+    #             other_indices = [0, 1, 2]
+    #             other_scaled_flags = scaled_flags.copy()
+    #             del other_indices[axis_index], other_scaled_flags[axis_index]
+    #             if all(other_scaled_flags):
+    #                 for other_index in other_indices:
+    #                     coordinates[:, axis_index] -= (
+    #                         coordinates[:, other_index]
+    #                         * box_vectors[axis_index, other_index]
+    #                     )
+    #                 coordinates[:, axis_index] /= box_vectors[
+    #                     axis_index, axis_index
+    #                 ]
+    #             else:
+    #                 scaled_index, unscaled_index = other_indices[
+    #                     :: (2 * other_scaled_flags[0] - 1)
+    #                 ]
+    #                 coordinates[:, axis_index] = (
+    #                     box_vectors[unscaled_index, unscaled_index]
+    #                     * coordinates[:, axis_index]
+    #                     - box_vectors[axis_index, unscaled_index]
+    #                     * coordinates[:, unscaled_index]
+    #                     + coordinates[:, scaled_index]
+    #                     * (
+    #                         box_vectors[axis_index, unscaled_index]
+    #                         * box_vectors[unscaled_index, scaled_index]
+    #                         - box_vectors[unscaled_index, unscaled_index]
+    #                         * box_vectors[axis_index, scaled_index]
+    #                     )
+    #                 ) / (
+    #                     box_vectors[axis_index, axis_index]
+    #                     * box_vectors[unscaled_index, unscaled_index]
+    #                     - box_vectors[axis_index, unscaled_index]
+    #                     * box_vectors[unscaled_index, axis_index]
+    #                 )
+    #             scaled_flags[axis_index] = True
 
 
-def scale_triclinic_coordinates(
-    coordinates: np.ndarray[np.float64],
-    box_vectors: np.ndarray[np.float64],
-    scaled_flags: list[bool] | None = None,
+def scale_coordinates(
+    coordinates: np.ndarray[float_t],
+    box_vectors: np.ndarray[float_t] | "unit.Quantity" | Q_,
+    scaled_flags: np.ndarray[bool] | None = None,
 ) -> None:
     """
-    Scales the coordinates of entities in a general triclinic
-    simulation box with origin :math:`(0,0,0)` to get the fractional
-    coordinates.
+    Scales the coordinates of entities in a general parallelogram or
+    triclinic simulation box to get the fractional coordinates.
 
-    The relationship between Cartesian coordinates :math:`\\mathbf{r}`
-    and the fractional coordinates :math:`\\mathbf{f}` can be described
-    by the matrix transformation
+    The relationship between Cartesian coordinates
+    :math:`\\mathbf{r}` and the fractional coordinates
+    :math:`\\mathbf{f}` can be described by the matrix transformation
     :math:`\\mathbf{r}=\\mathbf{h}\\mathbf{f}`, where
-    :math:`\\mathbf{h}` is the cell tensor (matrix of box vectors
-    :math:`\\mathrm{A}`, :math:`\\mathrm{B}`, and :math:`\\mathrm{C}`):
 
-    .. math::
+    .. dropdown:: Two-dimensional systems
 
-       \\begin{pmatrix}r_x\\\\r_y\\\\r_z\\end{pmatrix}
-       =\\begin{pmatrix}A_x&A_y&A_z\\\\B_x&B_y&B_z\\\\C_x&C_y&C_z\\end{pmatrix}
-       \\begin{pmatrix}f_x\\\\f_y\\\\f_z\\end{pmatrix}.
+       :math:`\\mathbf{h}` is the cell tensor (matrix of box vectors
+       :math:`\\mathrm{A}` and :math:`\\mathrm{B}`):
+
+       .. math::
+
+          \\begin{pmatrix}r_x\\\\r_y\\end{pmatrix}
+          =\\begin{pmatrix}A_x&A_y\\\\B_x&B_y\\end{pmatrix}
+          \\begin{pmatrix}f_x\\\\f_y\\end{pmatrix}.
+
+    .. dropdown:: Three-dimensional systems
+       :open:
+
+       :math:`\\mathbf{h}` is the cell tensor (matrix of box vectors
+       :math:`\\mathrm{A}`, :math:`\\mathrm{B}`, and :math:`\\mathrm{C}`):
+
+       .. math::
+
+          \\begin{pmatrix}r_x\\\\r_y\\\\r_z\\end{pmatrix}
+          =\\begin{pmatrix}A_x&A_y&A_z\\\\B_x&B_y&B_z\\\\C_x&C_y&C_z
+          \\end{pmatrix}\\begin{pmatrix}f_x\\\\f_y\\\\f_z\\end{pmatrix}.
 
     As such, the Cartesian coordinates can be scaled to fractional
     coordinates using :math:`\\mathbf{f}=\\mathbf{h}^{-1}\\mathbf{r}`.
-
-    .. note::
-
-       This function modifies the input NumPy array in-place.
 
     Parameters
     ----------
     coordinates : `numpy.ndarray`
         Coordinates of :math:`N` entities.
 
-        **Shape**: :math:`(N,3)`.
+        .. note::
+
+           This function modifies this NumPy array in-place.
+
+        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
-    box_vectors : `numpy.ndarray`
-        Box vectors of the general triclinic simulation box.
+    box_vectors : `numpy.ndarray`, `openmm.unit.Quantity`, \
+    or `pint.Quantity`
+        Box vectors :math:`(\\mathbf{A};\\mathbf{B}[;\\mathbf{C}])`.
 
-        **Shape**: :math:`(3,3)`.
+        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
-    scaled_flags : `list`, optional
+    scaled_flags : array-like, optional
         Flags indicating whether the coordinates are already scaled
         along the respective axes. If not provided, all flags are
         assumed to be :code:`False`.
@@ -412,7 +637,7 @@ def scale_triclinic_coordinates(
 
     We can scale the coordinates to get the fractional coordinates:
 
-    >>> scale_triclinic_coordinates(coordinates, box_vectors)
+    >>> scale_coordinates(coordinates, box_vectors)
     >>> coordinates
     array([[0.5       , 0.5       , 0.5       ],
            [0.33333333, 0.5       , 0.6       ]])
@@ -427,7 +652,7 @@ def scale_triclinic_coordinates(
     ...         (1.899521470839911, 2.0684580050169066, 0.6)
     ...     )
     ... )
-    >>> scale_triclinic_coordinates(coordinates, box_vectors, [False, False, True])
+    >>> scale_coordinates(coordinates, box_vectors, [False, False, True])
     >>> coordinates
     array([[0.5       , 0.5       , 0.5       ],
            [0.33333333, 0.5       , 0.6       ])
@@ -442,63 +667,80 @@ def scale_triclinic_coordinates(
     ...         (1 / 3, 2.0684580050169066, 0.6)
     ...     )
     ... )
-    >>> scale_triclinic_coordinates(coordinates, box_vectors, [True, False, True])
+    >>> scale_coordinates(coordinates, box_vectors, [True, False, True])
     >>> coordinates
     array([[0.5       , 0.5       , 0.5       ],
            [0.33333333, 0.5       , 0.6       ])
     """
 
+    n_possible_dimensions = {2, 3}
     if not isinstance(coordinates, np.ndarray):
         raise TypeError("`coordinates` must be a NumPy array.")
-    if coordinates.ndim != 2 or coordinates.shape[1] != 3:
+    if (
+        coordinates.ndim != 2
+        or coordinates.shape[1] not in n_possible_dimensions
+    ):
         raise ValueError(
-            f"Invalid shape {coordinates.shape} for `coordinates`. Valid shape: (N, 3)."
+            f"Invalid shape {coordinates.shape} for `coordinates`. "
+            "Valid shapes: (N, 2) or (N, 3)."
         )
-    if box_vectors.shape != (3, 3):
+
+    box_vectors = strip_unit(box_vectors, "nm")[0]
+    box_vectors = np.asarray(box_vectors)
+    if box_vectors.shape not in {(2, 2), (3, 3)}:
         raise ValueError(
-            f"Invalid shape {box_vectors.shape} for `box_vectors`. Valid shape: (3, 3)."
+            f"Invalid shape {box_vectors.shape} for `box_vectors`."
+            "Valid shapes: (N, 2) or (N, 3)."
         )
     if scaled_flags is None:
         scaled_flags = [False, False, False]
-    elif len(scaled_flags) != 3:
+    elif len(scaled_flags) not in n_possible_dimensions:
         raise ValueError("`scaled_flags` must be an array with length 3.")
 
-    if not any(scaled_flags):
-        coordinates @= np.linalg.inv(box_vectors).T
-        return
-    elif not all(scaled_flags):
-        for axis_index, scaled_flag in enumerate(scaled_flags):
-            if not scaled_flag:
-                other_indices = [0, 1, 2]
-                other_scaled_flags = scaled_flags.copy()
-                del other_indices[axis_index], other_scaled_flags[axis_index]
-                if all(other_scaled_flags):
-                    for other_index in other_indices:
-                        coordinates[:, axis_index] -= (
-                            coordinates[:, other_index]
-                            * box_vectors[axis_index, other_index]
-                        )
-                    coordinates[:, axis_index] /= box_vectors[axis_index, axis_index]
-                else:
-                    scaled_index, unscaled_index = other_indices[
-                        :: (2 * other_scaled_flags[0] - 1)
-                    ]
-                    coordinates[:, axis_index] = (
-                        box_vectors[unscaled_index, unscaled_index]
-                        * coordinates[:, axis_index]
-                        - box_vectors[axis_index, unscaled_index]
-                        * coordinates[:, unscaled_index]
-                        + coordinates[:, scaled_index]
-                        * (
-                            box_vectors[axis_index, unscaled_index]
-                            * box_vectors[unscaled_index, scaled_index]
-                            - box_vectors[unscaled_index, unscaled_index]
-                            * box_vectors[axis_index, scaled_index]
-                        )
-                    ) / (
-                        box_vectors[axis_index, axis_index]
-                        * box_vectors[unscaled_index, unscaled_index]
-                        - box_vectors[axis_index, unscaled_index]
-                        * box_vectors[unscaled_index, axis_index]
-                    )
-                scaled_flags[axis_index] = True
+    _scale_coordinates(
+        coordinates,
+        box_vectors,
+        ((scaled_flags[2] << 2) | (scaled_flags[1] << 1) | scaled_flags[0]),
+    )
+
+    # if not any(scaled_flags):
+    #     coordinates @= np.linalg.inv(box_vectors).T
+    #     return
+    # elif not all(scaled_flags):
+    #     for axis_index, scaled_flag in enumerate(scaled_flags):
+    #         if not scaled_flag:
+    #             other_indices = [0, 1, 2]
+    #             other_scaled_flags = scaled_flags.copy()
+    #             del other_indices[axis_index], other_scaled_flags[axis_index]
+    #             if all(other_scaled_flags):
+    #                 for other_index in other_indices:
+    #                     coordinates[:, axis_index] -= (
+    #                         coordinates[:, other_index]
+    #                         * box_vectors[axis_index, other_index]
+    #                     )
+    #                 coordinates[:, axis_index] /= box_vectors[
+    #                     axis_index, axis_index
+    #                 ]
+    #             else:
+    #                 scaled_index, unscaled_index = other_indices[
+    #                     :: (2 * other_scaled_flags[0] - 1)
+    #                 ]
+    #                 coordinates[:, axis_index] = (
+    #                     box_vectors[unscaled_index, unscaled_index]
+    #                     * coordinates[:, axis_index]
+    #                     - box_vectors[axis_index, unscaled_index]
+    #                     * coordinates[:, unscaled_index]
+    #                     + coordinates[:, scaled_index]
+    #                     * (
+    #                         box_vectors[axis_index, unscaled_index]
+    #                         * box_vectors[unscaled_index, scaled_index]
+    #                         - box_vectors[unscaled_index, unscaled_index]
+    #                         * box_vectors[axis_index, scaled_index]
+    #                     )
+    #                 ) / (
+    #                     box_vectors[axis_index, axis_index]
+    #                     * box_vectors[unscaled_index, unscaled_index]
+    #                     - box_vectors[axis_index, unscaled_index]
+    #                     * box_vectors[unscaled_index, axis_index]
+    #                 )
+    #             scaled_flags[axis_index] = True

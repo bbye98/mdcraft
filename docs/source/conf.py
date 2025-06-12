@@ -42,8 +42,8 @@ templates_path = ["_templates"]
 
 autosummary_generate = True
 intersphinx_mapping = {
-    "dask": ("https://docs.dask.org/en/stable/", None),
-    "joblib": ("https://joblib.readthedocs.io/en/latest/", None),
+    # "dask": ("https://docs.dask.org/en/stable/", None),
+    # "joblib": ("https://joblib.readthedocs.io/en/latest/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "mdanalysis": ("https://docs.mdanalysis.org/stable/", None),
     "numba": ("https://numba.readthedocs.io/en/stable/", None),

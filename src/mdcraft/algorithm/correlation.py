@@ -1,13 +1,17 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
 from scipy import fft as pfft
 
+if TYPE_CHECKING:
+    from .. import float_t, complex_t
+
 
 def correlation(
-    x: np.ndarray[np.float64 | np.complex128],
-    y: np.ndarray[np.float64 | np.complex128] | None = None,
+    x: np.ndarray[float_t | complex_t],
+    y: np.ndarray[float_t | complex_t] | None = None,
     /,
     axis: int | None = None,
     *,
@@ -15,7 +19,7 @@ def correlation(
     fft: bool = True,
     symmetrize: bool = False,
     vector: bool = False,
-) -> np.ndarray[np.float64 | np.complex128]:
+) -> np.ndarray[float_t | complex_t]:
     """
     Evaluates the autocorrelation function (ACF)
     :math:`\\mathrm{R_\\mathbf{XX}}(\\tau)` or cross-correlation
@@ -169,9 +173,13 @@ def correlation(
         raise ValueError("The arrays cannot be empty.")
     n_dim = x.ndim
     if not 1 <= n_dim <= 4:
-        raise ValueError("The arrays must be one-, two-, three-, or four-dimensional.")
+        raise ValueError(
+            "The arrays must be one-, two-, three-, or four-dimensional."
+        )
     if vector and n_dim == 1:
-        raise ValueError("The arrays cannot be one-dimensional if `vector=True`.")
+        raise ValueError(
+            "The arrays cannot be one-dimensional if `vector=True`."
+        )
     if y is not None:
         y = np.asarray(y)
         if x.shape != y.shape:
@@ -243,7 +251,7 @@ def correlation(
             if n_dim == 1:
                 corr = np.fromiter(
                     (np.dot(x[i:], x[: -i if i else None]) for i in range(n_t)),
-                    np.float64,
+                    x.dtype,
                     n_t,
                 )
             else:
@@ -267,9 +275,11 @@ def correlation(
                 corr = np.fromiter(
                     (
                         np.dot(x[i:j], y[k:m])
-                        for i, j, k, m in zip(start[::-1], stop[::-1], start, stop)
+                        for i, j, k, m in zip(
+                            start[::-1], stop[::-1], start, stop
+                        )
                     ),
-                    np.float64,
+                    x.dtype,
                     2 * n_t - 1,
                 )
             else:
@@ -282,7 +292,9 @@ def correlation(
                             x[*slices, i:j],
                             y[*slices, k:m],
                         )
-                        for i, j, k, m in zip(start[::-1], stop[::-1], start, stop)
+                        for i, j, k, m in zip(
+                            start[::-1], stop[::-1], start, stop
+                        )
                     ],
                     axis=axis,
                 )
@@ -499,7 +511,7 @@ def msd(
     """
 
     # Ensure arrays have valid shapes
-    r_i = np.asarray(r_i, np.float64)
+    r_i = np.asarray(r_i)
     if r_i.size == 0:
         raise ValueError("The position arrays cannot be empty.")
     ndim = r_i.ndim
@@ -508,7 +520,7 @@ def msd(
             "The position arrays must be two-, three-, or four-dimensional."
         )
     if r_j is not None:
-        r_j = np.asarray(r_j, np.float64)
+        r_j = np.asarray(r_j)
         if r_i.shape != r_j.shape:
             raise ValueError("The position arrays must have the same shape.")
 
@@ -537,7 +549,9 @@ def msd(
     slices = (slice(None),) * axis
     if fft:
         # Evaluate necessary intermediate quantities
-        R_ij = correlation(r_i, r_j, axis, average=False, symmetrize=True, vector=True)
+        R_ij = correlation(
+            r_i, r_j, axis, average=False, symmetrize=True, vector=True
+        )
         D_ij = (r_i * (r_i if r_j is None else r_j)).sum(axis=-1)
 
         if ndim - axis == 3:
@@ -546,7 +560,9 @@ def msd(
                 D_k = (np.vstack if ndim == 3 else np.hstack)(
                     (
                         D_ij,
-                        np.zeros(r_i.shape[:axis] + (1,) + r_i.shape[axis + 1 : -1]),
+                        np.zeros(
+                            r_i.shape[:axis] + (1,) + r_i.shape[axis + 1 : -1]
+                        ),
                     )
                 )
                 return (
@@ -554,7 +570,8 @@ def msd(
                     * D_k.sum(axis=axis, keepdims=axis)
                     * np.ones((*(1,) * axis, n_t, 1))
                     - np.cumsum(
-                        D_k[*slices, np.arange(-1, n_t - 1)] + D_k[*slices, n_t:0:-1],
+                        D_k[*slices, np.arange(-1, n_t - 1)]
+                        + D_k[*slices, n_t:0:-1],
                         axis=axis,
                     )
                 ) / np.arange(n_t, 0, -1)[:, None] - R_ij
@@ -570,7 +587,8 @@ def msd(
                 (
                     np.zeros_like(D_ij[*slices, :1]),
                     np.cumsum(
-                        D_ij[*slices, : n_t - 1] + D_ij[*slices, n_t - 1 : 0 : -1],
+                        D_ij[*slices, : n_t - 1]
+                        + D_ij[*slices, n_t - 1 : 0 : -1],
                         axis=axis,
                     ),
                 ),
@@ -582,7 +600,10 @@ def msd(
         if r_j is None:
             disp = np.stack(
                 [
-                    ((r_i[*slices, : -i if i else None] - r_i[*slices, i:]) ** 2)
+                    (
+                        (r_i[*slices, : -i if i else None] - r_i[*slices, i:])
+                        ** 2
+                    )
                     .sum(axis=-1)
                     .mean(axis=axis)
                     for i in range(n_t)

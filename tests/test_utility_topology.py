@@ -12,117 +12,151 @@ from mdcraft import ureg
 from mdcraft.utility.topology import (
     reduce_box_vectors,
     convert_cell_representation,
-    scale_triclinic_coordinates,
+    scale_coordinates,
 )
 
 
 class TestFunctionReduceBoxVectors:
     @classmethod
     def setup_class(cls):
-        cls.box_vectors = np.array(
+        cls.box_vectors_3d = np.array(
             (
                 (9 / np.sqrt(11), 3 / np.sqrt(11), 3 / np.sqrt(11)),
                 (-4 / np.sqrt(6), 8 / np.sqrt(6), 4 / np.sqrt(6)),
                 (5 / np.sqrt(66), 20 / np.sqrt(66), -35 / np.sqrt(66)),
             )
         )
-        cls.reduced_box_vectors = np.array(
+        cls.reduced_box_vectors_3d = np.array(
             ((3.0, 0.0, 0.0), (0.0, 4.0, 0.0), (0.0, 0.0, 5.0))
         )
+        cls.box_vectors_2d = np.array(
+            (
+                (9 / np.sqrt(10), 3 / np.sqrt(10)),
+                (-4 / np.sqrt(10), 12 / np.sqrt(10)),
+            )
+        )
+        cls.reduced_box_vectors_2d = cls.reduced_box_vectors_3d[:2, :2]
 
-    def test_invalid_box_vectors_shape(self):
+    def test_invalid_shape(self):
         with pytest.raises(ValueError):
             reduce_box_vectors(np.empty((2, 3)))
 
-    def test_reduced_box_vectors(self):
+    def test_reduced_2d(self):
         assert np.allclose(
-            reduce_box_vectors(self.reduced_box_vectors),
-            self.reduced_box_vectors,
+            reduce_box_vectors(self.reduced_box_vectors_2d),
+            self.reduced_box_vectors_2d,
         )
 
-    def test_general_triclinic_simulation_box(self):
+    def test_reduced_3d(self):
         assert np.allclose(
-            reduce_box_vectors(self.box_vectors), self.reduced_box_vectors
+            reduce_box_vectors(self.reduced_box_vectors_3d),
+            self.reduced_box_vectors_3d,
         )
 
-    def test_openmm_quantities(self):
+    def test_general_triclinic_2d(self):
         assert np.allclose(
-            reduce_box_vectors(self.box_vectors * unit.nanometer),
-            self.reduced_box_vectors * unit.nanometer,
+            reduce_box_vectors(self.box_vectors_2d), self.reduced_box_vectors_2d
         )
 
-    def test_pint_quantities(self):
+    def test_general_triclinic_3d(self):
         assert np.allclose(
-            reduce_box_vectors(self.box_vectors * ureg.nanometer),
-            self.reduced_box_vectors * ureg.nanometer,
+            reduce_box_vectors(self.box_vectors_3d), self.reduced_box_vectors_3d
+        )
+
+    def test_openmm_quantity_2d(self):
+        assert np.allclose(
+            reduce_box_vectors(self.box_vectors_2d * unit.nanometer),
+            self.reduced_box_vectors_2d * unit.nanometer,
+        )
+
+    def test_openmm_quantity_3d(self):
+        assert np.allclose(
+            reduce_box_vectors(self.box_vectors_3d * unit.nanometer),
+            self.reduced_box_vectors_3d * unit.nanometer,
+        )
+
+    def test_pint_quantity_2d(self):
+        assert np.allclose(
+            reduce_box_vectors(self.box_vectors_2d * ureg.nanometer),
+            self.reduced_box_vectors_2d * ureg.nanometer,
+        )
+
+    def test_pint_quantity_3d(self):
+        assert np.allclose(
+            reduce_box_vectors(self.box_vectors_3d * ureg.nanometer),
+            self.reduced_box_vectors_3d * ureg.nanometer,
         )
 
 
 class TestFunctionConvertCellRepresentation:
     @classmethod
     def setup_class(cls):
-        cls.dimensions = np.array((3.0, 4.0, 5.0))
-        cls.dimensions_with_units = cls.dimensions * ureg.nanometer
-        cls.parameters = np.array((*cls.dimensions, 90.0, 90.0, 90.0))
-        cls.vectors = np.diag(cls.dimensions)
-        cls.vectors_with_units = cls.vectors * ureg.nanometer
+        cls.dimensions_3d = np.array((3.0, 4.0, 5.0))
+        cls.dimensions_with_units_3d = cls.dimensions_3d * ureg.nanometer
+        cls.parameters_3d = np.array((*cls.dimensions_3d, 90.0, 90.0, 90.0))
+        cls.vectors_3d = np.diag(cls.dimensions_3d)
+        cls.vectors_with_units_3d = cls.vectors_3d * ureg.nanometer
 
-    def test_invalid_input_shape(self):
+    def test_invalid_shape(self):
         with pytest.raises(ValueError):
             convert_cell_representation(np.empty(4), "vectors")
 
-    def test_dimensions_to_parameters(self):
+    def test_dimensions_to_parameters_3d(self):
         assert np.allclose(
-            convert_cell_representation(self.dimensions, "parameters"),
-            self.parameters,
+            convert_cell_representation(self.dimensions_3d, "parameters"),
+            self.parameters_3d,
         )
 
-    def test_dimensions_to_vectors(self):
+    def test_dimensions_to_vectors_3d(self):
         assert np.allclose(
-            convert_cell_representation(self.dimensions, "vectors"),
-            self.vectors,
+            convert_cell_representation(self.dimensions_3d, "vectors"),
+            self.vectors_3d,
         )
 
-    def test_dimensions_with_units_to_vectors(self):
+    def test_dimensions_with_units_to_vectors_3d(self):
         assert np.allclose(
-            convert_cell_representation(self.dimensions_with_units, "vectors"),
-            self.vectors_with_units,
+            convert_cell_representation(
+                self.dimensions_with_units_3d, "vectors"
+            ),
+            self.vectors_with_units_3d,
         )
 
-    def test_parameters_to_dimensions(self):
+    def test_parameters_to_dimensions_3d(self):
         assert np.allclose(
-            convert_cell_representation(self.parameters, "dimensions"),
-            self.dimensions,
+            convert_cell_representation(self.parameters_3d, "dimensions"),
+            self.dimensions_3d,
         )
 
-    def test_parameters_to_parameters(self):
+    def test_parameters_to_parameters_3d(self):
         assert np.allclose(
-            convert_cell_representation(self.parameters, "parameters"),
-            self.parameters,
+            convert_cell_representation(self.parameters_3d, "parameters"),
+            self.parameters_3d,
         )
 
-    def test_parameters_to_vectors(self):
+    def test_parameters_to_vectors_3d(self):
         assert np.allclose(
-            convert_cell_representation(self.parameters, "vectors"),
-            self.vectors,
+            convert_cell_representation(self.parameters_3d, "vectors"),
+            self.vectors_3d,
         )
 
-    def test_vectors_to_dimensions(self):
+    def test_vectors_to_dimensions_3d(self):
         assert np.allclose(
-            convert_cell_representation(self.vectors, "dimensions"),
-            self.dimensions,
+            convert_cell_representation(self.vectors_3d, "dimensions"),
+            self.dimensions_3d,
         )
 
-    def test_vectors_to_parameters(self):
+    def test_vectors_to_parameters_3d(self):
         assert np.allclose(
-            convert_cell_representation(self.vectors, "parameters"),
-            self.parameters,
+            convert_cell_representation(self.vectors_3d, "parameters"),
+            self.parameters_3d,
         )
 
-    def test_vectors_with_units_to_dimensions(self):
+    def test_vectors_with_units_to_dimensions_3d(self):
         assert np.allclose(
-            convert_cell_representation(self.vectors_with_units, "dimensions"),
-            self.dimensions_with_units,
+            convert_cell_representation(
+                self.vectors_with_units_3d, "dimensions"
+            ),
+            self.dimensions_with_units_3d,
         )
 
 
@@ -143,37 +177,35 @@ class TestFunctionScaleTriclinicCoordinates:
 
     def test_invalid_coordinates_type(self):
         with pytest.raises(TypeError):
-            scale_triclinic_coordinates([0, 0, 0], self.box_vectors)
+            scale_coordinates([0, 0, 0], self.box_vectors)
 
     def test_invalid_coordinates_shape(self):
         with pytest.raises(ValueError):
-            scale_triclinic_coordinates(np.empty(1), self.box_vectors)
+            scale_coordinates(np.empty(1), self.box_vectors)
 
     def test_invalid_box_vectors_shape(self):
         with pytest.raises(ValueError):
-            scale_triclinic_coordinates(self.coordinates, self.box_vectors[:2])
+            scale_coordinates(self.coordinates, self.box_vectors[:2])
 
     def test_invalid_scaled_flags_length(self):
         with pytest.raises(ValueError):
-            scale_triclinic_coordinates(
+            scale_coordinates(
                 self.coordinates, self.box_vectors, [False, False]
             )
 
     def test_unscaled_xyz(self):
         test = self.coordinates.copy()
-        scale_triclinic_coordinates(test, self.box_vectors)
+        scale_coordinates(test, self.box_vectors)
         assert np.allclose(test, self.fractional_coordinates)
 
     def test_unscaled_xy(self):
         test = self.coordinates.copy()
         test[:, 2] = self.fractional_coordinates[:, 2]
-        scale_triclinic_coordinates(
-            test, self.box_vectors, [False, False, True]
-        )
+        scale_coordinates(test, self.box_vectors, [False, False, True])
         assert np.allclose(test, self.fractional_coordinates)
 
     def test_unscaled_y(self):
         test = self.coordinates.copy()
         test[:, [0, 2]] = self.fractional_coordinates[:, [0, 2]]
-        scale_triclinic_coordinates(test, self.box_vectors, [True, False, True])
+        scale_coordinates(test, self.box_vectors, [True, False, True])
         assert np.allclose(test, self.fractional_coordinates)

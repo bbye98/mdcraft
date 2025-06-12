@@ -17,7 +17,7 @@ from .base import BaseTopologyReader, BaseTrajectoryReader
 from .. import FOUND, Q_, U_, ureg
 from ..utility.topology import (
     convert_cell_representation,
-    scale_triclinic_coordinates,
+    scale_coordinates,
     reduce_box_vectors,
 )
 from ..utility.unit import strip_unit
@@ -331,7 +331,9 @@ class LAMMPSDataReader(BaseTopologyReader):  # TODO
                 )
             box_vectors = np.diag((xhi - xlo, yhi - ylo, zhi - zlo))
             if "xy xz yz" in self._dimensions:
-                *box_vectors[1:, 0], box_vectors[2, 1] = self._dimensions["xy xz yz"]
+                *box_vectors[1:, 0], box_vectors[2, 1] = self._dimensions[
+                    "xy xz yz"
+                ]
         elif "avec" in self._dimensions:
             box_vectors = np.stack(
                 (
@@ -340,13 +342,17 @@ class LAMMPSDataReader(BaseTopologyReader):  # TODO
                     self._dimensions["cvec"],
                 )
             )
-        self._dimensions = convert_cell_representation(box_vectors, "parameters")
+        self._dimensions = convert_cell_representation(
+            box_vectors, "parameters"
+        )
 
         # Find all sections
         file_size = self._filename.stat().st_size
         start = self._file.tell() - len(line) - 1
         if self._n_workers > 1:
-            chunk_size = np.ceil((file_size - start) / self._n_workers).astype(int)
+            chunk_size = np.ceil((file_size - start) / self._n_workers).astype(
+                int
+            )
             self._offsets = {}
             with concurrent.futures.ProcessPoolExecutor(
                 max_workers=self._n_workers
@@ -481,7 +487,9 @@ class LAMMPSDataReader(BaseTopologyReader):  # TODO
                 )
         else:
             # data = np.loadtxt(file, max_rows=n_lines)
-            data = pd.read_csv(file, sep="\\s+", header=None, nrows=n_lines).to_numpy()
+            data = pd.read_csv(
+                file, sep="\\s+", header=None, nrows=n_lines
+            ).to_numpy()
             if section == "Atoms":
                 for i, attribute in enumerate(self._atom_style):
                     if attribute.endswith("*"):
@@ -489,7 +497,11 @@ class LAMMPSDataReader(BaseTopologyReader):  # TODO
                             :,
                             i : (
                                 -n_columns_left
-                                if (n_columns_left := len(self._atom_style) - i - 1)
+                                if (
+                                    n_columns_left := len(self._atom_style)
+                                    - i
+                                    - 1
+                                )
                                 else None
                             ),
                         ]
@@ -1091,13 +1103,17 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
         for _ in range(n_skip_lines):
             self._file.readline()
         if self._dump_style == "grid":
-            self._n_entities = np.prod(np.array(self._file.readline().split(), int))
+            self._n_entities = np.prod(
+                np.array(self._file.readline().split(), int)
+            )
 
         # Get and store attributes available in file
         self._attributes = {
             attr: col
             for col, attr in enumerate(
-                self._file.readline().removeprefix(attributes_header_prefix).split()
+                self._file.readline()
+                .removeprefix(attributes_header_prefix)
+                .split()
             )
         }
 
@@ -1144,7 +1160,9 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
                     )
                 self._coordinate_formats = []
                 for axis in "xyz":
-                    if col := self._attributes.get(f"{axis}{coordinate_formats}"):
+                    if col := self._attributes.get(
+                        f"{axis}{coordinate_formats}"
+                    ):
                         self._attribute_columns["positions"].append(col)
                         self._coordinate_formats.append(coordinate_formats)
                     else:
@@ -1221,7 +1239,9 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
                             if (split_index := attr.rfind("[")) != -1:
                                 name = attr[:split_index]
                                 index = int(attr[split_index + 1 : -1])
-                                self._extra_attribute_indices[name].append(index)
+                                self._extra_attribute_indices[name].append(
+                                    index
+                                )
                                 extra_attribute_columns[name][index] = col
                             else:
                                 self._extra_attribute_indices[attr] = None
@@ -1229,14 +1249,16 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
                         else:
                             for name, attrs in self._EXTRA_ATTRIBUTES.items():
                                 if attr in attrs:
-                                    extra_attribute_columns[name][attrs.index(attr)] = (
-                                        col
-                                    )
+                                    extra_attribute_columns[name][
+                                        attrs.index(attr)
+                                    ] = col
                 for name, cols in extra_attribute_columns.items():
                     if name in self._EXTRA_ATTRIBUTES:
-                        self._extra_attribute_indices[name] = extra_attribute_columns[
+                        self._extra_attribute_indices[
                             name
-                        ] = [i for _, i in sorted(cols.items())]
+                        ] = extra_attribute_columns[name] = [
+                            i for _, i in sorted(cols.items())
+                        ]
                     elif self._extra_attribute_indices[name] is not None:
                         self._extra_attribute_indices[name].sort()
                         extra_attribute_columns[name] = [
@@ -1318,7 +1340,10 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
                         elif time_step is not None:
                             self._time_step = None
                     if self._dump_style != "grid":
-                        if n_entities is not False and self._n_entities != n_entities:
+                        if (
+                            n_entities is not False
+                            and self._n_entities != n_entities
+                        ):
                             if self._n_entities is True:
                                 self._n_entities = n_entities
                             elif n_entities is not None:
@@ -1365,7 +1390,8 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
             self._time_step = (
                 None
                 if len(self._times) == 1
-                or len(time_steps := set(np.round(np.diff(self._times), 15))) > 1
+                or len(time_steps := set(np.round(np.diff(self._times), 15)))
+                > 1
                 else time_steps.pop()
             )
         if isinstance(self._n_entities, bool):
@@ -1451,7 +1477,9 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
         byte_counter = file.seek(start)
 
         is_style_grid = self._dump_style == "grid"
-        frame_marker = "ITEM: TIME" if self._has_time_header else "ITEM: TIMESTEP"
+        frame_marker = (
+            "ITEM: TIME" if self._has_time_header else "ITEM: TIMESTEP"
+        )
         n_preheader_lines = 5 + 4 * is_style_grid
 
         dt = time_step = n_entities = False
@@ -1478,7 +1506,9 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
                 if is_style_grid:
                     n_entities = _n_entities = self._n_entities
                 else:
-                    byte_counter += len(file.readline())  # ITEM: NUMBER OF [...]
+                    byte_counter += len(
+                        file.readline()
+                    )  # ITEM: NUMBER OF [...]
                     _n_entities = file.readline()
                     byte_counter += len(_n_entities)  # <n_entities>
                     n_entities = _n_entities = int(_n_entities)
@@ -1511,14 +1541,18 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
                             time_step = _time_step
                         elif time_step is not None:
                             time_step = None
-                    if not np.isclose(dt, _dt := _time_step / (timestep - _timestep)):
+                    if not np.isclose(
+                        dt, _dt := _time_step / (timestep - _timestep)
+                    ):
                         if dt is False:
                             dt = _dt
                         elif dt is not None:
                             dt = None
                     _time, _timestep = time, timestep
                 if not is_style_grid:
-                    byte_counter += len(file.readline())  # ITEM: NUMBER OF [...]
+                    byte_counter += len(
+                        file.readline()
+                    )  # ITEM: NUMBER OF [...]
                     _n_entities = file.readline()
                     byte_counter += len(_n_entities)  # <n_entities>
                     _n_entities = int(_n_entities)
@@ -1620,14 +1654,19 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
             n_entities = self.n_grids
         else:
             file.readline()  # ITEM: NUMBER OF [...]
-            frame_data[f"n_{self._entity_name}"] = n_entities = int(file.readline())
+            frame_data[f"n_{self._entity_name}"] = n_entities = int(
+                file.readline()
+            )
 
         # Read system dimensions
         if is_general_triclinic := "abc origin" in (
             box_header := file.readline()
         ):  # ITEM: BOX BOUNDS
             box_vectors = np.vstack(
-                [[float(val) for val in file.readline().split()[:3]] for _ in range(3)]
+                [
+                    [float(val) for val in file.readline().split()[:3]]
+                    for _ in range(3)
+                ]
             )
             frame_data["dimensions"] = convert_cell_representation(
                 box_vectors, "parameters"
@@ -1656,7 +1695,7 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
             ylo, yhi = (float(val) for val in file.readline().split())
             zlo, zhi = (float(val) for val in file.readline().split())
             frame_data["dimensions"] = np.array(
-                (xhi - xlo, yhi - ylo, zhi - zlo, 90, 90, 90)
+                (xhi - xlo, yhi - ylo, zhi - zlo, 90.0, 90.0, 90.0)
             )
             box_vectors = convert_cell_representation(
                 frame_data["dimensions"], "vectors"
@@ -1666,10 +1705,17 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
 
         # Read frame data
         # data = np.loadtxt(file, max_rows=n_entities)
-        data = pd.read_csv(file, sep="\\s+", header=None, nrows=n_entities).to_numpy()
+        data = pd.read_csv(
+            file, sep="\\s+", header=None, nrows=n_entities
+        ).to_numpy()
         for name, columns in self._attribute_columns.items():
-            frame_data[name] = data[:, [col or 0 for col in columns]]
-            frame_data[name][:, [i for i, col in enumerate(columns) if col is None]] = 0
+            if isinstance(columns, int):
+                frame_data[name] = data[:, columns]
+            else:
+                frame_data[name] = data[:, [col or 0 for col in columns]]
+                frame_data[name][
+                    :, [i for i, col in enumerate(columns) if col is None]
+                ] = 0
             if name in {"ids", "molecule_ids", "types"} or name.startswith(
                 ("i_", "i2_")
             ):
@@ -1685,7 +1731,7 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
                     ][:3][scaled_flags]
                 else:
                     # Rotate coordinates for triclinic boxes
-                    scale_triclinic_coordinates(
+                    scale_coordinates(
                         frame_data["positions"], box_vectors, scaled_flags
                     )
                     frame_data["positions"] @= (
@@ -1696,9 +1742,9 @@ class LAMMPSDumpReader(BaseTrajectoryReader):
 
         # Convert from LAMMPS units to consistent MDCraft units
         if convert_units:
-            frame_data["time"] = (frame_data["time"] * self._units["time"]).m_as(
-                INTERNAL_UNITS["time"]
-            )
+            frame_data["time"] = (
+                frame_data["time"] * self._units["time"]
+            ).m_as(INTERNAL_UNITS["time"])
             frame_data["dimensions"][:3] = (
                 frame_data["dimensions"][:3] * self._units["length"]
             ).m_as(INTERNAL_UNITS["length"])
@@ -1994,9 +2040,15 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
         return {
             "n_atoms": self.n_atoms,
             "time": self.get_times(frame_index, convert_units, _file=file),
-            "dimensions": self._get_dimensions(frame_index, convert_units, _file=file),
-            "positions": self.get_positions(frame_index, convert_units, _file=file),
-            "velocities": self.get_velocities(frame_index, convert_units, _file=file),
+            "dimensions": self._get_dimensions(
+                frame_index, convert_units, _file=file
+            ),
+            "positions": self.get_positions(
+                frame_index, convert_units, _file=file
+            ),
+            "velocities": self.get_velocities(
+                frame_index, convert_units, _file=file
+            ),
             "forces": self.get_forces(frame_index, convert_units, _file=file),
             # **self.get_remd_variables(frame_index, convert_units, _file=file),
             **self.get_extra_variables(frame_index, _file=file),
@@ -2236,14 +2288,19 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
                 # Fix extra parenthesis and wrong capitalization in LAMMPS units
                 units = U_(units[:-1].lower())
             if not (
-                units.is_compatible_with("J/m") or units.is_compatible_with("J/(mol*m)")
+                units.is_compatible_with("J/m")
+                or units.is_compatible_with("J/(mol*m)")
             ):
                 raise RuntimeError(
                     f"Invalid unit '{units}' found for forces exerted on atoms."
                 )
 
             length_unit = U_(
-                next(u for u in units._units if U_(u).dimensionality == "[length]")
+                next(
+                    u
+                    for u in units._units
+                    if U_(u).dimensionality == "[length]"
+                )
             )
             if self._units["length"] != length_unit:
                 if self._reduced or self._custom_units["length"]:
@@ -2269,9 +2326,9 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
                 self._custom_units["energy"] = True
 
         if convert_units and not self._reduced:
-            forces = (forces * self._units["energy"] / self._units["length"]).m_as(
-                INTERNAL_UNITS["energy"] / INTERNAL_UNITS["length"]
-            )
+            forces = (
+                forces * self._units["energy"] / self._units["length"]
+            ).m_as(INTERNAL_UNITS["energy"] / INTERNAL_UNITS["length"])
 
         if manual:
             _file.close()
@@ -2370,7 +2427,9 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
                     if unit != (_unit := getattr(var, "units", None)):
                         if unit is None:
                             unit = _unit
-                        elif not (unit in reduced_units and _unit in reduced_units):
+                        elif not (
+                            unit in reduced_units and _unit in reduced_units
+                        ):
                             raise RuntimeError(
                                 f"Unwrapped coordinates have a unit of '{_unit}', "
                                 f"which does not match '{unit}' of the other "
@@ -2403,13 +2462,18 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
                             #         )
 
                 # Check for scaled coordinates
-                if empty_flags.any() and "scaled_coordinates" in _file.variables:
+                if (
+                    empty_flags.any()
+                    and "scaled_coordinates" in _file.variables
+                ):
                     var = _file.variables["scaled_coordinates"]
                     scaled_positions = var[frame_indices]
                     scaled_filled = ~np.any(
                         scaled_positions == var.get_fill_value(), axis=0
                     )
-                    positions[..., scaled_filled] = scaled_positions[..., scaled_filled]
+                    positions[..., scaled_filled] = scaled_positions[
+                        ..., scaled_filled
+                    ]
                     empty_flags[scaled_filled] = False
 
                     # NOTE: The following code block is disabled because LAMMPS
@@ -2437,8 +2501,10 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
                 if np.allclose(dimensions[3:], 90):
                     positions[..., scaled_flags] *= dimensions[:3][scaled_flags]
                 else:
-                    box_vectors = convert_cell_representation(dimensions, "vectors")
-                    scale_triclinic_coordinates(
+                    box_vectors = convert_cell_representation(
+                        dimensions, "vectors"
+                    )
+                    scale_coordinates(
                         positions[..., scaled_flags],
                         box_vectors,
                         scaled_flags,
@@ -2617,10 +2683,16 @@ class NetCDFReader(BaseTrajectoryReader):  # TODO
         else:
             units = U_(units)
             if not units.is_compatible_with("m/s"):
-                raise RuntimeError(f"Invalid unit '{units}' found for atom velocities.")
+                raise RuntimeError(
+                    f"Invalid unit '{units}' found for atom velocities."
+                )
 
             length_unit = U_(
-                next(u for u in units._units if U_(u).dimensionality == "[length]")
+                next(
+                    u
+                    for u in units._units
+                    if U_(u).dimensionality == "[length]"
+                )
             )
             if self._units["length"] != length_unit:
                 if self._reduced or self._custom_units["length"]:
