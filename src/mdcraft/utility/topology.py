@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
+import warnings
 
 from numba import njit
 import numpy as np
@@ -223,7 +224,7 @@ def reduce_box_vectors(
 def convert_cell_representation(
     representation: np.ndarray[float_t] | "unit.Quantity" | Q_,
     output_format: str,
-    n_dimensions: int = 3,
+    n_dimensions: int | None = None,
     /,
 ) -> np.ndarray[float_t] | "unit.Quantity" | Q_:
     """
@@ -353,19 +354,38 @@ def convert_cell_representation(
     representation, length_unit = strip_unit(representation)
     representation = np.asarray(representation)
 
-    if n_dimensions == 2:
-        if (shape := representation.shape) == (2,):
-            input_format = "dimensions"
-        elif shape == (3,):
+    if (shape := representation.shape) == (2,):
+        n_dimensions = 2
+        input_format = "dimensions"
+    elif shape == (2, 2):
+        n_dimensions = 2
+        input_format = "vectors"
+    elif shape == (3,):
+        if n_dimensions == 2:
             input_format = "parameters"
-        elif shape == (2, 2):
-            input_format = "vectors"
         else:
-            raise ValueError(
-                f"Invalid shape {shape} for `representation`. "
-                "Valid shapes: (2,), (3,), (2, 2)."
-            )
+            if n_dimensions is None:
+                n_dimensions = 3
+                warnings.warn(
+                    "When `representation` has shape (3,), it can be either "
+                    "2D lattice parameters or 3D dimensions. As "
+                    "`n_dimensions` is not specified, it is assumed to be "
+                    "the latter."
+                )
+            input_format = "dimensions"
+    elif shape == (3, 3):
+        n_dimensions = 3
+        input_format = "vectors"
+    elif shape == (6,):
+        n_dimensions = 3
+        input_format = "parameters"
+    else:
+        raise ValueError(
+            f"Invalid shape {shape} for `representation`. "
+            "Valid shapes: (2,), (2, 2), (3,), (3, 3), (6,)."
+        )
 
+    if n_dimensions == 2:
         if input_format == "dimensions":
             if output_format == "parameters":
                 return np.concatenate((representation, (90.0,)))
@@ -400,20 +420,7 @@ def convert_cell_representation(
                 return parameters
             elif output_format == "dimensions":
                 representation = np.diag(representation)
-
     else:
-        if (shape := representation.shape) == (3,):
-            input_format = "dimensions"
-        elif shape == (6,):
-            input_format = "parameters"
-        elif shape == (3, 3):
-            input_format = "vectors"
-        else:
-            raise ValueError(
-                f"Invalid shape {shape} for `representation`. "
-                "Valid shapes: (3,), (6,), (3, 3)."
-            )
-
         if input_format == "dimensions":
             if output_format == "parameters":
                 return np.concatenate((representation, (90.0, 90.0, 90.0)))
@@ -480,11 +487,9 @@ def convert_cell_representation(
             elif output_format == "dimensions":
                 representation = np.diag(representation)
 
-        return (
-            representation
-            if length_unit is None
-            else representation * length_unit
-        )
+    return (
+        representation if length_unit is None else representation * length_unit
+    )
 
 
 @njit(fastmath=True)

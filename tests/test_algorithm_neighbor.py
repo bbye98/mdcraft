@@ -4,7 +4,9 @@ import sys
 from MDAnalysis.lib.distances import capped_distance
 import numpy as np
 
-sys.path.insert(0, f"{pathlib.Path(__file__).parents[1].resolve().as_posix()}/src")
+sys.path.insert(
+    0, f"{pathlib.Path(__file__).parents[1].resolve().as_posix()}/src"
+)
 from mdcraft import ureg
 from mdcraft.algorithm import neighbor
 
@@ -96,7 +98,9 @@ class TestFunctionBuildNeighborList:
 
     def test_units_orthogonal_pbc_3d(self):
         neighbor_list = neighbor.build_neighbor_list(
-            positions=self.positions, cutoff=self.cutoff, box_size=self.dimensions
+            positions=self.positions,
+            cutoff=self.cutoff,
+            box_size=self.dimensions,
         )
         assert (
             neighbor_list[0] == {1, 2}

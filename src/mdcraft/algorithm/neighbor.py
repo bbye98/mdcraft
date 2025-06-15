@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 
 @njit(fastmath=True, inline="always")
-def _build_cell_lists(
+def _build_cell_lists_orthogonal(
     positions: np.ndarray[float_t],
     cutoff: float_t,
     dimensions: np.ndarray[float_t],
@@ -62,7 +62,7 @@ def _build_cell_lists(
 
 
 @njit(fastmath=True, inline="always")
-def _compute_squared_separation_distance(
+def _compute_squared_separation_distance_orthogonal(
     position_i: np.ndarray[float_t],
     position_j: np.ndarray[float_t],
     dimensions: np.ndarray[float_t],
@@ -86,8 +86,8 @@ def _build_neighbor_list_orthogonal(
 ) -> List[set[np.uint32]]:
     # Build cell lists
     n_dimensions = len(dimensions)
-    n_cells, particle_cell_indices, cell_heads, cell_lists = _build_cell_lists(
-        positions, cutoff, dimensions
+    n_cells, particle_cell_indices, cell_heads, cell_lists = (
+        _build_cell_lists_orthogonal(positions, cutoff, dimensions)
     )
 
     # Define offsets for neighboring cells
@@ -130,21 +130,25 @@ def _build_neighbor_list_orthogonal(
             jx = (ix + cell_offsets[idx, 0]) % n_cells[0]
             jy = (iy + cell_offsets[idx, 1]) % n_cells[1]
             if n_dimensions == 2:
+                if not pbc and max(abs(ix - jx), abs(iy - jy)) > 1:
+                    continue
                 nid = cell_heads[jx, jy, 0]
             else:
-                nid = cell_heads[
-                    jx,
-                    jy,
-                    (particle_cell_indices[pid, 2] + cell_offsets[idx, 2])
-                    % n_cells[2],
-                ]
+                iz = particle_cell_indices[pid, 2]
+                jz = (iz + cell_offsets[idx, 2]) % n_cells[2]
+                if (
+                    not pbc
+                    and max(abs(ix - jx), abs(iy - jy), abs(iz - jz)) > 1
+                ):
+                    continue
+                nid = cell_heads[jx, jy, jz]
 
             # Traverse linked list of particles in current and
             # neighboring cells
             while nid != -1:
                 if pid != nid:
                     if (
-                        _compute_squared_separation_distance(
+                        _compute_squared_separation_distance_orthogonal(
                             positions[pid],
                             positions[nid],
                             dimensions,
@@ -218,7 +222,8 @@ def build_neighbor_list(
     positions = strip_unit(positions, "nm")[0]
     if positions.ndim != 2:
         raise ValueError(
-            "`positions` must be a two-dimensional array with shape (N, 2) or (N, 3)."
+            "`positions` must be a two-dimensional array with shape "
+            "(N, 2) or (N, 3)."
         )
     cutoff = strip_unit(cutoff, "nm")[0]
     if box_size is None:
@@ -240,16 +245,15 @@ def build_neighbor_list(
             False,
         )
     else:
-        box_size = strip_unit(box_size, "nm")[0]
-        if box_size.ndim == 1 and len(box_size) == 2:  # 2D orthogonal
+        box_size = convert_cell_representation(
+            strip_unit(box_size, "nm")[0], "vectors", len(box_size)
+        )
+        if np.array_equal(box_size, np.diag(np.diag(box_size))):
             return _build_neighbor_list_orthogonal(
-                positions, cutoff, box_size, pbc
+                positions,
+                cutoff,
+                convert_cell_representation(box_size, "dimensions"),
+                pbc,
             )
-        box_size = convert_cell_representation(box_size, "vectors")
-        if np.array_equal(
-            box_size, np.diag(dimensions := np.diag(box_size))
-        ):  # 3D orthogonal
-            return _build_neighbor_list_orthogonal(
-                positions, cutoff, dimensions, pbc
-            )
-        return  # 3D general triclinic
+
+        raise NotImplementedError

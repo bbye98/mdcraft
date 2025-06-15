@@ -10,8 +10,8 @@ sys.path.insert(
 )
 from mdcraft import ureg
 from mdcraft.utility.topology import (
-    reduce_box_vectors,
     convert_cell_representation,
+    reduce_box_vectors,
     scale_coordinates,
 )
 

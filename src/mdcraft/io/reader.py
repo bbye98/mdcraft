@@ -17,8 +17,8 @@ from .base import BaseTopologyReader, BaseTrajectoryReader
 from .. import FOUND, Q_, U_, ureg
 from ..utility.topology import (
     convert_cell_representation,
-    scale_coordinates,
     reduce_box_vectors,
+    scale_coordinates,
 )
 from ..utility.unit import strip_unit
 
