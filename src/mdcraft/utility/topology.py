@@ -54,7 +54,7 @@ def reduce_box_vectors(
           \\end{align*}
 
        where :math:`v=\\|\\mathbf{v}\\|` is the norm of a vector
-       :math:`\\mathbf{v}` and 
+       :math:`\\mathbf{v}` and
        :math:`\\hat{\\mathbf{v}}\\equiv\\mathbf{v}/\\|\\mathbf{v}\\|` is
        the unit vector in the direction of :math:`\\mathbf{v}`.
 
@@ -102,7 +102,7 @@ def reduce_box_vectors(
           \\end{align*}
 
        where :math:`v=\\|\\mathbf{v}\\|` is the norm of a vector
-       :math:`\\mathbf{v}` and 
+       :math:`\\mathbf{v}` and
        :math:`\\hat{\\mathbf{v}}\\equiv\\mathbf{v}/\\|\\mathbf{v}\\|` is
        the unit vector in the direction of :math:`\\mathbf{v}`.
 
@@ -231,11 +231,11 @@ def convert_cell_representation(
 
     .. dropdown:: Two-dimensional (2D) systems
 
-       For a square simulation box, the supported input and output 
+       For a square simulation box, the supported input and output
        formats are
 
-       * its dimensions :math:`(L_x,L_y)`, where :math:`L_x` and 
-         :math:`L_y` are the lengths along the :math:`x`- and 
+       * its dimensions :math:`(L_x,L_y)`, where :math:`L_x` and
+         :math:`L_y` are the lengths along the :math:`x`- and
          :math:`y`-axes, respectively,
        * its lattice parameters :math:`(a,b,\\gamma)`, where :math:`a`
          and :math:`b` are the cell lengths and :math:`\\gamma` is the
@@ -245,15 +245,15 @@ def convert_cell_representation(
     .. dropdown:: Three-dimensional (3D) systems
        :open:
 
-       For a cubic simulation box, the supported input and output 
+       For a cubic simulation box, the supported input and output
        formats are
 
-       * its dimensions :math:`(L_x,L_y,L_z)`, where :math:`L_x`, 
-         :math:`L_y`, and :math:`L_z` are the lengths along the 
+       * its dimensions :math:`(L_x,L_y,L_z)`, where :math:`L_x`,
+         :math:`L_y`, and :math:`L_z` are the lengths along the
          :math:`x`-, :math:`y`-, and :math:`z`-axes, respectively,
        * its lattice parameters :math:`(a,b,c,\\alpha,\\beta,\\gamma)`,
          where :math:`a`, :math:`b`, and :math:`c` are the cell lengths
-         and :math:`\\alpha`, :math:`\\beta`, and :math:`\\gamma` are 
+         and :math:`\\alpha`, :math:`\\beta`, and :math:`\\gamma` are
          the cell angles, and
        * its box vectors :math:`(\\mathbf{a};\\mathbf{b};\\mathbf{c})`.
 
@@ -487,65 +487,151 @@ def convert_cell_representation(
         )
 
 
-# @njit(fastmath=True)
+@njit(fastmath=True)
 def _scale_coordinates(
     coordinates: np.ndarray[float_t],
     box_vectors: np.ndarray[float_t],
-    scaled_mask: np.uint8,
+    scaled_flags: np.ndarray[np.bool_],
 ) -> None:
-    n_dimensions = coordinates.shape[1]
+    """
+    Numba-accelerated function for scaling the coordinates of entities
+    in a general parallelogram or triclinic simulation box to get the
+    fractional coordinates.
+
+    Parameters
+    ----------
+    coordinates : `numpy.ndarray`
+        Coordinates of :math:`N` entities.
+
+        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    box_vectors : `numpy.ndarray`
+        Box vectors :math:`(\\mathbf{A};\\mathbf{B}[;\\mathbf{C}])`.
+
+        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    scaled_flags : `numpy.ndarray`
+        Flags indicating whether the coordinates are already scaled
+        along the respective axes.
+
+        **Shape**: :math:`(3,)`.
+    """
+
+    # All coordinates are already scaled; nothing to do
+    if scaled_flags.all():
+        return
+
+    # Get number of entities and dimensions
+    n_entities, n_dimensions = coordinates.shape
+
+    # All coordinates are unscaled
+    if not scaled_flags.any():
+        # Compute inverse box vectors
+        inv_box_vectors = np.empty(
+            (n_dimensions, n_dimensions), dtype=box_vectors.dtype
+        )
+        if n_dimensions == 2:
+            determinant = (
+                box_vectors[0, 0] * box_vectors[1, 1]
+                - box_vectors[0, 1] * box_vectors[1, 0]
+            )
+            inv_box_vectors[0, 0] = box_vectors[1, 1] / determinant
+            inv_box_vectors[0, 1] = -box_vectors[0, 1] / determinant
+            inv_box_vectors[1, 0] = -box_vectors[1, 0] / determinant
+            inv_box_vectors[1, 1] = box_vectors[0, 0] / determinant
+        else:
+            bv00, bv01, bv02 = box_vectors[0]
+            bv10, bv11, bv12 = box_vectors[1]
+            bv20, bv21, bv22 = box_vectors[2]
+            inv_box_vectors[0, 0] = bv11 * bv22 - bv12 * bv21
+            inv_box_vectors[0, 1] = bv02 * bv21 - bv01 * bv22
+            inv_box_vectors[0, 2] = bv01 * bv12 - bv02 * bv11
+            inv_box_vectors[1, 0] = bv12 * bv20 - bv10 * bv22
+            inv_box_vectors[1, 1] = bv00 * bv22 - bv02 * bv20
+            inv_box_vectors[1, 2] = bv02 * bv10 - bv00 * bv12
+            inv_box_vectors[2, 0] = bv10 * bv21 - bv11 * bv20
+            inv_box_vectors[2, 1] = bv01 * bv20 - bv00 * bv21
+            inv_box_vectors[2, 2] = bv00 * bv11 - bv01 * bv10
+            determinant = (
+                bv00 * inv_box_vectors[0, 0]
+                + bv01 * inv_box_vectors[1, 0]
+                + bv02 * inv_box_vectors[2, 0]
+            )
+            for i in range(3):
+                for j in range(3):
+                    inv_box_vectors[i, j] /= determinant
+
+        # Scale coordinates
+        entity_scaled_coordinates = np.empty(
+            n_dimensions, dtype=coordinates.dtype
+        )
+        for eid in range(n_entities):
+            for dim in range(n_dimensions):
+                entity_scaled_coordinates[dim] = 0.0
+                for other_dim in range(n_dimensions):
+                    entity_scaled_coordinates[dim] += (
+                        coordinates[eid, other_dim]
+                        * inv_box_vectors[dim, other_dim]
+                    )
+            for dim in range(n_dimensions):
+                coordinates[eid, dim] = entity_scaled_coordinates[dim]
+        return
+
+    # Define the indices of the other axes for each axis
     if n_dimensions == 2:
-        other_indices = np.array(((1,), (0,)), np.uint8)
+        other_axis_indices = np.array(((1,), (0,)), np.uint8)
     else:
-        other_indices = np.array(((1, 2), (0, 2), (0, 1)), np.uint8)
-    for axis in range(n_dimensions):
-        scaled = (scaled_mask >> axis) & 1
-        other_axes = other_indices[axis]
-        other_scaled_mask = scaled_mask[other_axes]
+        other_axis_indices = np.array(((1, 2), (0, 2), (0, 1)), np.uint8)
 
-        debug = True
-
-    # if not any(scaled_flags):
-    #     coordinates @= np.linalg.inv(box_vectors).T
-    #     return
-    # elif not all(scaled_flags):
-    #     for axis_index, scaled_flag in enumerate(scaled_flags):
-    #         if not scaled_flag:
-    #             other_indices = [0, 1, 2]
-    #             other_scaled_flags = scaled_flags.copy()
-    #             del other_indices[axis_index], other_scaled_flags[axis_index]
-    #             if all(other_scaled_flags):
-    #                 for other_index in other_indices:
-    #                     coordinates[:, axis_index] -= (
-    #                         coordinates[:, other_index]
-    #                         * box_vectors[axis_index, other_index]
-    #                     )
-    #                 coordinates[:, axis_index] /= box_vectors[
-    #                     axis_index, axis_index
-    #                 ]
-    #             else:
-    #                 scaled_index, unscaled_index = other_indices[
-    #                     :: (2 * other_scaled_flags[0] - 1)
-    #                 ]
-    #                 coordinates[:, axis_index] = (
-    #                     box_vectors[unscaled_index, unscaled_index]
-    #                     * coordinates[:, axis_index]
-    #                     - box_vectors[axis_index, unscaled_index]
-    #                     * coordinates[:, unscaled_index]
-    #                     + coordinates[:, scaled_index]
-    #                     * (
-    #                         box_vectors[axis_index, unscaled_index]
-    #                         * box_vectors[unscaled_index, scaled_index]
-    #                         - box_vectors[unscaled_index, unscaled_index]
-    #                         * box_vectors[axis_index, scaled_index]
-    #                     )
-    #                 ) / (
-    #                     box_vectors[axis_index, axis_index]
-    #                     * box_vectors[unscaled_index, unscaled_index]
-    #                     - box_vectors[axis_index, unscaled_index]
-    #                     * box_vectors[unscaled_index, axis_index]
-    #                 )
-    #             scaled_flags[axis_index] = True
+    # Scale coordinates
+    other_indices = np.empty(n_dimensions - 1, dtype=np.uint8)
+    other_scaled_flags = np.empty(n_dimensions - 1, dtype=np.bool_)
+    for axis_index in range(n_dimensions):
+        if not scaled_flags[axis_index]:
+            for oii in range(n_dimensions):
+                other_indices[oii] = other_axis_indices[axis_index, oii]
+                other_scaled_flags[oii] = scaled_flags[other_indices[oii]]
+            if other_scaled_flags.all():
+                for eid in range(n_entities):
+                    for other_index in other_indices:
+                        coordinates[eid, axis_index] -= (
+                            coordinates[eid, other_index]
+                            * box_vectors[axis_index, other_index]
+                        )
+                    coordinates[eid, axis_index] /= box_vectors[
+                        axis_index, axis_index
+                    ]
+            else:
+                if other_scaled_flags[0]:
+                    scaled_index = other_indices[0]
+                    unscaled_index = other_indices[1]
+                else:
+                    scaled_index = other_indices[1]
+                    unscaled_index = other_indices[0]
+                for eid in range(n_entities):
+                    coordinates[eid, axis_index] = (
+                        box_vectors[unscaled_index, unscaled_index]
+                        * coordinates[eid, axis_index]
+                        - box_vectors[axis_index, unscaled_index]
+                        * coordinates[eid, unscaled_index]
+                        + coordinates[eid, scaled_index]
+                        * (
+                            box_vectors[axis_index, unscaled_index]
+                            * box_vectors[unscaled_index, scaled_index]
+                            - box_vectors[unscaled_index, unscaled_index]
+                            * box_vectors[axis_index, scaled_index]
+                        )
+                    ) / (
+                        box_vectors[axis_index, axis_index]
+                        * box_vectors[unscaled_index, unscaled_index]
+                        - box_vectors[axis_index, unscaled_index]
+                        * box_vectors[unscaled_index, axis_index]
+                    )
+            scaled_flags[axis_index] = True
 
 
 def scale_coordinates(
@@ -673,6 +759,7 @@ def scale_coordinates(
            [0.33333333, 0.5       , 0.6       ])
     """
 
+    # Check user input
     n_possible_dimensions = {2, 3}
     if not isinstance(coordinates, np.ndarray):
         raise TypeError("`coordinates` must be a NumPy array.")
@@ -684,63 +771,23 @@ def scale_coordinates(
             f"Invalid shape {coordinates.shape} for `coordinates`. "
             "Valid shapes: (N, 2) or (N, 3)."
         )
-
-    box_vectors = strip_unit(box_vectors, "nm")[0]
-    box_vectors = np.asarray(box_vectors)
-    if box_vectors.shape not in {(2, 2), (3, 3)}:
+    n_dimensions = coordinates.shape[1]
+    box_vectors = np.asarray(strip_unit(box_vectors, "nm")[0])
+    if box_vectors.shape != (n_dimensions, n_dimensions):
         raise ValueError(
-            f"Invalid shape {box_vectors.shape} for `box_vectors`."
-            "Valid shapes: (N, 2) or (N, 3)."
+            "`box_vectors` must have dimensions "
+            f"({n_dimensions}, {n_dimensions}) to be compatible with "
+            "`coordinates`."
         )
     if scaled_flags is None:
-        scaled_flags = [False, False, False]
-    elif len(scaled_flags) not in n_possible_dimensions:
-        raise ValueError("`scaled_flags` must be an array with length 3.")
+        scaled_flags = np.array((False, False, False), dtype=np.bool_)
+    elif len(scaled_flags) != n_dimensions:
+        raise ValueError(
+            f"`scaled_flags` must have length {n_dimensions} to be "
+            "compatible with `coordinates`."
+        )
+    else:
+        scaled_flags = np.asarray(scaled_flags, dtype=np.bool_)
 
-    _scale_coordinates(
-        coordinates,
-        box_vectors,
-        ((scaled_flags[2] << 2) | (scaled_flags[1] << 1) | scaled_flags[0]),
-    )
-
-    # if not any(scaled_flags):
-    #     coordinates @= np.linalg.inv(box_vectors).T
-    #     return
-    # elif not all(scaled_flags):
-    #     for axis_index, scaled_flag in enumerate(scaled_flags):
-    #         if not scaled_flag:
-    #             other_indices = [0, 1, 2]
-    #             other_scaled_flags = scaled_flags.copy()
-    #             del other_indices[axis_index], other_scaled_flags[axis_index]
-    #             if all(other_scaled_flags):
-    #                 for other_index in other_indices:
-    #                     coordinates[:, axis_index] -= (
-    #                         coordinates[:, other_index]
-    #                         * box_vectors[axis_index, other_index]
-    #                     )
-    #                 coordinates[:, axis_index] /= box_vectors[
-    #                     axis_index, axis_index
-    #                 ]
-    #             else:
-    #                 scaled_index, unscaled_index = other_indices[
-    #                     :: (2 * other_scaled_flags[0] - 1)
-    #                 ]
-    #                 coordinates[:, axis_index] = (
-    #                     box_vectors[unscaled_index, unscaled_index]
-    #                     * coordinates[:, axis_index]
-    #                     - box_vectors[axis_index, unscaled_index]
-    #                     * coordinates[:, unscaled_index]
-    #                     + coordinates[:, scaled_index]
-    #                     * (
-    #                         box_vectors[axis_index, unscaled_index]
-    #                         * box_vectors[unscaled_index, scaled_index]
-    #                         - box_vectors[unscaled_index, unscaled_index]
-    #                         * box_vectors[axis_index, scaled_index]
-    #                     )
-    #                 ) / (
-    #                     box_vectors[axis_index, axis_index]
-    #                     * box_vectors[unscaled_index, unscaled_index]
-    #                     - box_vectors[axis_index, unscaled_index]
-    #                     * box_vectors[unscaled_index, axis_index]
-    #                 )
-    #             scaled_flags[axis_index] = True
+    # Call Numba function to scale coordinates
+    _scale_coordinates(coordinates, box_vectors, scaled_flags)
