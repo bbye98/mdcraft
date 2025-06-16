@@ -15,6 +15,277 @@ if TYPE_CHECKING:
     from .. import float_t
 
 
+def convert_cell_representation(
+    representation: np.ndarray[float_t] | "unit.Quantity" | Q_,
+    output_format: str,
+    n_dimensions: int | None = None,
+    /,
+) -> np.ndarray[float_t] | "unit.Quantity" | Q_:
+    """
+    Converts between cell representations for a simulation box.
+
+    .. dropdown:: Two-dimensional (2D) systems
+
+       For a square simulation box, the supported input and output
+       formats are
+
+       * its dimensions :math:`(L_x,L_y)`, where :math:`L_x` and
+         :math:`L_y` are the lengths along the :math:`x`- and
+         :math:`y`-axes, respectively,
+       * its lattice parameters :math:`(a,b,\\gamma)`, where :math:`a`
+         and :math:`b` are the cell lengths and :math:`\\gamma` is the
+         cell angle, and
+       * its box vectors :math:`(\\mathbf{a};\\mathbf{b})`.
+
+    .. dropdown:: Three-dimensional (3D) systems
+       :open:
+
+       For a cubic simulation box, the supported input and output
+       formats are
+
+       * its dimensions :math:`(L_x,L_y,L_z)`, where :math:`L_x`,
+         :math:`L_y`, and :math:`L_z` are the lengths along the
+         :math:`x`-, :math:`y`-, and :math:`z`-axes, respectively,
+       * its lattice parameters :math:`(a,b,c,\\alpha,\\beta,\\gamma)`,
+         where :math:`a`, :math:`b`, and :math:`c` are the cell lengths
+         and :math:`\\alpha`, :math:`\\beta`, and :math:`\\gamma` are
+         the cell angles, and
+       * its box vectors :math:`(\\mathbf{a};\\mathbf{b};\\mathbf{c})`.
+
+    Parameters
+    ----------
+    representation : `numpy.ndarray`, `openmm.unit.Quantity`, or \
+    `pint.Quantity`, positional-only
+        Dimensions :math:`(L_x,L_y[,L_z])`, lattice parameters
+        :math:`(a,b[,c,\\alpha,\\beta],\\gamma)`, or box
+        vectors :math:`(\\mathbf{a};\\mathbf{b}[;\\mathbf{c}])`.
+
+        .. note::
+
+           Lattice parameters should always be provided in an array
+           without explicit units.
+
+        .. container::
+
+           **Shapes**:
+
+           * 2D: :math:`(2,)` for dimensions, :math:`(3,)` for lattice
+             parameters, or :math:`(2,2)` for box vectors.
+           * 3D: :math:`(3,)` for dimensions, :math:`(6,)` for lattice
+             parameters, or :math:`(3,3)` for box vectors.
+
+        **Reference units**: :math:`\\mathrm{nm}` for lengths and
+        degrees (:math:`^\\circ`) for angles.
+
+    output_format : `str`, positional-only
+        Desired cell representation.
+
+        .. container::
+
+           **Valid values**:
+
+           * :code:`"dimensions"` for dimensions,
+           * :code:`"parameters"` for lattice parameters, or
+           * :code:`"vectors"` for box vectors.
+
+    n_dimensions : `int`, positional-only, default: :code:`3`
+        Dimensionality of the simulation box.
+
+        **Valid values**: :code:`2` or :code:`3`.
+
+    Returns
+    -------
+    new_representation : `numpy.ndarray`, `openmm.unit.Quantity`, or \
+    `pint.Quantity`
+        Cell representation in the desired format.
+
+        .. note::
+
+           Lattice parameters will always be returned in an array
+           without explicit units, even if the starting cell
+           representation is an OpenMM or Pint quantity.
+
+        .. container::
+
+           **Shapes**:
+
+           * 2D: :math:`(2,)` for dimensions, :math:`(3,)` for lattice
+             parameters, or :math:`(2,2)` for box vectors.
+           * 3D: :math:`(3,)` for dimensions, :math:`(6,)` for lattice
+             parameters, or :math:`(3,3)` for box vectors.
+
+        **Reference units**: :math:`\\mathrm{nm}` for lengths and
+        degrees (:math:`^\\circ`) for angles.
+
+    Examples
+    --------
+    Let us start with a cubic simulation box with dimensions
+    :math:`(3,4,5)~\\mathrm{nm}`:
+
+    >>> dimensions = np.array((3.0, 4.0, 5.0))
+
+    We can convert the dimensions to lattice parameters using
+
+    >>> convert_cell_representation(dimensions, "parameters")
+    array([3., 4., 5., 90., 90., 90.])
+
+    Alternatively, we can convert the dimensions to box vectors using
+
+    >>> convert_cell_representation(dimensions, "vectors")
+    array([[3., 0., 0.],
+           [0., 4., 0.],
+           [0., 0., 5.]])
+
+    If the dimensions are provided as an OpenMM or Pint quantity, the
+    output will have units attached:
+
+    >>> convert_cell_representation(dimensions * unit.nanometer, "vectors")
+    Quantity(value=array([[3., 0., 0.],
+           [0., 4., 0.],
+           [0., 0., 5.]]), unit=nanometer)
+    """
+
+    representation, length_unit = strip_unit(representation)
+    representation = np.asarray(representation)
+
+    if (shape := representation.shape) == (2,):
+        n_dimensions = 2
+        input_format = "dimensions"
+    elif shape == (2, 2):
+        n_dimensions = 2
+        input_format = "vectors"
+    elif shape == (3,):
+        if n_dimensions == 2:
+            input_format = "parameters"
+        else:
+            if n_dimensions is None:
+                n_dimensions = 3
+                warnings.warn(
+                    "When `representation` has shape (3,), it can be either "
+                    "2D lattice parameters or 3D dimensions. As "
+                    "`n_dimensions` is not specified, it is assumed to be "
+                    "the latter."
+                )
+            input_format = "dimensions"
+    elif shape == (3, 3):
+        n_dimensions = 3
+        input_format = "vectors"
+    elif shape == (6,):
+        n_dimensions = 3
+        input_format = "parameters"
+    else:
+        raise ValueError(
+            f"Invalid shape {shape} for `representation`. "
+            "Valid shapes: (2,), (2, 2), (3,), (3, 3), (6,)."
+        )
+
+    if n_dimensions == 2:
+        if input_format == "dimensions":
+            if output_format == "parameters":
+                return np.concatenate((representation, (90.0,)))
+            elif output_format == "vectors":
+                representation = np.diag(representation)
+        elif input_format == "parameters":
+            gamma = np.radians(representation[2])
+            if output_format == "dimensions":
+                gamma = np.radians(representation[2])
+                return np.array(
+                    (representation[0], representation[1] * np.sin(gamma))
+                )
+            elif output_format == "vectors":
+                vectors = np.zeros((2, 2))
+                vectors[0, 0] = representation[0]
+                vectors[1, 0] = representation[1] * np.cos(gamma)
+                vectors[1, 1] = representation[1] * np.sin(gamma)
+                vectors[np.isclose(vectors, 0, atol=5e-6)] = 0
+                return vectors
+            return representation  # output_format == "parameters"
+        else:  # input_format == "vectors"
+            representation = reduce_box_vectors(representation)
+            if output_format == "parameters":
+                parameters = np.empty(3, dtype=representation.dtype)
+                parameters[:2] = np.linalg.norm(representation, axis=1)
+                parameters[2] = np.degrees(
+                    np.arccos(
+                        np.dot(representation[0], representation[1])
+                        / (parameters[0] * parameters[1])
+                    )
+                )
+                return parameters
+            elif output_format == "dimensions":
+                representation = np.diag(representation)
+    else:
+        if input_format == "dimensions":
+            if output_format == "parameters":
+                return np.concatenate((representation, (90.0, 90.0, 90.0)))
+            elif output_format == "vectors":
+                representation = np.diag(representation)
+        elif input_format == "parameters":
+            alpha, beta, gamma = np.radians(representation[3:])
+            if output_format == "dimensions":
+                return np.array(
+                    (
+                        representation[0],
+                        representation[1] * np.sin(gamma),
+                        np.sqrt(
+                            representation[2] ** 2
+                            - (representation[2] * np.cos(beta)) ** 2
+                            - (
+                                representation[2]
+                                * (np.cos(alpha) - np.cos(beta) * np.cos(gamma))
+                                / np.sin(gamma)
+                            )
+                            ** 2
+                        ),
+                    )
+                )
+            elif output_format == "vectors":
+                vectors = np.zeros((3, 3))
+                vectors[0, 0] = representation[0]
+                vectors[1, 0] = representation[1] * np.cos(gamma)
+                vectors[1, 1] = representation[1] * np.sin(gamma)
+                vectors[2, 0] = representation[2] * np.cos(beta)
+                vectors[2, 1] = (
+                    representation[2]
+                    * (np.cos(alpha) - np.cos(beta) * np.cos(gamma))
+                    / np.sin(gamma)
+                )
+                vectors[2, 2] = np.sqrt(
+                    representation[2] ** 2
+                    - vectors[2, 0] ** 2
+                    - vectors[2, 1] ** 2
+                )
+                vectors[np.isclose(vectors, 0, atol=5e-6)] = 0
+                return vectors
+            return representation  # output_format == "parameters"
+        else:  # input_format == "vectors"
+            representation = reduce_box_vectors(representation)
+            if output_format == "parameters":
+                return np.concatenate(
+                    (
+                        parameters := np.linalg.norm(representation, axis=1),
+                        np.degrees(
+                            np.arccos(
+                                (
+                                    np.dot(representation[1], representation[2])
+                                    / (parameters[1] * parameters[2]),
+                                    np.dot(representation[0], representation[2])
+                                    / (parameters[0] * parameters[2]),
+                                    np.dot(representation[0], representation[1])
+                                    / (parameters[0] * parameters[1]),
+                                )
+                            )
+                        ),
+                    )
+                )
+            elif output_format == "dimensions":
+                representation = np.diag(representation)
+
+    return (
+        representation if length_unit is None else representation * length_unit
+    )
+
+
 def reduce_box_vectors(
     box_vectors: np.ndarray[float_t] | "unit.Quantity" | Q_, /
 ) -> np.ndarray[float_t] | "unit.Quantity" | Q_:
@@ -218,277 +489,6 @@ def reduce_box_vectors(
         reduced_box_vectors
         if length_unit is None
         else reduced_box_vectors * length_unit
-    )
-
-
-def convert_cell_representation(
-    representation: np.ndarray[float_t] | "unit.Quantity" | Q_,
-    output_format: str,
-    n_dimensions: int | None = None,
-    /,
-) -> np.ndarray[float_t] | "unit.Quantity" | Q_:
-    """
-    Converts between cell representations for a simulation box.
-
-    .. dropdown:: Two-dimensional (2D) systems
-
-       For a square simulation box, the supported input and output
-       formats are
-
-       * its dimensions :math:`(L_x,L_y)`, where :math:`L_x` and
-         :math:`L_y` are the lengths along the :math:`x`- and
-         :math:`y`-axes, respectively,
-       * its lattice parameters :math:`(a,b,\\gamma)`, where :math:`a`
-         and :math:`b` are the cell lengths and :math:`\\gamma` is the
-         cell angle, and
-       * its box vectors :math:`(\\mathbf{a};\\mathbf{b})`.
-
-    .. dropdown:: Three-dimensional (3D) systems
-       :open:
-
-       For a cubic simulation box, the supported input and output
-       formats are
-
-       * its dimensions :math:`(L_x,L_y,L_z)`, where :math:`L_x`,
-         :math:`L_y`, and :math:`L_z` are the lengths along the
-         :math:`x`-, :math:`y`-, and :math:`z`-axes, respectively,
-       * its lattice parameters :math:`(a,b,c,\\alpha,\\beta,\\gamma)`,
-         where :math:`a`, :math:`b`, and :math:`c` are the cell lengths
-         and :math:`\\alpha`, :math:`\\beta`, and :math:`\\gamma` are
-         the cell angles, and
-       * its box vectors :math:`(\\mathbf{a};\\mathbf{b};\\mathbf{c})`.
-
-    Parameters
-    ----------
-    representation : `numpy.ndarray`, `openmm.unit.Quantity`, or \
-    `pint.Quantity`, positional-only
-        Dimensions :math:`(L_x,L_y[,L_z])`, lattice parameters
-        :math:`(a,b[,c,\\alpha,\\beta],\\gamma)`, or box
-        vectors :math:`(\\mathbf{a};\\mathbf{b}[;\\mathbf{c}])`.
-
-        .. note::
-
-           Lattice parameters should always be provided in an array
-           without explicit units.
-
-        .. container::
-
-           **Shapes**:
-
-           * 2D: :math:`(2,)` for dimensions, :math:`(3,)` for lattice
-             parameters, or :math:`(2,2)` for box vectors.
-           * 3D: :math:`(3,)` for dimensions, :math:`(6,)` for lattice
-             parameters, or :math:`(3,3)` for box vectors.
-
-        **Reference units**: :math:`\\mathrm{nm}` for lengths and
-        degrees (:math:`^\\circ`) for angles.
-
-    output_format : `str`, positional-only
-        Desired cell representation.
-
-        .. container::
-
-           **Valid values**:
-
-           * :code:`"dimensions"` for dimensions,
-           * :code:`"parameters"` for lattice parameters, or
-           * :code:`"vectors"` for box vectors.
-
-    n_dimensions : `int`, positional-only, default: :code:`3`
-        Dimensionality of the simulation box.
-
-        **Valid values**: :code:`2` or :code:`3`.
-
-    Returns
-    -------
-    new_representation : `numpy.ndarray`, `openmm.unit.Quantity`, or \
-    `pint.Quantity`
-        Cell representation in the desired format.
-
-        .. note::
-
-           Lattice parameters will always be returned in an array
-           without explicit units, even if the starting cell
-           representation is an OpenMM or Pint quantity.
-
-        .. container::
-
-           **Shapes**:
-
-           * 2D: :math:`(2,)` for dimensions, :math:`(3,)` for lattice
-             parameters, or :math:`(2,2)` for box vectors.
-           * 3D: :math:`(3,)` for dimensions, :math:`(6,)` for lattice
-             parameters, or :math:`(3,3)` for box vectors.
-
-        **Reference units**: :math:`\\mathrm{nm}` for lengths and
-        degrees (:math:`^\\circ`) for angles.
-
-    Examples
-    --------
-    Let us start with a cubic simulation box with dimensions
-    :math:`(3,4,5)~\\mathrm{nm}`:
-
-    >>> dimensions = np.array((3.0, 4.0, 5.0))
-
-    We can convert the dimensions to lattice parameters using
-
-    >>> convert_cell_representation(dimensions, "parameters")
-    array([3., 4., 5., 90., 90., 90.])
-
-    Alternatively, we can convert the dimensions to box vectors using
-
-    >>> convert_cell_representation(dimensions, "vectors")
-    array([[3., 0., 0.],
-           [0., 4., 0.],
-           [0., 0., 5.]])
-
-    If the dimensions are provided as an OpenMM or Pint quantity, the
-    output will have units attached:
-
-    >>> convert_cell_representation(dimensions * unit.nanometer, "vectors")
-    Quantity(value=array([[3., 0., 0.],
-           [0., 4., 0.],
-           [0., 0., 5.]]), unit=nanometer)
-    """
-
-    representation, length_unit = strip_unit(representation)
-    representation = np.asarray(representation)
-
-    if (shape := representation.shape) == (2,):
-        n_dimensions = 2
-        input_format = "dimensions"
-    elif shape == (2, 2):
-        n_dimensions = 2
-        input_format = "vectors"
-    elif shape == (3,):
-        if n_dimensions == 2:
-            input_format = "parameters"
-        else:
-            if n_dimensions is None:
-                n_dimensions = 3
-                warnings.warn(
-                    "When `representation` has shape (3,), it can be either "
-                    "2D lattice parameters or 3D dimensions. As "
-                    "`n_dimensions` is not specified, it is assumed to be "
-                    "the latter."
-                )
-            input_format = "dimensions"
-    elif shape == (3, 3):
-        n_dimensions = 3
-        input_format = "vectors"
-    elif shape == (6,):
-        n_dimensions = 3
-        input_format = "parameters"
-    else:
-        raise ValueError(
-            f"Invalid shape {shape} for `representation`. "
-            "Valid shapes: (2,), (2, 2), (3,), (3, 3), (6,)."
-        )
-
-    if n_dimensions == 2:
-        if input_format == "dimensions":
-            if output_format == "parameters":
-                return np.concatenate((representation, (90.0,)))
-            elif output_format == "vectors":
-                representation = np.diag(representation)
-        elif input_format == "parameters":
-            gamma = np.radians(representation[2])
-            if output_format == "dimensions":
-                gamma = np.radians(representation[2])
-                return np.array(
-                    (representation[0], representation[1] * np.sin(gamma))
-                )
-            elif output_format == "vectors":
-                vectors = np.zeros((2, 2))
-                vectors[0, 0] = representation[0]
-                vectors[1, 0] = representation[1] * np.cos(gamma)
-                vectors[1, 1] = representation[1] * np.sin(gamma)
-                vectors[np.isclose(vectors, 0, atol=5e-6)] = 0
-                return vectors
-            return representation  # output_format == "parameters"
-        else:  # input_format == "vectors"
-            representation = reduce_box_vectors(representation)
-            if output_format == "parameters":
-                parameters = np.empty(4, dtype=representation.dtype)
-                parameters[:2] = np.linalg.norm(representation, axis=1)
-                parameters[2] = np.degrees(
-                    np.arccos(
-                        np.dot(representation[0], representation[1])
-                        / (parameters[0] * parameters[1])
-                    )
-                )
-                return parameters
-            elif output_format == "dimensions":
-                representation = np.diag(representation)
-    else:
-        if input_format == "dimensions":
-            if output_format == "parameters":
-                return np.concatenate((representation, (90.0, 90.0, 90.0)))
-            elif output_format == "vectors":
-                representation = np.diag(representation)
-        elif input_format == "parameters":
-            alpha, beta, gamma = np.radians(representation[3:])
-            if output_format == "dimensions":
-                return np.array(
-                    (
-                        representation[0],
-                        representation[1] * np.sin(gamma),
-                        np.sqrt(
-                            representation[2] ** 2
-                            - (representation[2] * np.cos(beta)) ** 2
-                            - (
-                                representation[2]
-                                * (np.cos(alpha) - np.cos(beta) * np.cos(gamma))
-                                / np.sin(gamma)
-                            )
-                            ** 2
-                        ),
-                    )
-                )
-            elif output_format == "vectors":
-                vectors = np.zeros((3, 3))
-                vectors[0, 0] = representation[0]
-                vectors[1, 0] = representation[1] * np.cos(gamma)
-                vectors[1, 1] = representation[1] * np.sin(gamma)
-                vectors[2, 0] = representation[2] * np.cos(beta)
-                vectors[2, 1] = (
-                    representation[2]
-                    * (np.cos(alpha) - np.cos(beta) * np.cos(gamma))
-                    / np.sin(gamma)
-                )
-                vectors[2, 2] = np.sqrt(
-                    representation[2] ** 2
-                    - vectors[2, 0] ** 2
-                    - vectors[2, 1] ** 2
-                )
-                vectors[np.isclose(vectors, 0, atol=5e-6)] = 0
-                return vectors
-            return representation  # output_format == "parameters"
-        else:  # input_format == "vectors"
-            representation = reduce_box_vectors(representation)
-            if output_format == "parameters":
-                return np.concatenate(
-                    (
-                        parameters := np.linalg.norm(representation, axis=1),
-                        np.degrees(
-                            np.arccos(
-                                (
-                                    np.dot(representation[1], representation[2])
-                                    / (parameters[1] * parameters[2]),
-                                    np.dot(representation[0], representation[2])
-                                    / (parameters[0] * parameters[2]),
-                                    np.dot(representation[0], representation[1])
-                                    / (parameters[0] * parameters[1]),
-                                )
-                            )
-                        ),
-                    )
-                )
-            elif output_format == "dimensions":
-                representation = np.diag(representation)
-
-    return (
-        representation if length_unit is None else representation * length_unit
     )
 
 
@@ -765,13 +765,9 @@ def scale_coordinates(
     """
 
     # Check user input
-    n_possible_dimensions = {2, 3}
     if not isinstance(coordinates, np.ndarray):
         raise TypeError("`coordinates` must be a NumPy array.")
-    if (
-        coordinates.ndim != 2
-        or coordinates.shape[1] not in n_possible_dimensions
-    ):
+    if coordinates.ndim != 2 or coordinates.shape[1] not in {2, 3}:
         raise ValueError(
             f"Invalid shape {coordinates.shape} for `coordinates`. "
             "Valid shapes: (N, 2) or (N, 3)."
