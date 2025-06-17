@@ -3,6 +3,7 @@ import sys
 
 from MDAnalysis.lib.distances import capped_distance
 import numpy as np
+import pytest
 
 sys.path.insert(
     0, f"{pathlib.Path(__file__).parents[1].resolve().as_posix()}/src"
@@ -31,6 +32,13 @@ class TestFunctionBuildNeighborList:
         cls.positions_nm = cls.positions.m_as(ureg.nm)
         cls.cutoff_nm = cls.cutoff.m_as(ureg.nm)
         cls.dimensions_nm = cls.dimensions.m_as(ureg.nm)
+
+    def test_invalid_shape(self):
+        with pytest.raises(ValueError):
+            neighbor.build_neighbor_list(
+                positions=np.empty((4,)),
+                cutoff=self.cutoff,
+            )
 
     def test_units_orthogonal_nbc_2d(self):
         neighbor_list = neighbor.build_neighbor_list(

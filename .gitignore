@@ -2,3 +2,4 @@
 docs/build
 docs/source/api
 src/*.egg-info
+.coverage

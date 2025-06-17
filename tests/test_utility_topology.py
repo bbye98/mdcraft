@@ -325,6 +325,16 @@ class TestFunctionScaleCoordinates:
         cls.coordinates_3d = (
             cls.fractional_coordinates_3d @ cls.box_vectors_3d.T
         )
+        cls.fractional_coordinates_2d = cls.fractional_coordinates_3d[:, :2]
+        cls.box_vectors_2d = np.array(
+            (
+                (9 / np.sqrt(10), 3 / np.sqrt(10)),
+                (-4 / np.sqrt(10), 12 / np.sqrt(10)),
+            )
+        )
+        cls.coordinates_2d = (
+            cls.fractional_coordinates_2d @ cls.box_vectors_2d.T
+        )
 
     def test_invalid_coordinates_type(self):
         with pytest.raises(TypeError):
@@ -360,3 +370,14 @@ class TestFunctionScaleCoordinates:
         test[:, [0, 2]] = self.fractional_coordinates_3d[:, [0, 2]]
         scale_coordinates(test, self.box_vectors_3d, [True, False, True])
         assert np.allclose(test, self.fractional_coordinates_3d)
+
+    def test_2d_unscaled_xy(self):
+        test = self.coordinates_2d.copy()
+        scale_coordinates(test, self.box_vectors_2d)
+        assert np.allclose(test, self.fractional_coordinates_2d)
+
+    def test_2d_unscaled_x(self):
+        test = self.coordinates_2d.copy()
+        test[:, 1] = self.fractional_coordinates_2d[:, 1]
+        scale_coordinates(test, self.box_vectors_2d, [False, True])
+        assert np.allclose(test, self.fractional_coordinates_2d)

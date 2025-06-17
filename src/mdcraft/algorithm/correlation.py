@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 from scipy import fft as pfft
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from .. import float_t, complex_t
 
 

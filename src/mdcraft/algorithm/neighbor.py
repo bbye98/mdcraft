@@ -11,11 +11,11 @@ from .. import Q_
 from ..utility.topology import convert_cell_representation
 from ..utility.unit import strip_unit
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from .. import float_t, int_t
 
 
-@njit(fastmath=True, inline="always")
+@njit(fastmath=True, inline="always")  # pragma: no cover
 def _build_cell_lists_orthogonal(
     positions: np.ndarray[float_t],
     cutoff: float_t,
@@ -61,7 +61,7 @@ def _build_cell_lists_orthogonal(
     return n_cells, particle_cell_indices, cell_heads, cell_lists
 
 
-@njit(fastmath=True, inline="always")
+@njit(fastmath=True, inline="always")  # pragma: no cover
 def _compute_squared_separation_distance_orthogonal(
     position_i: np.ndarray[float_t],
     position_j: np.ndarray[float_t],
@@ -77,7 +77,7 @@ def _compute_squared_separation_distance_orthogonal(
     return dr_squared
 
 
-@njit(fastmath=True)
+@njit(fastmath=True)  # pragma: no cover
 def _build_neighbor_list_orthogonal(
     positions: np.ndarray[float_t],
     cutoff: float_t,
@@ -220,7 +220,7 @@ def build_neighbor_list(
     """
 
     positions = strip_unit(positions, "nm")[0]
-    if positions.ndim != 2:
+    if positions.ndim != 2 or positions.shape[1] not in {2, 3}:
         raise ValueError(
             "`positions` must be a two-dimensional array with shape "
             "(N, 2) or (N, 3)."

@@ -11,7 +11,7 @@ from ..utility.unit import strip_unit
 if FOUND["openmm"]:
     from openmm import unit
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from .. import float_t
 
 
@@ -492,7 +492,7 @@ def reduce_box_vectors(
     )
 
 
-@njit(fastmath=True)
+@njit(fastmath=True)  # pragma: no cover
 def _scale_coordinates(
     coordinates: np.ndarray[float_t],
     box_vectors: np.ndarray[float_t],
