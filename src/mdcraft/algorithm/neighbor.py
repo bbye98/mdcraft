@@ -8,7 +8,11 @@ from numba.typed import List
 import numpy as np
 
 from .. import Q_
-from ..utility.topology import convert_cell_representation
+from ..utility.topology import (
+    _invert_box_vectors,
+    _scale_coordinates,
+    convert_cell_representation,
+)
 from ..utility.unit import strip_unit
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -16,10 +20,26 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 @njit(fastmath=True, inline="always")  # pragma: no cover
+def _check_positions_orthogonal(
+    positions: np.ndarray[float_t],
+    dimensions: np.ndarray[float_t],
+) -> np.bool_:
+    for pid in range(positions.shape[0]):
+        for dim in range(dimensions.shape[0]):
+            if (
+                positions[pid, dim] < 0.0
+                or positions[pid, dim] > dimensions[dim]
+            ):
+                return False
+    return True
+
+
+@njit(fastmath=True, inline="always")  # pragma: no cover
 def _build_cell_lists_orthogonal(
     positions: np.ndarray[float_t],
     cutoff: float_t,
     dimensions: np.ndarray[float_t],
+    pbc: np.bool_,
 ) -> tuple[
     np.ndarray[np.uint32],
     np.ndarray[np.uint32],
@@ -27,8 +47,8 @@ def _build_cell_lists_orthogonal(
     np.ndarray[int_t],
 ]:
     # Split simulation domain into cells
-    n_particles = len(positions)
-    n_dimensions = len(dimensions)
+    n_particles = positions.shape[0]
+    n_dimensions = dimensions.shape[0]
     n_cells = np.empty(n_dimensions, np.uint32)
     inv_cell_sizes = np.empty(n_dimensions, dimensions.dtype)
     for dim in range(n_dimensions):
@@ -46,10 +66,11 @@ def _build_cell_lists_orthogonal(
     particle_cell_indices = np.empty((n_particles, n_dimensions), np.uint32)
     for pid in range(n_particles):
         for dim in range(n_dimensions):
-            particle_cell_indices[pid, dim] = (
-                np.uint32(positions[pid, dim] * inv_cell_sizes[dim])
-                % n_cells[dim]
+            particle_cell_indices[pid, dim] = np.uint32(
+                positions[pid, dim] * inv_cell_sizes[dim]
             )
+            if pbc:
+                particle_cell_indices[pid, dim] %= n_cells[dim]
         if n_dimensions == 2:
             cix, ciy = particle_cell_indices[pid]
             ciz = 0
@@ -66,10 +87,10 @@ def _compute_squared_separation_distance_orthogonal(
     position_i: np.ndarray[float_t],
     position_j: np.ndarray[float_t],
     dimensions: np.ndarray[float_t],
-    pbc: bool,
+    pbc: np.bool_,
 ) -> float_t:
     dr_squared = 0.0
-    for dim in range(len(dimensions)):
+    for dim in range(dimensions.shape[0]):
         dr = position_j[dim] - position_i[dim]
         if pbc:
             dr -= dimensions[dim] * round(dr / dimensions[dim])
@@ -82,12 +103,12 @@ def _build_neighbor_list_orthogonal(
     positions: np.ndarray[float_t],
     cutoff: float_t,
     dimensions: np.ndarray[float_t],
-    pbc: bool,
+    pbc: np.bool_,
 ) -> List[set[np.uint32]]:
     # Build cell lists
-    n_dimensions = len(dimensions)
+    n_dimensions = dimensions.shape[0]
     n_cells, particle_cell_indices, cell_heads, cell_lists = (
-        _build_cell_lists_orthogonal(positions, cutoff, dimensions)
+        _build_cell_lists_orthogonal(positions, cutoff, dimensions, pbc)
     )
 
     # Define offsets for neighboring cells
@@ -121,7 +142,7 @@ def _build_neighbor_list_orthogonal(
     # Build neighbor list for each particle
     neighbor_lists = List()
     cutoff_squared = cutoff * cutoff
-    for pid in range(len(positions)):
+    for pid in range(positions.shape[0]):
         neighbor_list = set()
         ix, iy = particle_cell_indices[pid, :2]
 
@@ -168,6 +189,64 @@ def _build_neighbor_list_orthogonal(
     return neighbor_lists
 
 
+@njit(fastmath=True, inline="always")
+def _check_positions_triclinic(
+    scaled_positions: np.ndarray[float_t],
+) -> np.bool_:
+    for pid in range(scaled_positions.shape[0]):
+        for dim in range(scaled_positions.shape[1]):
+            if (
+                scaled_positions[pid, dim] < 0.0
+                or scaled_positions[pid, dim] > 1.0
+            ):
+                return False
+    return True
+
+
+# @njit(fastmath=True, inline="always")
+def _build_cell_lists_triclinic(
+    positions: np.ndarray[float_t],
+    cutoff: float_t,
+    box_vectors: np.ndarray[float_t],
+    inv_box_vectors: np.ndarray[float_t],
+    pbc: np.bool_,
+) -> tuple[
+    np.ndarray[np.uint32],
+    np.ndarray[np.uint32],
+    np.ndarray[int_t],
+    np.ndarray[int_t],
+]: ...
+
+
+# @njit(fastmath=True, inline="always")
+def _compute_squared_separation_distance_triclinic(
+    position_i: np.ndarray[float_t],
+    position_j: np.ndarray[float_t],
+    box_vectors: np.ndarray[float_t],
+    scaled_position_i: np.ndarray[float_t],
+    scaled_position_j: np.ndarray[float_t],
+    inv_box_vectors: np.ndarray[float_t],
+    pbc: np.bool_,
+) -> float_t: ...
+
+
+# @njit(fastmath=True)
+def _build_neighbor_list_triclinic(
+    positions: np.ndarray[float_t],
+    cutoff: float_t,
+    box_vectors: np.ndarray[float_t],
+    pbc: np.bool_,
+    scaled_positions: np.ndarray[float_t],
+    inv_box_vectors: np.ndarray[float_t],
+) -> List[set[np.uint32]]:
+    n_dimensions = box_vectors.shape[0]
+    n_cells, particle_cell_indices, cell_heads, cell_lists = (
+        _build_cell_lists_triclinic(
+            positions, cutoff, box_vectors, inv_box_vectors
+        )
+    )
+
+
 def build_neighbor_list(
     positions: np.ndarray[float_t] | Q_,
     cutoff: float_t | Q_,
@@ -194,9 +273,9 @@ def build_neighbor_list(
         **Reference unit**: :math:`\\mathrm{nm}`.
 
     box_size : `numpy.ndarray` or `pint.Quantity`, optional
-        Size of the simulation box in dimensions :math:`(L_x,L_y,L_z)`,
-        lattice parameters :math:`(a,b,c,\\alpha,\\beta,\\gamma)`, or
-        box vectors :math:`(\\mathbf{a};\\mathbf{b};\\mathbf{c})`. If
+        Size of the simulation box in dimensions :math:`(L_x,L_y[,L_z])`,
+        lattice parameters :math:`(a,b[,c,\\alpha,\\beta],\\gamma)`, or
+        box vectors :math:`(\\mathbf{a};\\mathbf{b}[;\\mathbf{c}])`. If
         not provided, the simulation box is assumed to be orthogonal and
         non-periodic.
 
@@ -219,15 +298,17 @@ def build_neighbor_list(
         **Shape**: :math:`(N,)`.
     """
 
-    positions = strip_unit(positions, "nm")[0]
+    positions = np.asarray(strip_unit(positions, "nm")[0])
     if positions.ndim != 2 or positions.shape[1] not in {2, 3}:
         raise ValueError(
             "`positions` must be a two-dimensional array with shape "
             "(N, 2) or (N, 3)."
         )
+    positions -= positions.min(axis=0)
+
+    n_dimensions = positions.shape[1]
     cutoff = strip_unit(cutoff, "nm")[0]
     if box_size is None:
-        n_dimensions = positions.shape[1]
         dtype = positions.dtype
         return _build_neighbor_list_orthogonal(
             positions,
@@ -246,14 +327,37 @@ def build_neighbor_list(
         )
     else:
         box_size = convert_cell_representation(
-            strip_unit(box_size, "nm")[0], "vectors", len(box_size)
+            strip_unit(box_size, "nm")[0], "vectors", n_dimensions
         )
         if np.array_equal(box_size, np.diag(np.diag(box_size))):
+            box_size = convert_cell_representation(box_size, "dimensions")
+            if not pbc and not _check_positions_orthogonal(positions, box_size):
+                raise ValueError(
+                    "`positions` must be within the bounds of the "
+                    "simulation box defined by `box_size`."
+                )
             return _build_neighbor_list_orthogonal(
-                positions,
-                cutoff,
-                convert_cell_representation(box_size, "dimensions"),
-                pbc,
+                positions, cutoff, box_size, pbc
             )
 
-        raise NotImplementedError
+        inv_box_vectors = _invert_box_vectors(box_size)
+        scaled_positions = positions.copy()
+        _scale_coordinates(
+            scaled_positions,
+            box_size,
+            inv_box_vectors,
+            np.full(n_dimensions, False, np.bool_),
+        )
+        if not pbc and not _check_positions_triclinic(scaled_positions):
+            raise ValueError(
+                "`positions` must be within the bounds of the "
+                "simulation box defined by `box_size`."
+            )
+        return _build_neighbor_list_triclinic(
+            positions,
+            cutoff,
+            box_size,
+            pbc,
+            scaled_positions,
+            inv_box_vectors,
+        )

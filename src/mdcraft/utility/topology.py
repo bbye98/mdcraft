@@ -492,10 +492,72 @@ def reduce_box_vectors(
     )
 
 
-@njit(fastmath=True)  # pragma: no cover
+@njit(fastmath=True, inline="always")  # pragma: no cover
+def _invert_box_vectors(
+    box_vectors: np.ndarray[float_t],
+) -> np.ndarray[float_t]:
+    """
+    Numba-accelerated function for inverting the box vectors of a
+    general parallelogram or triclinic simulation box.
+
+    Parameters
+    ----------
+    box_vectors : `numpy.ndarray`
+        Box vectors :math:`(\\mathbf{A};\\mathbf{B}[;\\mathbf{C}])`.
+
+        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+
+    Returns
+    -------
+    inv_box_vectors : `numpy.ndarray`
+        Inverted box vectors
+        :math:`(\\mathbf{A}^*;\\mathbf{B}^*[;\\mathbf{C}^*])`.
+
+        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+    """
+
+    n_dimensions = len(box_vectors)
+    inv_box_vectors = np.empty(
+        (n_dimensions, n_dimensions), dtype=box_vectors.dtype
+    )
+    if n_dimensions == 2:
+        determinant = (
+            box_vectors[0, 0] * box_vectors[1, 1]
+            - box_vectors[0, 1] * box_vectors[1, 0]
+        )
+        inv_box_vectors[0, 0] = box_vectors[1, 1] / determinant
+        inv_box_vectors[0, 1] = -box_vectors[0, 1] / determinant
+        inv_box_vectors[1, 0] = -box_vectors[1, 0] / determinant
+        inv_box_vectors[1, 1] = box_vectors[0, 0] / determinant
+    else:
+        bv00, bv01, bv02 = box_vectors[0]
+        bv10, bv11, bv12 = box_vectors[1]
+        bv20, bv21, bv22 = box_vectors[2]
+        inv_box_vectors[0, 0] = bv11 * bv22 - bv12 * bv21
+        inv_box_vectors[0, 1] = bv02 * bv21 - bv01 * bv22
+        inv_box_vectors[0, 2] = bv01 * bv12 - bv02 * bv11
+        inv_box_vectors[1, 0] = bv12 * bv20 - bv10 * bv22
+        inv_box_vectors[1, 1] = bv00 * bv22 - bv02 * bv20
+        inv_box_vectors[1, 2] = bv02 * bv10 - bv00 * bv12
+        inv_box_vectors[2, 0] = bv10 * bv21 - bv11 * bv20
+        inv_box_vectors[2, 1] = bv01 * bv20 - bv00 * bv21
+        inv_box_vectors[2, 2] = bv00 * bv11 - bv01 * bv10
+        determinant = (
+            bv00 * inv_box_vectors[0, 0]
+            + bv01 * inv_box_vectors[1, 0]
+            + bv02 * inv_box_vectors[2, 0]
+        )
+        for i in range(3):
+            for j in range(3):
+                inv_box_vectors[i, j] /= determinant
+    return inv_box_vectors
+
+
+@njit(fastmath=True, inline="always")  # pragma: no cover
 def _scale_coordinates(
     coordinates: np.ndarray[float_t],
     box_vectors: np.ndarray[float_t],
+    inv_box_vectors: np.ndarray[float_t],
     scaled_flags: np.ndarray[np.bool_],
 ) -> None:
     """
@@ -519,6 +581,12 @@ def _scale_coordinates(
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
+    inv_box_vectors : `numpy.ndarray`
+        Inverted box vectors
+        :math:`(\\mathbf{A}^*;\\mathbf{B}^*[;\\mathbf{C}^*])`.
+
+        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+
     scaled_flags : `numpy.ndarray`
         Flags indicating whether the coordinates are already scaled
         along the respective axes.
@@ -535,42 +603,6 @@ def _scale_coordinates(
 
     # All coordinates are unscaled
     if not scaled_flags.any():
-        # Compute inverse box vectors
-        inv_box_vectors = np.empty(
-            (n_dimensions, n_dimensions), dtype=box_vectors.dtype
-        )
-        if n_dimensions == 2:
-            determinant = (
-                box_vectors[0, 0] * box_vectors[1, 1]
-                - box_vectors[0, 1] * box_vectors[1, 0]
-            )
-            inv_box_vectors[0, 0] = box_vectors[1, 1] / determinant
-            inv_box_vectors[0, 1] = -box_vectors[0, 1] / determinant
-            inv_box_vectors[1, 0] = -box_vectors[1, 0] / determinant
-            inv_box_vectors[1, 1] = box_vectors[0, 0] / determinant
-        else:
-            bv00, bv01, bv02 = box_vectors[0]
-            bv10, bv11, bv12 = box_vectors[1]
-            bv20, bv21, bv22 = box_vectors[2]
-            inv_box_vectors[0, 0] = bv11 * bv22 - bv12 * bv21
-            inv_box_vectors[0, 1] = bv02 * bv21 - bv01 * bv22
-            inv_box_vectors[0, 2] = bv01 * bv12 - bv02 * bv11
-            inv_box_vectors[1, 0] = bv12 * bv20 - bv10 * bv22
-            inv_box_vectors[1, 1] = bv00 * bv22 - bv02 * bv20
-            inv_box_vectors[1, 2] = bv02 * bv10 - bv00 * bv12
-            inv_box_vectors[2, 0] = bv10 * bv21 - bv11 * bv20
-            inv_box_vectors[2, 1] = bv01 * bv20 - bv00 * bv21
-            inv_box_vectors[2, 2] = bv00 * bv11 - bv01 * bv10
-            determinant = (
-                bv00 * inv_box_vectors[0, 0]
-                + bv01 * inv_box_vectors[1, 0]
-                + bv02 * inv_box_vectors[2, 0]
-            )
-            for i in range(3):
-                for j in range(3):
-                    inv_box_vectors[i, j] /= determinant
-
-        # Scale coordinates
         entity_scaled_coordinates = np.empty(
             n_dimensions, dtype=coordinates.dtype
         )
@@ -791,4 +823,6 @@ def scale_coordinates(
         scaled_flags = np.asarray(scaled_flags, dtype=np.bool_)
 
     # Call Numba function to scale coordinates
-    _scale_coordinates(coordinates, box_vectors, scaled_flags)
+    _scale_coordinates(
+        coordinates, box_vectors, _invert_box_vectors(box_vectors), scaled_flags
+    )
