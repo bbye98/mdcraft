@@ -125,3 +125,8 @@ class TestFunctionBuildNeighborList:
             neighbor_list[0] == {1, 2}
             and len(neighbor_list[1]) == len(neighbor_list[2]) == 0
         )
+
+
+lol = TestFunctionBuildNeighborList()
+lol.setup_class()
+lol.test_units_orthogonal_nbc_3d()

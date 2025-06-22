@@ -570,6 +570,10 @@ def _scale_coordinates(
     coordinates : `numpy.ndarray`
         Coordinates of :math:`N` entities.
 
+        .. note::
+
+           This function modifies this NumPy array in-place.
+
         **Shape**: :math:`(N,2)` or :math:`(N,3)`.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
@@ -670,7 +674,7 @@ def _scale_coordinates(
 
 def scale_coordinates(
     coordinates: np.ndarray[float_t],
-    box_vectors: np.ndarray[float_t] | "unit.Quantity" | Q_,
+    box_size: np.ndarray[float_t] | "unit.Quantity" | Q_,
     scaled_flags: np.ndarray[bool] | None = None,
 ) -> None:
     """
@@ -721,13 +725,28 @@ def scale_coordinates(
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
-    box_vectors : `numpy.ndarray`, `openmm.unit.Quantity`, \
-    or `pint.Quantity`
-        Box vectors :math:`(\\mathbf{A};\\mathbf{B}[;\\mathbf{C}])`.
+    box_size : `numpy.ndarray`, `openmm.unit.Quantity`, or \
+    `pint.Quantity`
+        Dimensions :math:`(L_x,L_y[,L_z])`, lattice parameters
+        :math:`(a,b[,c,\\alpha,\\beta],\\gamma)`, or box
+        vectors :math:`(\\mathbf{a};\\mathbf{b}[;\\mathbf{c}])`.
 
-        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+        .. note::
 
-        **Reference unit**: :math:`\\mathrm{nm}`.
+           Lattice parameters should always be provided in an array
+           without explicit units.
+
+        .. container::
+
+           **Shapes**:
+
+           * 2D: :math:`(2,)` for dimensions, :math:`(3,)` for lattice
+             parameters, or :math:`(2,2)` for box vectors.
+           * 3D: :math:`(3,)` for dimensions, :math:`(6,)` for lattice
+             parameters, or :math:`(3,3)` for box vectors.
+
+        **Reference units**: :math:`\\mathrm{nm}` for lengths and
+        degrees (:math:`^\\circ`) for angles.
 
     scaled_flags : array-like, optional
         Flags indicating whether the coordinates are already scaled
@@ -802,13 +821,16 @@ def scale_coordinates(
             "Valid shapes: (N, 2) or (N, 3)."
         )
     n_dimensions = coordinates.shape[1]
-    box_vectors = np.asarray(strip_unit(box_vectors, "nm")[0])
-    if box_vectors.shape != (n_dimensions, n_dimensions):
-        raise ValueError(
-            "`box_vectors` must have dimensions "
-            f"({n_dimensions}, {n_dimensions}) to be compatible with "
-            "`coordinates`."
-        )
+    box_size = np.asarray(strip_unit(box_size, "nm")[0])
+    if box_size.shape != (n_dimensions, n_dimensions):
+        try:
+            box_size = convert_cell_representation(
+                box_size, "vectors", n_dimensions
+            )
+        except ValueError:
+            raise ValueError(
+                "`box_size` must be compatible with `coordinates`."
+            )
     if scaled_flags is None:
         scaled_flags = np.array((False, False, False), dtype=np.bool_)
     elif len(scaled_flags) != n_dimensions:
@@ -821,5 +843,5 @@ def scale_coordinates(
 
     # Call Numba function to scale coordinates
     _scale_coordinates(
-        coordinates, box_vectors, _invert_box_vectors(box_vectors), scaled_flags
+        coordinates, box_size, _invert_box_vectors(box_size), scaled_flags
     )
