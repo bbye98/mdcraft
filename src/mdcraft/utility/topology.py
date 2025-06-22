@@ -609,10 +609,10 @@ def _scale_coordinates(
         for eid in range(n_entities):
             for dim in range(n_dimensions):
                 entity_scaled_coordinates[dim] = 0.0
-                for other_dim in range(n_dimensions):
+                for axis in range(n_dimensions):
                     entity_scaled_coordinates[dim] += (
-                        coordinates[eid, other_dim]
-                        * inv_box_vectors[dim, other_dim]
+                        coordinates[eid, axis]
+                        * inv_box_vectors[axis, dim]  # TODO
                     )
             for dim in range(n_dimensions):
                 coordinates[eid, dim] = entity_scaled_coordinates[dim]
@@ -625,19 +625,16 @@ def _scale_coordinates(
         other_axis_indices = np.array(((1, 2), (0, 2), (0, 1)), np.uint8)
 
     # Scale coordinates
-    other_indices = np.empty(n_dimensions - 1, dtype=np.uint8)
-    other_scaled_flags = np.empty(n_dimensions - 1, dtype=np.bool_)
     for axis_index in range(n_dimensions):
         if not scaled_flags[axis_index]:
-            for oii in range(n_dimensions):
-                other_indices[oii] = other_axis_indices[axis_index, oii]
-                other_scaled_flags[oii] = scaled_flags[other_indices[oii]]
+            other_indices = other_axis_indices[axis_index]
+            other_scaled_flags = scaled_flags[other_indices]
             if other_scaled_flags.all():
                 for eid in range(n_entities):
                     for other_index in other_indices:
                         coordinates[eid, axis_index] -= (
                             coordinates[eid, other_index]
-                            * box_vectors[axis_index, other_index]
+                            * box_vectors[other_index, axis_index]
                         )
                     coordinates[eid, axis_index] /= box_vectors[
                         axis_index, axis_index
@@ -653,20 +650,20 @@ def _scale_coordinates(
                     coordinates[eid, axis_index] = (
                         box_vectors[unscaled_index, unscaled_index]
                         * coordinates[eid, axis_index]
-                        - box_vectors[axis_index, unscaled_index]
+                        - box_vectors[unscaled_index, axis_index]
                         * coordinates[eid, unscaled_index]
                         + coordinates[eid, scaled_index]
                         * (
-                            box_vectors[axis_index, unscaled_index]
-                            * box_vectors[unscaled_index, scaled_index]
+                            box_vectors[unscaled_index, axis_index]
+                            * box_vectors[scaled_index, unscaled_index]
                             - box_vectors[unscaled_index, unscaled_index]
-                            * box_vectors[axis_index, scaled_index]
+                            * box_vectors[scaled_index, axis_index]
                         )
                     ) / (
                         box_vectors[axis_index, axis_index]
                         * box_vectors[unscaled_index, unscaled_index]
-                        - box_vectors[axis_index, unscaled_index]
-                        * box_vectors[unscaled_index, axis_index]
+                        - box_vectors[unscaled_index, axis_index]
+                        * box_vectors[axis_index, unscaled_index]
                     )
             scaled_flags[axis_index] = True
 
