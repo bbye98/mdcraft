@@ -10,8 +10,12 @@ sys.path.insert(
 )
 from mdcraft import ureg
 from mdcraft.algorithm import neighbor
+from mdcraft.utility.topology import (
+    convert_cell_representation,
+    scale_coordinates,
+)
 
-RNG = np.random.default_rng()
+RNG = np.random.default_rng(42)
 
 
 class TestFunctionBuildNeighborList:
@@ -32,6 +36,25 @@ class TestFunctionBuildNeighborList:
         cls.positions_nm = cls.positions.m_as(ureg.nm)
         cls.cutoff_nm = cls.cutoff.m_as(ureg.nm)
         cls.dimensions_nm = cls.dimensions.m_as(ureg.nm)
+
+        cls.random_cutoff = 10.0
+        cls.random_lattice_parameters = np.array(
+            (30.0, 40.0, 50.0, 45.0, 45.0, 45.0)
+        )
+        cls.random_positions = cls.random_lattice_parameters[:3] * RNG.random(
+            (100, 3)
+        )
+
+    @staticmethod
+    def get_row_differences(nl_i, nl_j):
+        return (
+            np.setdiff1d(
+                nl_i.view([("", nl_i.dtype)] * nl_i.shape[1]),
+                nl_j.view([("", nl_j.dtype)] * nl_j.shape[1]),
+            )
+            .view(nl_i.dtype)
+            .reshape(-1, nl_i.shape[1])
+        )
 
     def test_invalid_shape(self):
         with pytest.raises(ValueError):
@@ -126,7 +149,63 @@ class TestFunctionBuildNeighborList:
             and len(neighbor_list[1]) == len(neighbor_list[2]) == 0
         )
 
+    def test_random_dimensionless_triclinic_pbc_3d(self):
+        neighbor_list_mdanalysis = np.unique(
+            np.sort(
+                capped_distance(
+                    self.random_positions,
+                    self.random_positions,
+                    self.random_cutoff,
+                    0,
+                    self.random_lattice_parameters,
+                )[0],
+                axis=1,
+            ),
+            axis=0,
+        )
+        neighbor_list_mdcraft = neighbor.build_neighbor_list(
+            self.random_positions,
+            self.random_cutoff,
+            self.random_lattice_parameters,
+        )
+        neighbor_list_mdcraft = np.array(
+            [
+                (pid, nid)
+                for pid in range(len(neighbor_list_mdcraft))
+                for nid in neighbor_list_mdcraft[pid]
+            ]
+        )
+        neighbor_list_mdcraft = neighbor_list_mdcraft[
+            np.lexsort(neighbor_list_mdcraft.T[::-1])
+        ]
 
-lol = TestFunctionBuildNeighborList()
-lol.setup_class()
-lol.test_units_orthogonal_nbc_3d()
+        scaled_positions = self.random_positions.copy()
+        scale_coordinates(scaled_positions, self.random_lattice_parameters)
+        box_vectors = convert_cell_representation(
+            self.random_lattice_parameters, "vectors"
+        )
+        assert (
+            len(
+                self.get_row_differences(
+                    neighbor_list_mdcraft, neighbor_list_mdanalysis
+                )
+            )
+            == 0
+            and (
+                np.fromiter(
+                    (
+                        neighbor._compute_squared_separation_distance_triclinic(
+                            scaled_positions[i],
+                            scaled_positions[j],
+                            box_vectors,
+                            True,
+                        )
+                        for i, j in self.get_row_differences(
+                            neighbor_list_mdanalysis, neighbor_list_mdcraft
+                        )
+                    ),
+                    np.float64,
+                )
+                > self.random_cutoff**2
+            ).all()
+        )
