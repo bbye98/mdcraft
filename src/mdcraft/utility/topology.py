@@ -259,6 +259,8 @@ def convert_cell_representation(
                 return vectors
             return representation  # output_format == "parameters"
         else:  # input_format == "vectors"
+            if output_format == "vectors":
+                return representation
             representation = reduce_box_vectors(representation)
             if output_format == "parameters":
                 return np.concatenate(

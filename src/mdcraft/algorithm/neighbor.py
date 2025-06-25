@@ -12,6 +12,7 @@ from ..utility.topology import (
     _invert_box_vectors,
     _scale_coordinates,
     convert_cell_representation,
+    reduce_box_vectors,
 )
 from ..utility.unit import strip_unit
 
@@ -51,28 +52,7 @@ def _compute_squared_separation_distance_orthogonal(
 
 
 @njit(fastmath=True, inline="always")  # pragma: no cover
-def _compute_squared_separation_distance_triclinic(
-    scaled_position_i: np.ndarray[float_t],
-    scaled_position_j: np.ndarray[float_t],
-    box_vectors: np.ndarray[float_t],
-    pbc: np.bool_,
-) -> float_t:
-    n_dimensions = scaled_position_i.shape[0]
-    dr_vector = np.zeros(n_dimensions, scaled_position_i.dtype)
-    for dim in range(n_dimensions):
-        scaled_dr = scaled_position_j[dim] - scaled_position_i[dim]
-        if pbc:
-            scaled_dr -= round(scaled_dr)
-        for axis in range(n_dimensions):
-            dr_vector[axis] += scaled_dr * box_vectors[dim, axis]
-    dr_squared = 0.0
-    for dim in range(n_dimensions):
-        dr_squared += dr_vector[dim] * dr_vector[dim]
-    return dr_squared
-
-
-@njit(fastmath=True, inline="always")  # pragma: no cover
-def _get_forward_cell_offsets(
+def _get_cell_offsets_orthogonal(
     n_dimensions: np.uint8,
 ) -> tuple[np.uint8, np.ndarray[np.int8]]:
     if n_dimensions == 2:
@@ -148,56 +128,6 @@ def _build_cell_lists_orthogonal(
     return n_cells, particle_cell_indices, cell_heads, cell_lists
 
 
-@njit(fastmath=True, inline="always")  # pragma: no cover
-def _build_cell_lists_triclinic(
-    scaled_positions: np.ndarray[float_t],
-    cutoff: float_t,
-    box_vectors: np.ndarray[float_t],
-    pbc: np.bool_,
-) -> tuple[
-    np.ndarray[np.uint32],
-    np.ndarray[np.uint32],
-    np.ndarray[int_t],
-    np.ndarray[int_t],
-]:
-    # Split simulation domain into cells
-    n_particles, n_dimensions = scaled_positions.shape
-    n_cells = np.empty(n_dimensions, np.uint32)
-    for dim in range(n_dimensions):
-        box_length = 0.0
-        for axis in range(n_dimensions):
-            box_length += box_vectors[dim, axis] * box_vectors[dim, axis]
-        box_length = sqrt(box_length)
-        n_cells[dim] = max(np.uint32(box_length / cutoff), 1)
-
-    # Get cell indices for each particle and create linked list for
-    # each cell
-    cell_heads = np.full(
-        (n_cells[0], n_cells[1], 1 if n_dimensions == 2 else n_cells[2]),
-        -1,
-        np.int64,
-    )
-    cell_lists = np.empty(n_particles, np.int64)
-    particle_cell_indices = np.empty((n_particles, n_dimensions), np.uint32)
-    for pid in range(n_particles):
-        for dim in range(n_dimensions):
-            particle_cell_index = np.trunc(
-                scaled_positions[pid, dim] * n_cells[dim]
-            )
-            if pbc:
-                particle_cell_index %= n_cells[dim]
-            particle_cell_indices[pid, dim] = np.uint32(particle_cell_index)
-        if n_dimensions == 2:
-            cix, ciy = particle_cell_indices[pid]
-            ciz = 0
-        else:
-            cix, ciy, ciz = particle_cell_indices[pid]
-        cell_lists[pid] = cell_heads[cix, ciy, ciz]
-        cell_heads[cix, ciy, ciz] = pid
-
-    return n_cells, particle_cell_indices, cell_heads, cell_lists
-
-
 @njit(fastmath=True)  # pragma: no cover
 def _build_neighbor_list_orthogonal(
     positions: np.ndarray[float_t],
@@ -212,7 +142,7 @@ def _build_neighbor_list_orthogonal(
     )
 
     # Define offsets for neighboring cells
-    n_offsets, cell_offsets = _get_forward_cell_offsets(n_dimensions)
+    n_offsets, cell_offsets = _get_cell_offsets_orthogonal(n_dimensions)
 
     # Build neighbor list for each particle
     neighbor_lists = List()
@@ -261,26 +191,126 @@ def _build_neighbor_list_orthogonal(
     return neighbor_lists
 
 
-@njit(fastmath=True)  # pragma: no cover
+@njit(fastmath=True, inline="always")  # pragma: no cover
+def _compute_squared_separation_distance_triclinic(
+    scaled_position_i: np.ndarray[float_t],
+    scaled_position_j: np.ndarray[float_t],
+    box_vectors: np.ndarray[float_t],
+    pbc: np.bool_,
+) -> float_t:
+    n_dimensions = scaled_position_i.shape[0]
+    dr_vector = np.zeros(n_dimensions, scaled_position_i.dtype)
+    for dim in range(n_dimensions):
+        scaled_dr = scaled_position_j[dim] - scaled_position_i[dim]
+        if pbc:
+            scaled_dr -= round(scaled_dr)
+        for axis in range(n_dimensions):
+            dr_vector[axis] += scaled_dr * box_vectors[dim, axis]
+    dr_squared = 0.0
+    for dim in range(n_dimensions):
+        dr_squared += dr_vector[dim] * dr_vector[dim]
+    return dr_squared
+
+
+# @njit(fastmath=True, inline="always")  # pragma: no cover
+def _get_cell_offsets_triclinic(
+    cutoff_squared: float_t,
+    box_vectors: np.ndarray[float_t],
+    n_cells: np.ndarray[np.uint32],
+) -> tuple[np.uint8, np.ndarray[np.int8]]:
+    n_dimensions = box_vectors.shape[0]
+    cell_vectors = box_vectors.copy()
+    for dim in range(n_dimensions):
+        for axis in range(n_dimensions):
+            cell_vectors[dim, axis] /= n_cells[dim]
+    if n_dimensions == 2:
+        ...  # TODO
+    else:
+        ...  # TODO
+    return
+
+
+# @njit(fastmath=True, inline="always")  # pragma: no cover
+def _build_cell_lists_triclinic(
+    scaled_positions: np.ndarray[float_t],
+    cutoff: float_t,
+    box_vectors: np.ndarray[float_t],
+    pbc: np.bool_,
+) -> tuple[
+    np.ndarray[np.uint32],
+    np.ndarray[np.uint32],
+    np.ndarray[int_t],
+    np.ndarray[int_t],
+]:
+    # Split simulation domain into cells
+    n_particles, n_dimensions = scaled_positions.shape
+    n_cells = np.empty(n_dimensions, np.uint32)
+    for dim in range(n_dimensions):
+        box_length_squared = 0.0
+        for axis in range(n_dimensions):
+            box_length_squared += (
+                box_vectors[dim, axis] * box_vectors[dim, axis]
+            )
+        n_cells[dim] = max(
+            np.uint32(sqrt(box_length_squared) / cutoff), 1
+        )  # TODO
+
+    # Get cell indices for each particle and create linked list for
+    # each cell
+    cell_heads = np.full(
+        (n_cells[0], n_cells[1], 1 if n_dimensions == 2 else n_cells[2]),
+        -1,
+        np.int64,
+    )
+    cell_lists = np.empty(n_particles, np.int64)
+    particle_cell_indices = np.empty((n_particles, n_dimensions), np.uint32)
+    for pid in range(n_particles):
+        for dim in range(n_dimensions):
+            # scaled_position = scaled_positions[pid, dim]
+            # if pbc:
+            #     scaled_position -= np.floor(scaled_position)
+            # particle_cell_indices[pid, dim] = np.uint32(
+            #     scaled_position * n_cells[dim]
+            # )
+
+            particle_cell_index = np.trunc(
+                scaled_positions[pid, dim] * n_cells[dim]
+            )
+            if pbc:
+                particle_cell_index %= n_cells[dim]
+            particle_cell_indices[pid, dim] = np.uint32(particle_cell_index)
+        if n_dimensions == 2:
+            cix, ciy = particle_cell_indices[pid]
+            ciz = 0
+        else:
+            cix, ciy, ciz = particle_cell_indices[pid]
+        cell_lists[pid] = cell_heads[cix, ciy, ciz]
+        cell_heads[cix, ciy, ciz] = pid
+
+    return n_cells, particle_cell_indices, cell_heads, cell_lists
+
+
+# @njit(fastmath=True)  # pragma: no cover
 def _build_neighbor_list_triclinic(
-    positions: np.ndarray[float_t],
     scaled_positions: np.ndarray[float_t],
     cutoff: float_t,
     box_vectors: np.ndarray[float_t],
     pbc: np.bool_,
 ) -> List[set[np.uint32]]:
     # Build cell lists
-    n_dimensions = positions.shape[1]
+    n_dimensions = scaled_positions.shape[1]
     n_cells, particle_cell_indices, cell_heads, cell_lists = (
         _build_cell_lists_triclinic(scaled_positions, cutoff, box_vectors, pbc)
     )
 
     # Define offsets for neighboring cells
-    n_offsets, cell_offsets = _get_forward_cell_offsets(n_dimensions)
+    cutoff_squared = cutoff * cutoff
+    n_offsets, cell_offsets = _get_cell_offsets_triclinic(
+        cutoff_squared, box_vectors, n_cells
+    )
 
     # Build neighbor list for each particle
-    neighbor_lists = List()
-    cutoff_squared = cutoff * cutoff
+    neighbor_lists = []  # List()
     for pid in range(scaled_positions.shape[0]):
         neighbor_list = set()
         ix, iy = particle_cell_indices[pid, :2]
@@ -411,6 +441,11 @@ def build_neighbor_list(
             strip_unit(box_size, "nm")[0], "vectors", n_dimensions
         )
         if np.array_equal(box_size, np.diag(np.diag(box_size))):
+            if pbc and cutoff > np.diag(box_size).min() / 2:
+                raise ValueError(
+                    "`cutoff` must be less than or equal to half the "
+                    "minimum box length when `pbc` is True."
+                )
             box_size = convert_cell_representation(box_size, "dimensions")
             if not pbc and not _check_positions(positions, box_size):
                 raise ValueError(
@@ -435,6 +470,12 @@ def build_neighbor_list(
                 "`positions` must be within the bounds of the "
                 "simulation box defined by `box_size`."
             )
+        box_size = reduce_box_vectors(box_size)
+        if pbc and cutoff > np.diag(box_size).min() / 2:
+            raise ValueError(
+                "`cutoff` must be less than or equal to half the "
+                "minimum box length when `pbc` is True."
+            )
         return _build_neighbor_list_triclinic(
-            positions, scaled_positions, cutoff, box_size, pbc
+            scaled_positions, cutoff, reduce_box_vectors(box_size), pbc
         )

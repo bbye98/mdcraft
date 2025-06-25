@@ -42,7 +42,7 @@ class TestFunctionBuildNeighborList:
             (30.0, 40.0, 50.0, 45.0, 45.0, 45.0)
         )
         cls.random_positions = cls.random_lattice_parameters[:3] * RNG.random(
-            (100, 3)
+            (50, 3)
         )
 
     @staticmethod
@@ -209,3 +209,32 @@ class TestFunctionBuildNeighborList:
                 > self.random_cutoff**2
             ).all()
         )
+
+        """
+array([[ 1, 23],
+       [ 1, 48],
+       [ 3, 32],
+       [ 3, 34],
+       [ 5, 25],
+       [ 5, 31],
+       [ 5, 44],
+       [ 6, 17],
+       [ 6, 49],
+       [ 8, 18],
+       [11, 14],
+       [11, 26],
+       [17, 24],
+       [18, 29],
+       [21, 46],
+       [22, 28],
+       [25, 33],
+       [25, 34],
+       [25, 38],
+       [26, 29],
+       [27, 39],
+       [28, 35],
+       [31, 34],
+       [31, 38],
+       [33, 37],
+       [46, 49]])
+        """
