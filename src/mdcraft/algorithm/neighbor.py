@@ -214,6 +214,7 @@ def _compute_squared_separation_distance_triclinic(
 
 # @njit(fastmath=True, inline="always")  # pragma: no cover
 def _get_cell_offsets_triclinic(
+    cutoff: float_t,
     cutoff_squared: float_t,
     box_vectors: np.ndarray[float_t],
     n_cells: np.ndarray[np.uint32],
@@ -223,14 +224,68 @@ def _get_cell_offsets_triclinic(
     for dim in range(n_dimensions):
         for axis in range(n_dimensions):
             cell_vectors[dim, axis] /= n_cells[dim]
+
+    cell_cross_products = np.empty(
+        (n_dimensions, n_dimensions), box_vectors.dtype
+    )
+    for di in range(n_dimensions):
+        dj = (di + 1) % n_dimensions
+        for ai in range(n_dimensions):
+            aj = (ai + 1) % n_dimensions
+            ak = (ai + 2) % n_dimensions
+            cell_cross_products[di, ai] = (
+                cell_vectors[di, aj] * cell_vectors[dj, ak]
+                - cell_vectors[di, ak] * cell_vectors[dj, aj]
+            )
+
+    cell_minimum_distances = np.empty(n_dimensions, box_vectors.dtype)
+    n_offsets = np.empty(n_dimensions, np.uint8)
+    for di in range(n_dimensions):
+        cell_minimum_distances[di] = 0.0
+        cross_product_magnitude_squared = 0.0
+        cpi = (di + 1) % n_dimensions
+        for axis in range(n_dimensions):
+            cell_minimum_distances[di] += (
+                cell_vectors[di, axis] * cell_cross_products[cpi, axis]
+            )
+            cross_product_magnitude_squared += (
+                cell_cross_products[cpi, axis] * cell_cross_products[cpi, axis]
+            )
+        cell_minimum_distances[di] = abs(cell_minimum_distances[di]) / sqrt(
+            cross_product_magnitude_squared
+        )
+        n_offsets[di] = np.ceil(cutoff / cell_minimum_distances[di])
+
+    # TODO
+
     if n_dimensions == 2:
-        ...  # TODO
+        return np.uint8(5), np.array(
+            ((0, 0), (0, 1), (1, -1), (1, 0), (1, 1)), np.int8
+        )
     else:
-        ...  # TODO
-    return
+        return np.uint8(14), np.array(
+            (
+                (0, 0, 0),
+                (0, 0, 1),
+                (0, 1, -1),
+                (0, 1, 0),
+                (0, 1, 1),
+                (1, -1, -1),
+                (1, -1, 0),
+                (1, -1, 1),
+                (1, 0, -1),
+                (1, 0, 0),
+                (1, 0, 1),
+                (1, 1, -1),
+                (1, 1, 0),
+                (1, 1, 1),
+            ),
+            np.int8,
+        )
+    # https://chatgpt.com/c/6858c879-05d8-8003-aac4-342e4c9d698a
 
 
-# @njit(fastmath=True, inline="always")  # pragma: no cover
+@njit(fastmath=True, inline="always")  # pragma: no cover
 def _build_cell_lists_triclinic(
     scaled_positions: np.ndarray[float_t],
     cutoff: float_t,
@@ -251,9 +306,7 @@ def _build_cell_lists_triclinic(
             box_length_squared += (
                 box_vectors[dim, axis] * box_vectors[dim, axis]
             )
-        n_cells[dim] = max(
-            np.uint32(sqrt(box_length_squared) / cutoff), 1
-        )  # TODO
+        n_cells[dim] = max(np.uint32(sqrt(box_length_squared) / cutoff), 1)
 
     # Get cell indices for each particle and create linked list for
     # each cell
@@ -266,19 +319,12 @@ def _build_cell_lists_triclinic(
     particle_cell_indices = np.empty((n_particles, n_dimensions), np.uint32)
     for pid in range(n_particles):
         for dim in range(n_dimensions):
-            # scaled_position = scaled_positions[pid, dim]
-            # if pbc:
-            #     scaled_position -= np.floor(scaled_position)
-            # particle_cell_indices[pid, dim] = np.uint32(
-            #     scaled_position * n_cells[dim]
-            # )
-
-            particle_cell_index = np.trunc(
-                scaled_positions[pid, dim] * n_cells[dim]
-            )
+            scaled_position = scaled_positions[pid, dim]
             if pbc:
-                particle_cell_index %= n_cells[dim]
-            particle_cell_indices[pid, dim] = np.uint32(particle_cell_index)
+                scaled_position %= 1.0
+            particle_cell_indices[pid, dim] = np.uint32(
+                scaled_position * n_cells[dim]
+            )
         if n_dimensions == 2:
             cix, ciy = particle_cell_indices[pid]
             ciz = 0
@@ -306,7 +352,7 @@ def _build_neighbor_list_triclinic(
     # Define offsets for neighboring cells
     cutoff_squared = cutoff * cutoff
     n_offsets, cell_offsets = _get_cell_offsets_triclinic(
-        cutoff_squared, box_vectors, n_cells
+        cutoff, cutoff_squared, box_vectors, n_cells
     )
 
     # Build neighbor list for each particle
