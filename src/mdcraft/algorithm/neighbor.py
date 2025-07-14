@@ -212,10 +212,9 @@ def _compute_squared_separation_distance_triclinic(
     return dr_squared
 
 
-# @njit(fastmath=True, inline="always")  # pragma: no cover
+@njit(fastmath=True, inline="always")  # pragma: no cover
 def _get_cell_offsets_triclinic(
     cutoff: float_t,
-    cutoff_squared: float_t,
     box_vectors: np.ndarray[float_t],
     n_cells: np.ndarray[np.uint32],
 ) -> tuple[np.uint8, np.ndarray[np.int8]]:
@@ -230,59 +229,61 @@ def _get_cell_offsets_triclinic(
     )
     for di in range(n_dimensions):
         dj = (di + 1) % n_dimensions
+        dk = (di + 2) % n_dimensions
         for ai in range(n_dimensions):
             aj = (ai + 1) % n_dimensions
             ak = (ai + 2) % n_dimensions
             cell_cross_products[di, ai] = (
-                cell_vectors[di, aj] * cell_vectors[dj, ak]
-                - cell_vectors[di, ak] * cell_vectors[dj, aj]
+                cell_vectors[dj, aj] * cell_vectors[dk, ak]
+                - cell_vectors[dj, ak] * cell_vectors[dk, aj]
             )
 
     cell_minimum_distances = np.empty(n_dimensions, box_vectors.dtype)
-    n_offsets = np.empty(n_dimensions, np.uint8)
+    cutoff_extents = np.empty(n_dimensions, np.int8)
     for di in range(n_dimensions):
         cell_minimum_distances[di] = 0.0
         cross_product_magnitude_squared = 0.0
-        cpi = (di + 1) % n_dimensions
         for axis in range(n_dimensions):
             cell_minimum_distances[di] += (
-                cell_vectors[di, axis] * cell_cross_products[cpi, axis]
+                cell_vectors[di, axis] * cell_cross_products[di, axis]
             )
             cross_product_magnitude_squared += (
-                cell_cross_products[cpi, axis] * cell_cross_products[cpi, axis]
+                cell_cross_products[di, axis] * cell_cross_products[di, axis]
             )
         cell_minimum_distances[di] = abs(cell_minimum_distances[di]) / sqrt(
             cross_product_magnitude_squared
         )
-        n_offsets[di] = np.ceil(cutoff / cell_minimum_distances[di])
+        cutoff_extents[di] = np.ceil(cutoff / cell_minimum_distances[di])
 
-    # TODO
-
+    n_offsets = np.uint8(1)
+    for extent in cutoff_extents:
+        n_offsets *= 2 * extent + 1
+    n_offsets //= 2
+    n_offsets += 1
+    cell_offsets = np.empty((n_offsets, n_dimensions), np.int8)
+    cell_offsets[0] = 0
+    coi = 1
     if n_dimensions == 2:
-        return np.uint8(5), np.array(
-            ((0, 0), (0, 1), (1, -1), (1, 0), (1, 1)), np.int8
-        )
+        for ix in range(-cutoff_extents[0], cutoff_extents[0] + 1):
+            for iy in range(-cutoff_extents[1], cutoff_extents[1] + 1):
+                if ix > 0 or (ix == 0 and iy > 0):
+                    cell_offsets[coi, 0] = ix
+                    cell_offsets[coi, 1] = iy
+                    coi += 1
     else:
-        return np.uint8(14), np.array(
-            (
-                (0, 0, 0),
-                (0, 0, 1),
-                (0, 1, -1),
-                (0, 1, 0),
-                (0, 1, 1),
-                (1, -1, -1),
-                (1, -1, 0),
-                (1, -1, 1),
-                (1, 0, -1),
-                (1, 0, 0),
-                (1, 0, 1),
-                (1, 1, -1),
-                (1, 1, 0),
-                (1, 1, 1),
-            ),
-            np.int8,
-        )
-    # https://chatgpt.com/c/6858c879-05d8-8003-aac4-342e4c9d698a
+        for ix in range(-cutoff_extents[0], cutoff_extents[0] + 1):
+            for iy in range(-cutoff_extents[1], cutoff_extents[1] + 1):
+                for iz in range(-cutoff_extents[2], cutoff_extents[2] + 1):
+                    if (
+                        ix > 0
+                        or (ix == 0 and iy > 0)
+                        or (ix == 0 and iy == 0 and iz > 0)
+                    ):
+                        cell_offsets[coi, 0] = ix
+                        cell_offsets[coi, 1] = iy
+                        cell_offsets[coi, 2] = iz
+                        coi += 1
+    return n_offsets, cell_offsets
 
 
 @njit(fastmath=True, inline="always")  # pragma: no cover
@@ -336,7 +337,7 @@ def _build_cell_lists_triclinic(
     return n_cells, particle_cell_indices, cell_heads, cell_lists
 
 
-# @njit(fastmath=True)  # pragma: no cover
+@njit(fastmath=True)  # pragma: no cover
 def _build_neighbor_list_triclinic(
     scaled_positions: np.ndarray[float_t],
     cutoff: float_t,
@@ -350,13 +351,13 @@ def _build_neighbor_list_triclinic(
     )
 
     # Define offsets for neighboring cells
-    cutoff_squared = cutoff * cutoff
     n_offsets, cell_offsets = _get_cell_offsets_triclinic(
-        cutoff, cutoff_squared, box_vectors, n_cells
+        cutoff, box_vectors, n_cells
     )
 
     # Build neighbor list for each particle
-    neighbor_lists = []  # List()
+    neighbor_lists = List()
+    cutoff_squared = cutoff * cutoff
     for pid in range(scaled_positions.shape[0]):
         neighbor_list = set()
         ix, iy = particle_cell_indices[pid, :2]
@@ -472,9 +473,10 @@ def build_neighbor_list(
             cutoff,
             np.fromiter(
                 (
-                    positions[:, dim].max()
-                    - positions[:, dim].min()
-                    + 2 * np.finfo(dtype).eps
+                    np.nextafter(
+                        positions[:, dim].max() - positions[:, dim].min(),
+                        np.inf,
+                    )
                     for dim in range(n_dimensions)
                 ),
                 dtype,

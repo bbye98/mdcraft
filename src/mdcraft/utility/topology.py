@@ -214,7 +214,7 @@ def convert_cell_representation(
                 return parameters
             elif output_format == "dimensions":
                 representation = np.diag(representation)
-    else:
+    else:  # n_dimensions == 3
         if input_format == "dimensions":
             if output_format == "parameters":
                 return np.concatenate((representation, (90.0, 90.0, 90.0)))
@@ -259,8 +259,6 @@ def convert_cell_representation(
                 return vectors
             return representation  # output_format == "parameters"
         else:  # input_format == "vectors"
-            if output_format == "vectors":
-                return representation
             representation = reduce_box_vectors(representation)
             if output_format == "parameters":
                 return np.concatenate(
@@ -617,8 +615,7 @@ def _scale_coordinates(
                 entity_scaled_coordinates[dim] = 0.0
                 for axis in range(n_dimensions):
                     entity_scaled_coordinates[dim] += (
-                        coordinates[eid, axis]
-                        * inv_box_vectors[axis, dim]  # TODO
+                        coordinates[eid, axis] * inv_box_vectors[axis, dim]
                     )
             for dim in range(n_dimensions):
                 coordinates[eid, dim] = entity_scaled_coordinates[dim]

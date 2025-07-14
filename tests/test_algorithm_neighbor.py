@@ -42,7 +42,7 @@ class TestFunctionBuildNeighborList:
             (30.0, 40.0, 50.0, 45.0, 45.0, 45.0)
         )
         cls.random_positions = cls.random_lattice_parameters[:3] * RNG.random(
-            (50, 3)
+            (1_000, 3)
         )
 
     @staticmethod
@@ -149,6 +149,97 @@ class TestFunctionBuildNeighborList:
             and len(neighbor_list[1]) == len(neighbor_list[2]) == 0
         )
 
+    def test_random_dimensionless_orthogonal_nbc_3d(self):
+        neighbor_list_mdanalysis = np.unique(
+            np.sort(
+                capped_distance(
+                    self.random_positions,
+                    self.random_positions,
+                    self.random_cutoff,
+                    0.0,
+                )[0],
+                axis=1,
+            ),
+            axis=0,
+        )
+        neighbor_list_mdcraft = neighbor.build_neighbor_list(
+            self.random_positions, self.random_cutoff
+        )
+        neighbor_list_mdcraft = np.array(
+            [
+                (pid, nid)
+                for pid in range(len(neighbor_list_mdcraft))
+                for nid in neighbor_list_mdcraft[pid]
+            ]
+        )
+        neighbor_list_mdcraft = neighbor_list_mdcraft[
+            np.lexsort(neighbor_list_mdcraft.T[::-1])
+        ]
+
+        assert (
+            len(
+                self.get_row_differences(
+                    neighbor_list_mdcraft, neighbor_list_mdanalysis
+                )
+            )
+            == 0
+            and len(
+                self.get_row_differences(
+                    neighbor_list_mdanalysis, neighbor_list_mdcraft
+                )
+            )
+            == 0
+        )
+
+    def test_random_dimensionless_orthogonal_pbc_3d(self):
+        neighbor_list_mdanalysis = np.unique(
+            np.sort(
+                capped_distance(
+                    self.random_positions,
+                    self.random_positions,
+                    self.random_cutoff,
+                    0.0,
+                    np.concatenate(
+                        (self.random_lattice_parameters[:3], (90.0, 90.0, 90.0))
+                    ),
+                )[0],
+                axis=1,
+            ),
+            axis=0,
+        )
+        neighbor_list_mdcraft = neighbor.build_neighbor_list(
+            self.random_positions,
+            self.random_cutoff,
+            self.random_lattice_parameters[:3],
+        )
+        neighbor_list_mdcraft = np.array(
+            [
+                (pid, nid)
+                for pid in range(len(neighbor_list_mdcraft))
+                for nid in neighbor_list_mdcraft[pid]
+            ]
+        )
+        neighbor_list_mdcraft = neighbor_list_mdcraft[
+            np.lexsort(neighbor_list_mdcraft.T[::-1])
+        ]
+
+        assert (
+            len(
+                self.get_row_differences(
+                    neighbor_list_mdcraft, neighbor_list_mdanalysis
+                )
+            )
+            == 0
+            and len(
+                self.get_row_differences(
+                    neighbor_list_mdanalysis, neighbor_list_mdcraft
+                )
+            )
+            == 0
+        )
+
+    def test_random_dimensionless_triclinic_nbc_3d(self): ...
+
     def test_random_dimensionless_triclinic_pbc_3d(self):
         neighbor_list_mdanalysis = np.unique(
             np.sort(
@@ -156,7 +247,7 @@ class TestFunctionBuildNeighborList:
                     self.random_positions,
                     self.random_positions,
                     self.random_cutoff,
-                    0,
+                    0.0,
                     self.random_lattice_parameters,
                 )[0],
                 axis=1,
@@ -184,6 +275,7 @@ class TestFunctionBuildNeighborList:
         box_vectors = convert_cell_representation(
             self.random_lattice_parameters, "vectors"
         )
+        debug = True  # TODO:  Figure out distance discrepancies.
         assert (
             len(
                 self.get_row_differences(
@@ -210,31 +302,8 @@ class TestFunctionBuildNeighborList:
             ).all()
         )
 
-        """
-array([[ 1, 23],
-       [ 1, 48],
-       [ 3, 32],
-       [ 3, 34],
-       [ 5, 25],
-       [ 5, 31],
-       [ 5, 44],
-       [ 6, 17],
-       [ 6, 49],
-       [ 8, 18],
-       [11, 14],
-       [11, 26],
-       [17, 24],
-       [18, 29],
-       [21, 46],
-       [22, 28],
-       [25, 33],
-       [25, 34],
-       [25, 38],
-       [26, 29],
-       [27, 39],
-       [28, 35],
-       [31, 34],
-       [31, 38],
-       [33, 37],
-       [46, 49]])
-        """
+
+test = TestFunctionBuildNeighborList()
+test.setup_class()
+test.test_random_dimensionless_triclinic_pbc_3d()
+debug = True

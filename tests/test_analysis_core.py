@@ -3,7 +3,9 @@ import sys
 
 import numpy as np
 
-sys.path.insert(0, f"{pathlib.Path(__file__).parents[1].resolve().as_posix()}/src")
+sys.path.insert(
+    0, f"{pathlib.Path(__file__).parents[1].resolve().as_posix()}/src"
+)
 from mdcraft.core import Trajectory
 
 DATA_DIRECTORY = pathlib.Path(__file__).parents[0].resolve() / "data"
@@ -30,7 +32,9 @@ class TestClassTrajectory:
         timesteps = [0, 1, 2, 3, 4, 5]
         """
 
-        trajectory = Trajectory(DATA_DIRECTORY / "trajectories/subset_1_1.lammpstrj")
+        trajectory = Trajectory(
+            DATA_DIRECTORY / "trajectories/subset_1_1.lammpstrj"
+        )
         assert trajectory.dt == 0.005
         assert trajectory.time_step == 0.005
         assert trajectory.n_frames == 6
@@ -74,7 +78,7 @@ class TestClassTrajectory:
             trajectory.times,
             np.arange(
                 0,
-                (trajectory.n_frames - 1) * trajectory.dt + 10 * np.finfo(float).eps,
+                np.nextafter((trajectory.n_frames - 1) * trajectory.dt, np.inf),
                 trajectory.dt,
             ),
         )
@@ -123,7 +127,7 @@ class TestClassTrajectory:
             trajectory.times,
             np.arange(
                 0,
-                (trajectory.n_frames - 1) * trajectory.dt + 10 * np.finfo(float).eps,
+                np.nextafter((trajectory.n_frames - 1) * trajectory.dt, np.inf),
                 trajectory.dt,
             ),
         )
