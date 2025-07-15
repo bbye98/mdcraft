@@ -1644,14 +1644,14 @@ class PotentialProfile(DynamicAnalysisBase):
                     )
                     for ax_d, id in zip(self.dipole_axes, self._dipole_axis_indices):
     
-                        self.results.dipoles[ax, ax_d][ig] += np.histogram(
-                            self._positions[s, ia], bins=n, range=self.results.bin_edges[ax][[0,-1]], weights=self._dipoles[s, id]
-                        )[0]
+                        self.results.dipoles[ax, ax_d][ig] += numba_histogram(
+                            self._positions[s, ia], n, self.results.bin_edges[ax], self._dipoles[s, id]
+                        )
                     for ax_d1, id1 in zip(self.dipole_axes, self._dipole_axis_indices):
                         for ax_d2, id2 in zip(self.dipole_axes, self._dipole_axis_indices):
-                            self.results.quadrupoles[ax, ax_d1, ax_d2][ig] += np.histogram(
-                                self._positions[s, ia], bins=n, range=self.results.bin_edges[ax][[0,-1]], weights=self._quadrupoles[s, id1, id2]
-                            )[0]
+                            self.results.quadrupoles[ax, ax_d1, ax_d2][ig] += numba_histogram(
+                                self._positions[s, ia], n, self.results.bin_edges[ax], self._quadrupoles[s, id1, id2]
+                            )
                 else:
                     self.results.number_densities[ax][ig, self._frame_index] = (
                         numba_histogram(
@@ -1659,14 +1659,14 @@ class PotentialProfile(DynamicAnalysisBase):
                         )
                     )
                     for ax_d in self.dipole_axes:
-                        self.results.dipoles[ax, ax_d][ig, self._frame_index] = np.histogram(
-                            self._positions[s, ia], bins=n, range=self.results.bin_edges[ax][[0,-1]], weights=self._dipoles[s, ax_d]
-                        )[0]
+                        self.results.dipoles[ax, ax_d][ig, self._frame_index] = numba_histogram(
+                            self._positions[s, ia], n, self.results.bin_edges[ax], self._dipoles[s, ax_d]
+                        )
                     for ax_d1, id1 in zip(self.dipole_axes, self._dipole_axis_indices):
                         for ax_d2, id2 in zip(self.dipole_axes, self._dipole_axis_indices):
-                            self.results.quadrupoles[ax, ax_d1, ax_d2][ig, self._frame_index] = np.histogram(
-                                self._positions[s, ia], bins=n, range=self.results.bin_edges[ax][[0,-1]], weights=self._quadrupoles[s, id1, id2]
-                            )[0]
+                            self.results.quadrupoles[ax, ax_d1, ax_d2][ig, self._frame_index] = numba_histogram(
+                                self._positions[s, ia], n, self.results.bin_edges[ax], self._quadrupoles[s, id1, id2]
+                            )
 
     def _conclude(self) -> None:
 
