@@ -270,12 +270,6 @@ class TestFunctionBuildNeighborList:
             np.lexsort(neighbor_list_mdcraft.T[::-1])
         ]
 
-        scaled_positions = self.random_positions.copy()
-        scale_coordinates(scaled_positions, self.random_lattice_parameters)
-        box_vectors = convert_cell_representation(
-            self.random_lattice_parameters, "vectors"
-        )
-        debug = True  # TODO:  Figure out distance discrepancies.
         assert (
             len(
                 self.get_row_differences(
@@ -283,27 +277,10 @@ class TestFunctionBuildNeighborList:
                 )
             )
             == 0
-            and (
-                np.fromiter(
-                    (
-                        neighbor._compute_squared_separation_distance_triclinic(
-                            scaled_positions[i],
-                            scaled_positions[j],
-                            box_vectors,
-                            True,
-                        )
-                        for i, j in self.get_row_differences(
-                            neighbor_list_mdanalysis, neighbor_list_mdcraft
-                        )
-                    ),
-                    np.float64,
+            and len(
+                self.get_row_differences(
+                    neighbor_list_mdanalysis, neighbor_list_mdcraft
                 )
-                > self.random_cutoff**2
-            ).all()
+            )
+            == 0
         )
-
-
-test = TestFunctionBuildNeighborList()
-test.setup_class()
-test.test_random_dimensionless_triclinic_pbc_3d()
-debug = True

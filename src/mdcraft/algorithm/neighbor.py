@@ -193,22 +193,23 @@ def _build_neighbor_list_orthogonal(
 
 @njit(fastmath=True, inline="always")  # pragma: no cover
 def _compute_squared_separation_distance_triclinic(
-    scaled_position_i: np.ndarray[float_t],
-    scaled_position_j: np.ndarray[float_t],
+    position_i: np.ndarray[float_t],
+    position_j: np.ndarray[float_t],
     box_vectors: np.ndarray[float_t],
     pbc: np.bool_,
 ) -> float_t:
-    n_dimensions = scaled_position_i.shape[0]
-    dr_vector = np.zeros(n_dimensions, scaled_position_i.dtype)
+    n_dimensions = position_i.shape[0]
+    dr = np.empty(n_dimensions, position_i.dtype)
     for dim in range(n_dimensions):
-        scaled_dr = scaled_position_j[dim] - scaled_position_i[dim]
-        if pbc:
-            scaled_dr -= round(scaled_dr)
-        for axis in range(n_dimensions):
-            dr_vector[axis] += scaled_dr * box_vectors[dim, axis]
+        dr[dim] = position_j[dim] - position_i[dim]
+    if pbc:
+        for axis in range(n_dimensions - 1, -1, -1):
+            factor = np.floor(dr[axis] / box_vectors[axis, axis] + 0.5)
+            for dim in range(n_dimensions):
+                dr[dim] -= factor * box_vectors[axis, dim]
     dr_squared = 0.0
     for dim in range(n_dimensions):
-        dr_squared += dr_vector[dim] * dr_vector[dim]
+        dr_squared += dr[dim] * dr[dim]
     return dr_squared
 
 
@@ -339,6 +340,7 @@ def _build_cell_lists_triclinic(
 
 @njit(fastmath=True)  # pragma: no cover
 def _build_neighbor_list_triclinic(
+    positions: np.ndarray[float_t],
     scaled_positions: np.ndarray[float_t],
     cutoff: float_t,
     box_vectors: np.ndarray[float_t],
@@ -386,8 +388,8 @@ def _build_neighbor_list_triclinic(
                 if pid != nid:
                     if (
                         _compute_squared_separation_distance_triclinic(
-                            scaled_positions[pid],
-                            scaled_positions[nid],
+                            positions[pid],
+                            positions[nid],
                             box_vectors,
                             pbc,
                         )
@@ -525,5 +527,9 @@ def build_neighbor_list(
                 "minimum box length when `pbc` is True."
             )
         return _build_neighbor_list_triclinic(
-            scaled_positions, cutoff, reduce_box_vectors(box_size), pbc
+            positions,
+            scaled_positions,
+            cutoff,
+            reduce_box_vectors(box_size),
+            pbc,
         )
