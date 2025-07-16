@@ -652,6 +652,125 @@ def center_of_charge(group: mda.AtomGroup = None,
 
     return coc
 
+def center_of_geometry(group: mda.AtomGroup = None,
+                    grouping: str = None,
+                    *,
+                    positions: Union[np.ndarray[float], list[np.ndarray[float]]] = None,
+                    images: Union[np.ndarray[int], list[np.ndarray[int]]] = None,
+                    dimensions: np.ndarray[float] = None,
+                    n_groups: int = None,
+                    raw: bool = False,
+                ) -> Union[
+                    np.ndarray[float], tuple[np.ndarray[float], np.ndarray[float], np.ndarray[float]]
+                ]:
+    # Check whether grouping is valid
+    if grouping not in {None, "residues", "segments"}:
+        emsg = (
+            f"Invalid grouping: '{grouping}'. Valid options are "
+            "None, 'residues', and 'segments'."
+        )
+        raise ValueError(emsg)
+
+    # Get system dimensions if image flags are provided
+    if images is not None:
+        if dimensions is None:
+            try:
+                dimensions = group.dimensions[:3]
+            except (NameError, TypeError):
+                emsg = (
+                    "Image flags were provided, but no system "
+                    "dimensions were provided or found in the "
+                    "trajectory."
+                )
+                raise ValueError(emsg)
+        else:
+            dimensions = np.asarray(dimensions)
+
+    # Get particle masses and positions from the trajectory, if
+    # necessary
+    missing = (positions is None)
+    if missing:
+        if group is None:
+            emsg = (
+                "Either a group of atoms or atom positions"
+                "must be provided."
+            )
+            raise ValueError(emsg)
+
+        # Check whether the groups have equal numbers of atoms
+        if grouping is None:
+            same = True
+        else:
+            groups = getattr(group, grouping)
+
+            # Calculate and return the centers of mass for different
+            # groups here if unwrapping and the mass and position arrays
+            # are not needed
+            if (
+                not (
+                    same := all(
+                        g.atoms.n_atoms == groups[0].atoms.n_atoms for g in groups
+                    )
+                )
+                and images is None
+                and not raw
+            ):
+                return np.array([g.atoms.center_of_mass() for g in groups])
+
+        # Get and unwrap particle positions, if necessary
+        if missing:
+            positions = group.positions
+            if images is not None:
+                positions += images * dimensions[:3]
+
+        # Ensure correct dimensionality, if
+        # necessary
+        if same:
+            if grouping is not None or n_groups is not None:
+                shape = (n_groups or getattr(group, f"n_{grouping}"), -1, 3)
+                positions = positions.reshape(shape)
+        else:
+            if missing:
+                positions = [positions[g.atoms.ix] for g in groups]
+    else:
+
+        # Try to convert arrays to NumPy arrays if they are not already
+        # to take advantage of vectorized operations later
+        try:
+            positions = np.asarray(positions)
+            if images is not None:
+                positions += images
+        except ValueError:
+            pass
+        if images is not None and type(images) is not type(positions):
+            emsg = (
+                "The shapes of the arrays containing the positions "
+                "and image flags are incompatible."
+            )
+            raise ValueError(emsg)
+
+    # Calculate the dipole for the specified grouping
+    if isinstance(positions, np.ndarray):
+
+        # Reshape the mass and position arrays based on the specified
+        # number of groups
+        if n_groups is not None:
+            positions = positions.reshape((n_groups, -1, 3))
+
+        # dipole = sum(q_i * r_i) and should be a vector of shape (3,)
+        cog = np.sum(positions, axis=-2) / positions.shape[-2]
+    else:
+        if images is not None:
+            for j, (p, i) in enumerate(zip(positions, images)):
+                positions[j] = p + i * dimensions
+        cog = np.array([np.sum(p, axis=0) / p.shape[0] for p in positions])
+
+    # Return raw charges and positions, if desired
+    if raw:
+        return cog, positions
+
+    return cog
+
 def molecular_dipole(group: mda.AtomGroup = None,
                     grouping: str = None,
                     *,
@@ -1316,10 +1435,10 @@ class PotentialProfile(DynamicAnalysisBase):
         if not all(ax in "xyz" for ax in self.dipole_axes):
             raise ValueError("Invalid axis passed in 'dipole_axes'.")
 
-        if dipole_center not in {"center_of_mass", "center_of_charge"}:
+        if dipole_center not in {"center_of_mass", "center_of_charge", "center_of_geometry"}:
             emsg = (
                 f"Invalid dipole center '{dipole_center}'. "
-                "Valid values: 'center_of_mass', 'center_of_charge'."
+                "Valid values: 'center_of_mass', 'center_of_charge', 'center_of_geometry'."
             )
             raise ValueError(emsg)
         self._dipole_center = dipole_center
@@ -1598,6 +1717,10 @@ class PotentialProfile(DynamicAnalysisBase):
             elif self._dipole_center == "center_of_charge":
                 self._positions[s] = (
                     ag.positions if gr == "atoms" else center_of_charge(ag, gr)
+                )
+            elif self._dipole_center == "center_of_geometry":
+                self._positions[s] = (
+                    ag.positions if gr == "atoms" else center_of_geometry(ag, gr)
                 )
             self._dipoles[s] = molecular_dipole(ag, gr)
             self._quadrupoles[s] = molecular_quadrupole(ag, gr)
