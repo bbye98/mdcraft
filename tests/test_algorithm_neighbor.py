@@ -10,12 +10,8 @@ sys.path.insert(
 )
 from mdcraft import ureg
 from mdcraft.algorithm import neighbor
-from mdcraft.utility.topology import (
-    convert_cell_representation,
-    scale_coordinates,
-)
 
-RNG = np.random.default_rng(42)
+RNG = np.random.default_rng()
 
 
 class TestFunctionBuildNeighborList:
@@ -31,7 +27,7 @@ class TestFunctionBuildNeighborList:
             )
             * ureg.nm
         )
-        cls.cutoff = 15 * ureg.angstrom
+        cls.cutoff = 15.0 * ureg.angstrom
         cls.dimensions = np.array([0.004, 0.004, 0.004]) * ureg.um
         cls.positions_nm = cls.positions.m_as(ureg.nm)
         cls.cutoff_nm = cls.cutoff.m_as(ureg.nm)
@@ -42,7 +38,7 @@ class TestFunctionBuildNeighborList:
             (30.0, 40.0, 50.0, 45.0, 45.0, 45.0)
         )
         cls.random_positions = cls.random_lattice_parameters[:3] * RNG.random(
-            (1_000, 3)
+            (900, 3)
         )
 
     @staticmethod
@@ -175,21 +171,7 @@ class TestFunctionBuildNeighborList:
         neighbor_list_mdcraft = neighbor_list_mdcraft[
             np.lexsort(neighbor_list_mdcraft.T[::-1])
         ]
-
-        assert (
-            len(
-                self.get_row_differences(
-                    neighbor_list_mdcraft, neighbor_list_mdanalysis
-                )
-            )
-            == 0
-            and len(
-                self.get_row_differences(
-                    neighbor_list_mdanalysis, neighbor_list_mdcraft
-                )
-            )
-            == 0
-        )
+        assert np.array_equal(neighbor_list_mdcraft, neighbor_list_mdanalysis)
 
     def test_random_dimensionless_orthogonal_pbc_3d(self):
         neighbor_list_mdanalysis = np.unique(
@@ -222,21 +204,7 @@ class TestFunctionBuildNeighborList:
         neighbor_list_mdcraft = neighbor_list_mdcraft[
             np.lexsort(neighbor_list_mdcraft.T[::-1])
         ]
-
-        assert (
-            len(
-                self.get_row_differences(
-                    neighbor_list_mdcraft, neighbor_list_mdanalysis
-                )
-            )
-            == 0
-            and len(
-                self.get_row_differences(
-                    neighbor_list_mdanalysis, neighbor_list_mdcraft
-                )
-            )
-            == 0
-        )
+        assert np.array_equal(neighbor_list_mdcraft, neighbor_list_mdanalysis)
 
     def test_random_dimensionless_triclinic_nbc_3d(self): ...
 
@@ -269,18 +237,4 @@ class TestFunctionBuildNeighborList:
         neighbor_list_mdcraft = neighbor_list_mdcraft[
             np.lexsort(neighbor_list_mdcraft.T[::-1])
         ]
-
-        assert (
-            len(
-                self.get_row_differences(
-                    neighbor_list_mdcraft, neighbor_list_mdanalysis
-                )
-            )
-            == 0
-            and len(
-                self.get_row_differences(
-                    neighbor_list_mdanalysis, neighbor_list_mdcraft
-                )
-            )
-            == 0
-        )
+        assert np.array_equal(neighbor_list_mdcraft, neighbor_list_mdanalysis)

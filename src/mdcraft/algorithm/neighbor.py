@@ -17,19 +17,48 @@ from ..utility.topology import (
 from ..utility.unit import strip_unit
 
 if TYPE_CHECKING:  # pragma: no cover
-    from .. import float_t, int_t
+    from .. import int_t, float_t
 
 
 @njit(fastmath=True, inline="always")  # pragma: no cover
 def _check_positions(
     positions: np.ndarray[float_t],
-    box_lengths: np.ndarray[float_t],
+    dimensions: np.ndarray[float_t],
 ) -> np.bool_:
+    """
+    Checks whether all particle positions are within the bounds of the
+    simulation box.
+
+    Parameters
+    ----------
+    positions : `numpy.ndarray`
+        Particle positions :math:`\\mathrm{r}` in Cartesian or
+        fractional coordinates.
+
+        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}` (Cartesian) or unitless
+        (fractional).
+
+    dimensions : `numpy.ndarray`
+        Box dimensions :math:`(L_x,L_y[,L_z])` (Cartesian) or
+        :math:`(1,1[,1])` (fractional).
+
+        **Shape**: :math:`(2,)` or :math:`(3,)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}` (Cartesian) or unitless
+        (fractional).
+
+    Returns
+    -------
+    all_inside : `bool`
+        Whether all particles are inside the simulation box.
+    """
     for pid in range(positions.shape[0]):
         for dim in range(positions.shape[1]):
             if (
                 positions[pid, dim] < 0.0
-                or positions[pid, dim] > box_lengths[dim]
+                or positions[pid, dim] > dimensions[dim]
             ):
                 return False
     return True
@@ -42,6 +71,45 @@ def _compute_squared_separation_distance_orthogonal(
     dimensions: np.ndarray[float_t],
     pbc: np.bool_,
 ) -> float_t:
+    """
+    Computes the squared separation distance :math:`r_{ij}^2` between
+    two particles in an orthogonal simulation box.
+
+    Parameters
+    ----------
+    position_i : `numpy.ndarray`
+        Position of the first particle :math:`\\mathrm{r}_i`.
+
+        **Shape**: :math:`(2,)` or :math:`(3,)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    position_j : `numpy.ndarray`
+        Position of the second particle :math:`\\mathrm{r}_j`.
+
+        **Shape**: :math:`(2,)` or :math:`(3,)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    dimensions : `numpy.ndarray`
+        Box dimensions :math:`(L_x,L_y[,L_z])`.
+
+        **Shape**: :math:`(2,)` or :math:`(3,)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    pbc : `bool`
+        Specifies whether to apply periodic boundary conditions (PBC)
+        and use the minimum image convention when calculating the
+        squared separation distance between the two particles.
+
+    Returns
+    -------
+    dr_squared : `float`
+        Squared separation distance :math:`r_{ij}^2` between the two
+        particles.
+
+    """
     dr_squared = 0.0
     for dim in range(position_i.shape[0]):
         dr = position_j[dim] - position_i[dim]
@@ -55,30 +123,32 @@ def _compute_squared_separation_distance_orthogonal(
 def _get_cell_offsets_orthogonal(
     n_dimensions: np.uint8,
 ) -> tuple[np.uint8, np.ndarray[np.int8]]:
+    """ """
     if n_dimensions == 2:
         return np.uint8(5), np.array(
             ((0, 0), (0, 1), (1, -1), (1, 0), (1, 1)), np.int8
         )
-    else:
-        return np.uint8(14), np.array(
-            (
-                (0, 0, 0),
-                (0, 0, 1),
-                (0, 1, -1),
-                (0, 1, 0),
-                (0, 1, 1),
-                (1, -1, -1),
-                (1, -1, 0),
-                (1, -1, 1),
-                (1, 0, -1),
-                (1, 0, 0),
-                (1, 0, 1),
-                (1, 1, -1),
-                (1, 1, 0),
-                (1, 1, 1),
-            ),
-            np.int8,
-        )
+
+    # n_dimensions == 3
+    return np.uint8(14), np.array(
+        (
+            (0, 0, 0),
+            (0, 0, 1),
+            (0, 1, -1),
+            (0, 1, 0),
+            (0, 1, 1),
+            (1, -1, -1),
+            (1, -1, 0),
+            (1, -1, 1),
+            (1, 0, -1),
+            (1, 0, 0),
+            (1, 0, 1),
+            (1, 1, -1),
+            (1, 1, 0),
+            (1, 1, 1),
+        ),
+        np.int8,
+    )
 
 
 @njit(fastmath=True, inline="always")  # pragma: no cover
@@ -421,19 +491,19 @@ def build_neighbor_list(
     Parameters
     ----------
     positions : `numpy.ndarray` or `pint.Quantity`
-        Particle positions.
+        Particle positions :math:`\\mathbf{r}`.
 
         **Shape**: :math:`(N,2)` or :math:`(N,3)`.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
     cutoff : `float` or `pint.Quantity`
-        Cutoff distance for neighbor search.
+        Cutoff distance :math:`r_\\mathrm{cutoff}` for neighbor search.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
     box_size : `numpy.ndarray` or `pint.Quantity`, optional
-        Size of the simulation box in dimensions :math:`(L_x,L_y[,L_z])`,
+        Size of the simulation box as dimensions :math:`(L_x,L_y[,L_z])`,
         lattice parameters :math:`(a,b[,c,\\alpha,\\beta],\\gamma)`, or
         box vectors :math:`(\\mathbf{a};\\mathbf{b}[;\\mathbf{c}])`. If
         not provided, the simulation box is assumed to be orthogonal and
@@ -451,29 +521,29 @@ def build_neighbor_list(
     Returns
     -------
     neighbor_lists : `list`
-        Neighbor lists for each particle, with each list being a
-        set of particle indices that are within the cutoff distance
-        from the corresponding particle.
+        A list of neighbor lists (sets) for all particles, with each
+        inner variable-length set containing the indices of particles
+        that are within the cutoff distance of the corresponding
+        particle.
 
         **Shape**: :math:`(N,)`.
     """
-
+    # Validate input arguments
     positions = np.asarray(strip_unit(positions, "nm")[0])
     if positions.ndim != 2 or positions.shape[1] not in {2, 3}:
         raise ValueError(
             "`positions` must be a two-dimensional array with shape "
             "(N, 2) or (N, 3)."
         )
-    positions -= positions.min(axis=0)
-
     n_dimensions = positions.shape[1]
     cutoff = strip_unit(cutoff, "nm")[0]
+
+    # Assume non-periodic orthogonal box if no box size is provided
     if box_size is None:
-        dtype = positions.dtype
         return _build_neighbor_list_orthogonal(
-            positions,
+            positions - positions.min(axis=0),  # Shift positions to origin
             cutoff,
-            np.fromiter(
+            np.fromiter(  # Use maximum distance between particles as box size
                 (
                     np.nextafter(
                         positions[:, dim].max() - positions[:, dim].min(),
@@ -481,7 +551,7 @@ def build_neighbor_list(
                     )
                     for dim in range(n_dimensions)
                 ),
-                dtype,
+                positions.dtype,
                 n_dimensions,
             ),
             False,
@@ -490,22 +560,28 @@ def build_neighbor_list(
         box_size = convert_cell_representation(
             strip_unit(box_size, "nm")[0], "vectors", n_dimensions
         )
+
+        # Check if the box is orthogonal by testing whether the box
+        # vectors form a diagonal matrix
         if np.array_equal(box_size, np.diag(np.diag(box_size))):
             if pbc and cutoff > np.diag(box_size).min() / 2:
                 raise ValueError(
                     "`cutoff` must be less than or equal to half the "
                     "minimum box length when `pbc` is True."
                 )
+
             box_size = convert_cell_representation(box_size, "dimensions")
             if not pbc and not _check_positions(positions, box_size):
                 raise ValueError(
                     "`positions` must be within the bounds of the "
                     "simulation box defined by `box_size`."
                 )
+
             return _build_neighbor_list_orthogonal(
                 positions, cutoff, box_size, pbc
             )
 
+        # Compute scaled positions for triclinic box
         scaled_positions = positions.copy()
         _scale_coordinates(
             scaled_positions,
@@ -513,6 +589,7 @@ def build_neighbor_list(
             _invert_box_vectors(box_size),
             np.full(n_dimensions, False, np.bool_),
         )
+
         if not pbc and not _check_positions(
             scaled_positions, np.ones(n_dimensions)
         ):
@@ -520,16 +597,14 @@ def build_neighbor_list(
                 "`positions` must be within the bounds of the "
                 "simulation box defined by `box_size`."
             )
+
         box_size = reduce_box_vectors(box_size)
         if pbc and cutoff > np.diag(box_size).min() / 2:
             raise ValueError(
                 "`cutoff` must be less than or equal to half the "
                 "minimum box length when `pbc` is True."
             )
+
         return _build_neighbor_list_triclinic(
-            positions,
-            scaled_positions,
-            cutoff,
-            reduce_box_vectors(box_size),
-            pbc,
+            positions, scaled_positions, cutoff, box_size, pbc
         )

@@ -255,7 +255,7 @@ def convert_cell_representation(
                     - vectors[2, 0] ** 2
                     - vectors[2, 1] ** 2
                 )
-                vectors[np.isclose(vectors, 0, atol=5e-6)] = 0
+                vectors[np.isclose(vectors, 0.0)] = 0.0
                 return vectors
             return representation  # output_format == "parameters"
         else:  # input_format == "vectors"

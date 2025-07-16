@@ -82,9 +82,9 @@ def correlation(
     Parameters
     ----------
     x : `numpy.ndarray`, positional-only
-        Time evolution of :math:`d`-dimensional data for :math:`N`
-        entities over :math:`N_\\mathrm{b}` blocks of :math:`N_t` times
-        each.
+        Time evolution of :math:`d`-dimensional data 
+        :math:`\\mathbf{X}(t)` for :math:`N` entities over 
+        :math:`N_\\mathrm{b}` blocks of :math:`N_t` times each.
 
         .. container::
 
@@ -98,10 +98,11 @@ def correlation(
              :math:`(N_\\mathrm{b},N_t,N,d)`.
 
     y : `numpy.ndarray`, positional-only, optional
-        Time evolution of :math:`d`-dimensional data for another
-        :math:`N` entities over :math:`N_\\mathrm{b}` blocks of
-        :math:`N_t` times each. If provided, the CCF for `x` and `y` is
-        evaluated. Otherwise, the ACF for `x` is evaluated.
+        Time evolution of :math:`d`-dimensional data 
+        :math:`\\mathbf{Y}(t)` for another :math:`N` entities over
+        :math:`N_\\mathrm{b}` blocks of :math:`N_t` times each. If 
+        provided, the CCF for `x` and `y` is  evaluated. Otherwise, the
+        ACF for `x` is evaluated.
 
         **Shape**: Same as `x`.
 
@@ -129,7 +130,8 @@ def correlation(
     Returns
     -------
     corr : `numpy.ndarray`
-        ACF or CCF.
+        ACF :math:`\\mathrm{R}_{\\mathbf{XX}}(\\tau)` or CCF 
+        :math:`\\mathrm{R}_{\\mathbf{XY}}(\\tau)`.
 
         .. container::
 
@@ -166,8 +168,7 @@ def correlation(
        Functions. *JDN* **2011**, *12*, 201–232.
        https://doi.org/10.1051/sfn/201112010.
     """
-
-    # Ensure that arguments are valid and consistent
+    # Validate input arguments
     x = np.asarray(x)
     if x.size == 0:
         raise ValueError("The arrays cannot be empty.")
@@ -331,14 +332,14 @@ def correlation(
 
 
 def msd(
-    r_i: np.ndarray[np.float64],
-    r_j: np.ndarray[np.float64] | None = None,
+    r_i: np.ndarray[float_t],
+    r_j: np.ndarray[float_t] | None = None,
     /,
     axis: int | None = None,
     *,
     average: bool = True,
     fft: bool = True,
-) -> np.ndarray[np.float64]:
+) -> np.ndarray[float_t]:
     """
     Evaluates the mean squared displacement (MSD) or the cross mean
     squared displacement (CMSD) of positions :math:`\\mathbf{r}_i(t)`
@@ -447,23 +448,24 @@ def msd(
     ----------
     r_i : `numpy.ndarray`, positional-only
         Time evolution of individual or summed :math:`d`-dimensional
-        positions for :math:`N` entities over :math:`N_\\mathrm{b}`
-        blocks of :math:`N_t` times each.
+        positions :math:`\\mathbf{r}_i(t)` for :math:`N` entities over
+        :math:`N_\\mathrm{b}` blocks of :math:`N_t` times each.
 
         **Shape**: :math:`(N_t,d)`, :math:`(N_t,N,d)`,
         :math:`(N_\\mathrm{b},N_t,d)`, or
         :math:`(N_\\mathrm{b},N_t,N,d)`.
 
-        **Reference unit**: :math:`\\mathrm{Å}`.
+        **Reference unit**: :math:`\\mathrm{nm}`.
 
     r_j : `numpy.ndarray`, positional-only, optional
         Time evolution of individual or summed :math:`d`-dimensional
-        positions for another :math:`N` entities over
-        :math:`N_\\mathrm{b}` blocks of :math:`N_t` times each.
+        positions :math:`\\mathbf{r}_j(t)` for another :math:`N`
+        entities over :math:`N_\\mathrm{b}` blocks of :math:`N_t` times
+        each.
 
         **Shape**: Same as `r_i`.
 
-        **Reference unit**: :math:`\\mathrm{Å}`.
+        **Reference unit**: :math:`\\mathrm{nm}`.
 
     axis : `int`, optional
         Axis along which time evolves. If not specified, the axis is
@@ -481,13 +483,14 @@ def msd(
     Returns
     -------
     disp : `numpy.ndarray`
-        MSD or CMSD.
+        :math:`\\mathrm{MSD}_i(\\tau)` or 
+        :math:`\\mathrm{CMSD}_{ij}(\\tau)`.
 
         **Shape**: Same as the shape of `r_i`, except the last axis is
         no longer present. If :code:`average=True`, the axis indexing
         the :math:`N` entities is also no longer present.
 
-        **Reference unit**: :math:`\\mathrm{Å}^2`.
+        **Reference unit**: :math:`\\mathrm{nm}^2`.
 
     References
     ----------
@@ -509,8 +512,7 @@ def msd(
        *Macromolecules* **2020**, *53* (21), 9503–9512.
        https://doi.org/10.1021/acs.macromol.0c02001.
     """
-
-    # Ensure arrays have valid shapes
+    # Ensure input arrays have valid shapes
     r_i = np.asarray(r_i)
     if r_i.size == 0:
         raise ValueError("The position arrays cannot be empty.")
