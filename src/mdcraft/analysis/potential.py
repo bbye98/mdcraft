@@ -1658,9 +1658,9 @@ class PotentialProfile(DynamicAnalysisBase):
                             self._positions[s, ia], n, self.results.bin_edges[ax]
                         )
                     )
-                    for ax_d in self.dipole_axes:
+                    for ax_d, id in zip(self.dipole_axes, self._dipole_axis_indices):
                         self.results.dipoles[ax, ax_d][ig, self._frame_index] = numba_histogram(
-                            self._positions[s, ia], n, self.results.bin_edges[ax], self._dipoles[s, ax_d]
+                            self._positions[s, ia], n, self.results.bin_edges[ax], self._dipoles[s, id]
                         )
                     for ax_d1, id1 in zip(self.dipole_axes, self._dipole_axis_indices):
                         for ax_d2, id2 in zip(self.dipole_axes, self._dipole_axis_indices):
@@ -1694,10 +1694,10 @@ class PotentialProfile(DynamicAnalysisBase):
                         ].sum(axis=1)
 
             del self._results
-            if self._recenter is not None:
-                del self._positions
-        else:
-            del self._positions
+            # if self._recenter is not None:
+                # del self._positions
+        # else:
+            # del self._positions
         if self._recenter is not None:
             del self._positions_old, self._images, self._thresholds
 

@@ -75,7 +75,7 @@ def numba_histogram(
     """
 
     min_, max_ = bin_edges[0], bin_edges[-1]
-    histogram_ = np.zeros(n_bins, dtype=np.intp)
+    histogram_ = np.zeros(n_bins, dtype=np.float64)
     for i, x in enumerate(array):
         if x == max_:
             bin_ = n_bins - 1
