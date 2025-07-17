@@ -15,12 +15,12 @@ from scipy.io import netcdf_file
 from . import INTERNAL_UNITS
 from .base import BaseTopologyReader, BaseTrajectoryReader
 from .. import FOUND, Q_, U_, ureg
-from ..utility.topology import (
+from ..lib.topology import (
     convert_cell_representation,
     reduce_box_vectors,
     scale_coordinates,
 )
-from ..utility.unit import strip_unit
+from ..lib.unit import strip_unit
 
 if FOUND["netCDF4"]:
     import netCDF4 as nc

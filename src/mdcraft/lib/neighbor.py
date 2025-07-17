@@ -8,13 +8,13 @@ from numba.typed import List
 import numpy as np
 
 from .. import Q_
-from ..utility.topology import (
+from ..lib.topology import (
     _invert_box_vectors,
     _scale_coordinates,
     convert_cell_representation,
     reduce_box_vectors,
 )
-from ..utility.unit import strip_unit
+from ..lib.unit import strip_unit
 
 if TYPE_CHECKING:  # pragma: no cover
     from .. import int_t, float_t
@@ -65,7 +65,7 @@ def _check_positions(
 
 
 @njit(fastmath=True, inline="always")  # pragma: no cover
-def _compute_squared_separation_distance_orthogonal(
+def _compute_squared_distance_orthogonal(
     position_i: np.ndarray[float_t],
     position_j: np.ndarray[float_t],
     dimensions: np.ndarray[float_t],
@@ -108,7 +108,6 @@ def _compute_squared_separation_distance_orthogonal(
     dr_squared : `float`
         Squared separation distance :math:`r_{ij}^2` between the two
         particles.
-
     """
     dr_squared = 0.0
     for dim in range(position_i.shape[0]):
@@ -123,7 +122,28 @@ def _compute_squared_separation_distance_orthogonal(
 def _get_cell_offsets_orthogonal(
     n_dimensions: np.uint8,
 ) -> tuple[np.uint8, np.ndarray[np.int8]]:
-    """ """
+    """
+    Returns the number and index offsets of neighboring cells in the
+    forward half-shell that may contain particles within a cutoff
+    distance in an orthogonal simulation box.
+
+    Parameters
+    ----------
+    n_dimensions : `numpy.uint8`
+        Dimensionality of the simulation box :math:`d`.
+
+        **Valid values**: :code:`2` or :code:`3`.
+
+    Returns
+    -------
+    n_offsets : `numpy.uint8`
+        Number of neighboring cells :math:`N_\\mathrm{offsets}`.
+
+    cell_offsets : `numpy.ndarray`
+        Index offsets of neighboring cells.
+
+        **Shape**: :math:`(N_\\mathrm{offsets},d)`.
+    """
     if n_dimensions == 2:
         return np.uint8(5), np.array(
             ((0, 0), (0, 1), (1, -1), (1, 0), (1, 1)), np.int8
@@ -163,6 +183,61 @@ def _build_cell_lists_orthogonal(
     np.ndarray[int_t],
     np.ndarray[int_t],
 ]:
+    """
+    Builds cell lists for particles in an orthogonal simulation box.
+
+    Parameters
+    ----------
+    positions : `numpy.ndarray`
+        Particle positions :math:`\\mathrm{r}`.
+
+        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    cutoff : `float`
+        Cutoff distance :math:`r_\\mathrm{cutoff}` for neighbor search.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    dimensions : `numpy.ndarray`
+        Box dimensions :math:`(L_x,L_y[,L_z])`.
+
+        **Shape**: :math:`(2,)` or :math:`(3,)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    pbc : `bool`
+        Specifies whether to apply periodic boundary conditions (PBC)
+        and use the minimum image convention when calculating
+        separation distances between particles.
+
+    Returns
+    -------
+    n_cells : `numpy.ndarray`
+        Number of cells in each dimension :math:`(N_x,N_y[,N_z])`
+        that the simulation box is split into.
+
+        **Shape**: :math:`(2,)` or :math:`(3,)`.
+
+    particle_cell_indices : `numpy.ndarray`
+        Cell indices for each particle :math:`(i_x,i_y[,i_z])`.
+
+        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+
+    cell_heads : `numpy.ndarray`
+        Linked list heads for each cell, where each entry contains the
+        index of the first particle in the cell.
+
+        **Shape**: :math:`(N_x,N_y[,N_z])`.
+
+    cell_lists : `numpy.ndarray`
+        Linked list of particles in each cell, where each entry contains
+        either the index of the next particle in the cell or :code:`-1`
+        to indicate the end of the list.
+
+        **Shape**: :math:`(N,)`.
+    """
     # Split simulation domain into cells
     n_particles, n_dimensions = positions.shape
     n_cells = np.empty(n_dimensions, np.uint32)
@@ -205,6 +280,44 @@ def _build_neighbor_list_orthogonal(
     dimensions: np.ndarray[float_t],
     pbc: np.bool_,
 ) -> List[set[np.uint32]]:
+    """
+    Builds a neighbor list for particles in an orthogonal simulation
+    box using the cell list algorithm.
+
+    Parameters
+    ----------
+    positions : `numpy.ndarray`
+        Particle positions :math:`\\mathrm{r}`.
+
+        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    cutoff : `float`
+        Cutoff distance :math:`r_\\mathrm{cutoff}` for neighbor search.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    dimensions : `numpy.ndarray`
+        Box dimensions :math:`(L_x,L_y[,L_z])`.
+
+        **Shape**: :math:`(2,)` or :math:`(3,)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    pbc : `bool`
+        Specifies whether to apply periodic boundary conditions (PBC)
+        and use the minimum image convention when calculating
+        separation distances between particles.
+
+    Returns
+    -------
+    neighbor_lists : `list`
+        A list of neighbor lists (sets) for all particles, with each
+        inner variable-length set containing the indices of particles
+        that are within the cutoff distance of the corresponding
+        particle.
+    """
     # Build cell lists
     n_dimensions = positions.shape[1]
     n_cells, particle_cell_indices, cell_heads, cell_lists = (
@@ -244,7 +357,7 @@ def _build_neighbor_list_orthogonal(
             while nid != -1:
                 if pid != nid:
                     if (
-                        _compute_squared_separation_distance_orthogonal(
+                        _compute_squared_distance_orthogonal(
                             positions[pid], positions[nid], dimensions, pbc
                         )
                         < cutoff_squared
@@ -262,21 +375,70 @@ def _build_neighbor_list_orthogonal(
 
 
 @njit(fastmath=True, inline="always")  # pragma: no cover
-def _compute_squared_separation_distance_triclinic(
+def _compute_squared_distance_triclinic(
     position_i: np.ndarray[float_t],
     position_j: np.ndarray[float_t],
     box_vectors: np.ndarray[float_t],
     pbc: np.bool_,
 ) -> float_t:
+    """
+    Computes the squared separation distance :math:`r_{ij}^2` between
+    two particles in a triclinic simulation box.
+
+    Parameters
+    ----------
+    position_i : `numpy.ndarray`
+        Position of the first particle :math:`\\mathrm{r}_i`.
+
+        **Shape**: :math:`(2,)` or :math:`(3,)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    position_j : `numpy.ndarray`
+        Position of the second particle :math:`\\mathrm{r}_j`.
+
+        **Shape**: :math:`(2,)` or :math:`(3,)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    box_vectors : `numpy.ndarray`
+        Box vectors :math:`(\\mathbf{A};\\mathbf{B}[;\\mathbf{C}])`.
+
+        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    pbc : `bool`
+        Specifies whether to apply periodic boundary conditions (PBC)
+        and use the minimum image convention when calculating the
+        squared separation distance between the two particles.
+
+    Returns
+    -------
+    dr_squared : `float`
+        Squared separation distance :math:`r_{ij}^2` between the two
+        particles.
+    """
+    # Compute the separation distance vector
     n_dimensions = position_i.shape[0]
     dr = np.empty(n_dimensions, position_i.dtype)
     for dim in range(n_dimensions):
         dr[dim] = position_j[dim] - position_i[dim]
+
+    # Apply periodic boundary conditions (PBC) to get the minimum image
+    # convention
     if pbc:
         for axis in range(n_dimensions - 1, -1, -1):
+            # Compute how many box vectors to subtract by projecting the
+            # displacement onto the current box vector
             factor = np.floor(dr[axis] / box_vectors[axis, axis] + 0.5)
+
+            # Wrap the displacement back into the central image along
+            # this axis
             for dim in range(n_dimensions):
                 dr[dim] -= factor * box_vectors[axis, dim]
+
+    # Compute the squared separation distance
     dr_squared = 0.0
     for dim in range(n_dimensions):
         dr_squared += dr[dim] * dr[dim]
@@ -289,43 +451,82 @@ def _get_cell_offsets_triclinic(
     box_vectors: np.ndarray[float_t],
     n_cells: np.ndarray[np.uint32],
 ) -> tuple[np.uint8, np.ndarray[np.int8]]:
+    """
+    Returns the number and index offsets of neighboring cells in the
+    forward half-shell that may contain particles within a cutoff
+    distance in a triclinic simulation box.
+
+    Parameters
+    ----------
+    cutoff : `float`
+        Cutoff distance :math:`r_\\mathrm{cutoff}` for neighbor search.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    box_vectors : `numpy.ndarray`
+        Box vectors :math:`(\\mathbf{A};\\mathbf{B}[;\\mathbf{C}])`.
+
+        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    n_cells : `numpy.ndarray`
+        Number of cells in each dimension :math:`(N_x,N_y[,N_z])`
+        that the simulation box is split into.
+
+        **Shape**: :math:`(2,)` or :math:`(3,)`.
+
+    Returns
+    -------
+    n_offsets : `numpy.uint8`
+        Number of neighboring cells :math:`N_\\mathrm{offsets}`.
+
+    cell_offsets : `numpy.ndarray`
+        Index offsets of neighboring cells.
+
+        **Shape**: :math:`(N_\\mathrm{offsets},d)`.
+    """
+    # Compute the cell vectors
     n_dimensions = box_vectors.shape[0]
     cell_vectors = box_vectors.copy()
     for dim in range(n_dimensions):
         for axis in range(n_dimensions):
             cell_vectors[dim, axis] /= n_cells[dim]
 
+    # Compute the cross products of the cell vectors
     cell_cross_products = np.empty(
         (n_dimensions, n_dimensions), box_vectors.dtype
     )
-    for di in range(n_dimensions):
-        dj = (di + 1) % n_dimensions
-        dk = (di + 2) % n_dimensions
-        for ai in range(n_dimensions):
-            aj = (ai + 1) % n_dimensions
-            ak = (ai + 2) % n_dimensions
-            cell_cross_products[di, ai] = (
-                cell_vectors[dj, aj] * cell_vectors[dk, ak]
-                - cell_vectors[dj, ak] * cell_vectors[dk, aj]
+    for ai in range(n_dimensions):
+        aj = (ai + 1) % n_dimensions
+        ak = (ai + 2) % n_dimensions
+        for di in range(n_dimensions):
+            dj = (di + 1) % n_dimensions
+            dk = (di + 2) % n_dimensions
+            cell_cross_products[ai, di] = (
+                cell_vectors[aj, dj] * cell_vectors[ak, dk]
+                - cell_vectors[aj, dk] * cell_vectors[ak, dj]
             )
 
+    # Compute the minimum distances between cells
     cell_minimum_distances = np.empty(n_dimensions, box_vectors.dtype)
     cutoff_extents = np.empty(n_dimensions, np.int8)
-    for di in range(n_dimensions):
-        cell_minimum_distances[di] = 0.0
+    for axis in range(n_dimensions):
+        cell_minimum_distances[axis] = 0.0
         cross_product_magnitude_squared = 0.0
-        for axis in range(n_dimensions):
-            cell_minimum_distances[di] += (
-                cell_vectors[di, axis] * cell_cross_products[di, axis]
+        for dim in range(n_dimensions):
+            cell_minimum_distances[axis] += (
+                cell_vectors[axis, dim] * cell_cross_products[axis, dim]
             )
             cross_product_magnitude_squared += (
-                cell_cross_products[di, axis] * cell_cross_products[di, axis]
+                cell_cross_products[axis, dim] * cell_cross_products[axis, dim]
             )
-        cell_minimum_distances[di] = abs(cell_minimum_distances[di]) / sqrt(
+        cell_minimum_distances[axis] = abs(cell_minimum_distances[axis]) / sqrt(
             cross_product_magnitude_squared
         )
-        cutoff_extents[di] = np.ceil(cutoff / cell_minimum_distances[di])
+        cutoff_extents[axis] = np.ceil(cutoff / cell_minimum_distances[axis])
 
+    # Determine the number and index offsets of neighboring cells
     n_offsets = np.uint8(1)
     for extent in cutoff_extents:
         n_offsets *= 2 * extent + 1
@@ -341,7 +542,7 @@ def _get_cell_offsets_triclinic(
                     cell_offsets[coi, 0] = ix
                     cell_offsets[coi, 1] = iy
                     coi += 1
-    else:
+    else:  # n_dimensions == 3
         for ix in range(-cutoff_extents[0], cutoff_extents[0] + 1):
             for iy in range(-cutoff_extents[1], cutoff_extents[1] + 1):
                 for iz in range(-cutoff_extents[2], cutoff_extents[2] + 1):
@@ -369,6 +570,60 @@ def _build_cell_lists_triclinic(
     np.ndarray[int_t],
     np.ndarray[int_t],
 ]:
+    """
+    Builds cell lists for particles in a triclinic simulation box.
+
+    Parameters
+    ----------
+    scaled_positions : `numpy.ndarray`
+        Particle positions :math:`\\mathrm{r}` in fractional
+        coordinates.
+
+        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+
+    cutoff : `float`
+        Cutoff distance :math:`r_\\mathrm{cutoff}` for neighbor search.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    box_vectors : `numpy.ndarray`
+        Box vectors :math:`(\\mathbf{A};\\mathbf{B}[;\\mathbf{C}])`.
+
+        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    pbc : `bool`
+        Specifies whether to apply periodic boundary conditions (PBC)
+        and use the minimum image convention when calculating
+        separation distances between particles.
+
+    Returns
+    -------
+    n_cells : `numpy.ndarray`
+        Number of cells in each dimension :math:`(N_x,N_y[,N_z])`
+        that the simulation box is split into.
+
+        **Shape**: :math:`(2,)` or :math:`(3,)`.
+
+    particle_cell_indices : `numpy.ndarray`
+        Cell indices for each particle :math:`(i_x,i_y[,i_z])`.
+
+        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+
+    cell_heads : `numpy.ndarray`
+        Linked list heads for each cell, where each entry contains the
+        index of the first particle in the cell.
+
+        **Shape**: :math:`(N_x,N_y[,N_z])`.
+
+    cell_lists : `numpy.ndarray`
+        Linked list of particles in each cell, where each entry contains
+        either the index of the next particle in the cell or :code:`-1`
+        to indicate the end of the list.
+
+        **Shape**: :math:`(N,)`.
+    """
     # Split simulation domain into cells
     n_particles, n_dimensions = scaled_positions.shape
     n_cells = np.empty(n_dimensions, np.uint32)
@@ -416,6 +671,50 @@ def _build_neighbor_list_triclinic(
     box_vectors: np.ndarray[float_t],
     pbc: np.bool_,
 ) -> List[set[np.uint32]]:
+    """
+    Builds a neighbor list for particles in a triclinic simulation
+    box using the cell list algorithm.
+
+    Parameters
+    ----------
+    positions : `numpy.ndarray`
+        Particle positions :math:`\\mathrm{r}` in Cartesian coordinates.
+
+        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    scaled_positions : `numpy.ndarray`
+        Particle positions :math:`\\mathrm{r}` in fractional
+        coordinates.
+
+        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+
+    cutoff : `float`
+        Cutoff distance :math:`r_\\mathrm{cutoff}` for neighbor search.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    box_vectors : `numpy.ndarray`
+        Box vectors :math:`(\\mathbf{A};\\mathbf{B}[;\\mathbf{C}])`.
+
+        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    pbc : `bool`
+        Specifies whether to apply periodic boundary conditions (PBC)
+        and use the minimum image convention when calculating
+        separation distances between particles.
+
+    Returns
+    -------
+    neighbor_lists : `list`
+        A list of neighbor lists (sets) for all particles, with each
+        inner variable-length set containing the indices of particles
+        that are within the cutoff distance of the corresponding
+        particle.
+    """
     # Build cell lists
     n_dimensions = scaled_positions.shape[1]
     n_cells, particle_cell_indices, cell_heads, cell_lists = (
@@ -457,7 +756,7 @@ def _build_neighbor_list_triclinic(
             while nid != -1:
                 if pid != nid:
                     if (
-                        _compute_squared_separation_distance_triclinic(
+                        _compute_squared_distance_triclinic(
                             positions[pid],
                             positions[nid],
                             box_vectors,
@@ -513,7 +812,7 @@ def build_neighbor_list(
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
-    pbc : `bool`, keyword-only, default: `True`
+    pbc : `bool`, keyword-only, default: :code:`True`
         Specifies whether to apply periodic boundary conditions (PBC)
         and use the minimum image convention when calculating
         separation distances between particles.

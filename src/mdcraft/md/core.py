@@ -1,7 +1,7 @@
 import numpy as np
 
 from .. import Q_
-from ..utility.unit import strip_unit
+from ..lib.unit import strip_unit
 
 
 class State:

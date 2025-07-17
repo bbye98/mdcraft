@@ -30,7 +30,7 @@ dependencies = [
 description = ""
 license = { file = "LICENSE" }
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 
 [project.urls]
 "Homepage" = "https://github.com/bbye98/mdcraft"

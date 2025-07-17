@@ -8,7 +8,7 @@ import tidynamics
 sys.path.insert(
     0, f"{pathlib.Path(__file__).parents[1].resolve().as_posix()}/src"
 )
-from mdcraft.algorithm import correlation
+from mdcraft.lib.correlation import correlation, msd
 
 RNG = np.random.default_rng()
 
@@ -97,7 +97,7 @@ class TestFunctionCorrelation:
         A ValueError should be raised.
         """
         with pytest.raises(ValueError):
-            correlation.correlation(np.empty(0))
+            correlation(np.empty(0))
 
     def test_acf_empty_2d(self):
         """
@@ -106,7 +106,7 @@ class TestFunctionCorrelation:
         A ValueError should be raised.
         """
         with pytest.raises(ValueError):
-            correlation.correlation(np.empty((0, 0)))
+            correlation(np.empty((0, 0)))
 
     def test_acf_invalid_ndim(self):
         """
@@ -116,7 +116,7 @@ class TestFunctionCorrelation:
         A ValueError should be raised.
         """
         with pytest.raises(ValueError):
-            correlation.correlation(np.empty((1, 1, 1, 1, 1)))
+            correlation(np.empty((1, 1, 1, 1, 1)))
 
     def test_acf_invalid_axis(self):
         """
@@ -126,7 +126,7 @@ class TestFunctionCorrelation:
         A ValueError should be raised.
         """
         with pytest.raises(ValueError):
-            correlation.correlation(np.empty((1, 1, 1)), axis=2)
+            correlation(np.empty((1, 1, 1)), axis=2)
 
     def test_acf_invalid_vector_ndim(self):
         """
@@ -136,7 +136,7 @@ class TestFunctionCorrelation:
         A ValueError should be raised.
         """
         with pytest.raises(ValueError):
-            correlation.correlation(np.empty(1), vector=True)
+            correlation(np.empty(1), vector=True)
 
     def test_ccf_asymmetric_arrays(self):
         """
@@ -145,7 +145,7 @@ class TestFunctionCorrelation:
         A ValueError should be raised.
         """
         with pytest.raises(ValueError):
-            correlation.correlation(np.empty(1), np.empty(2))
+            correlation(np.empty(1), np.empty(2))
 
     def test_acf_fft_ones_t(self):
         """
@@ -154,9 +154,9 @@ class TestFunctionCorrelation:
 
         The expected result is an array of ones with the same shape.
         """
-        assert (
-            acf := correlation.correlation(self.ones[0, :, 0, 0])
-        ).shape == self.shape[1] and np.allclose(acf, 1)
+        assert (acf := correlation(self.ones[0, :, 0, 0])).shape == self.shape[
+            1
+        ] and np.allclose(acf, 1)
 
     def test_acf_fft_ones_te(self):
         """
@@ -170,7 +170,7 @@ class TestFunctionCorrelation:
         """
         with pytest.warns(UserWarning):
             assert np.allclose(
-                (acf := correlation.correlation(self.ones[0, ..., 0])).shape,
+                (acf := correlation(self.ones[0, ..., 0])).shape,
                 self.shape[1:3],
             ) and np.allclose(acf, 1)
 
@@ -182,9 +182,7 @@ class TestFunctionCorrelation:
         The expected result is an array of ones with the same shape.
         """
         assert np.allclose(
-            (
-                acf := correlation.correlation(self.ones[..., 0, 0], axis=1)
-            ).shape,
+            (acf := correlation(self.ones[..., 0, 0], axis=1)).shape,
             self.shape[:2],
         ) and np.allclose(acf, 1)
 
@@ -196,7 +194,7 @@ class TestFunctionCorrelation:
         The expected result is an array of ones with the same shape.
         """
         assert np.allclose(
-            (acf := correlation.correlation(self.ones[..., 0], axis=1)).shape,
+            (acf := correlation(self.ones[..., 0], axis=1)).shape,
             self.shape[:3],
         ) and np.allclose(acf, 1)
 
@@ -212,11 +210,7 @@ class TestFunctionCorrelation:
         """
         with pytest.warns(UserWarning):
             assert np.allclose(
-                (
-                    acf := correlation.correlation(
-                        self.ones[0, :, 0], vector=True
-                    )
-                ).shape,
+                (acf := correlation(self.ones[0, :, 0], vector=True)).shape,
                 self.shape[1],
             ) and np.allclose(acf, 3)
 
@@ -233,9 +227,7 @@ class TestFunctionCorrelation:
 
         with pytest.warns(UserWarning):
             assert np.allclose(
-                (
-                    acf := correlation.correlation(self.ones[0], vector=True)
-                ).shape,
+                (acf := correlation(self.ones[0], vector=True)).shape,
                 self.shape[1:3],
             ) and np.allclose(acf, 3)
 
@@ -247,11 +239,7 @@ class TestFunctionCorrelation:
         The expected result is an array of threes with shape (N_b, N_t).
         """
         assert np.allclose(
-            (
-                acf := correlation.correlation(
-                    self.ones[:, :, 0], axis=1, vector=True
-                )
-            ).shape,
+            (acf := correlation(self.ones[:, :, 0], axis=1, vector=True)).shape,
             self.shape[:2],
         ) and np.allclose(acf, 3)
 
@@ -264,7 +252,7 @@ class TestFunctionCorrelation:
         (N_b, N_t, N_e).
         """
         assert np.allclose(
-            (acf := correlation.correlation(self.ones, vector=True)).shape,
+            (acf := correlation(self.ones, vector=True)).shape,
             self.shape[:3],
         ) and np.allclose(acf, 3)
 
@@ -278,11 +266,7 @@ class TestFunctionCorrelation:
         (N_b, N_t, N_e).
         """
         assert np.allclose(
-            (
-                acf := correlation.correlation(
-                    self.ones.astype(complex), vector=True
-                )
-            ).shape,
+            (acf := correlation(self.ones.astype(complex), vector=True)).shape,
             self.shape[:3],
         ) and np.allclose(acf, 3)
 
@@ -297,7 +281,7 @@ class TestFunctionCorrelation:
         """
         assert np.allclose(
             (
-                acf := correlation.correlation(
+                acf := correlation(
                     self.ones.astype(complex), fft=False, vector=True
                 )
             ).shape,
@@ -311,9 +295,9 @@ class TestFunctionCorrelation:
 
         The expected result is an solution array with the same shape.
         """
-        assert (
-            acf := correlation.correlation(self.r1[0, :, 0, 0])
-        ).shape == self.shape[1] and np.allclose(acf, self.acf_t)
+        assert (acf := correlation(self.r1[0, :, 0, 0])).shape == self.shape[
+            1
+        ] and np.allclose(acf, self.acf_t)
 
     def test_acf_fft_random_te(self):
         """
@@ -324,16 +308,12 @@ class TestFunctionCorrelation:
         """
         assert (
             np.allclose(
-                (
-                    acf := correlation.correlation(self.r1[0, ..., 0], axis=0)
-                ).shape,
+                (acf := correlation(self.r1[0, ..., 0], axis=0)).shape,
                 self.shape[1:3],
             )
             and np.allclose(acf, self.acf_te)
             and np.allclose(
-                correlation.correlation(
-                    self.r1[0, ..., 0], average=True, axis=0
-                ),
+                correlation(self.r1[0, ..., 0], average=True, axis=0),
                 acf.mean(axis=1),
             )
         )
@@ -346,7 +326,7 @@ class TestFunctionCorrelation:
         The expected result is a solution array of the same shape.
         """
         assert np.allclose(
-            (acf := correlation.correlation(self.r1[..., 0, 0], axis=1)).shape,
+            (acf := correlation(self.r1[..., 0, 0], axis=1)).shape,
             self.shape[:2],
         ) and np.allclose(acf, self.acf_bt)
 
@@ -359,13 +339,13 @@ class TestFunctionCorrelation:
         """
         assert (
             np.allclose(
-                (acf := correlation.correlation(self.r1[..., 0], axis=1)).shape,
+                (acf := correlation(self.r1[..., 0], axis=1)).shape,
                 self.shape[:3],
             )
             and np.allclose(acf[0], self.acf_te)
             and np.allclose(acf[..., 0], self.acf_bt)
             and np.allclose(
-                correlation.correlation(self.r1[..., 0], axis=1, average=True),
+                correlation(self.r1[..., 0], axis=1, average=True),
                 acf.mean(axis=2),
             )
         )
@@ -378,11 +358,7 @@ class TestFunctionCorrelation:
         The expected result is a solution array with shape (N_t,).
         """
         assert np.allclose(
-            (
-                acf := correlation.correlation(
-                    self.r1[0, :, 0], axis=0, vector=True
-                )
-            ).shape,
+            (acf := correlation(self.r1[0, :, 0], axis=0, vector=True)).shape,
             self.shape[1],
         ) and np.allclose(acf, self.acf_td)
 
@@ -395,18 +371,12 @@ class TestFunctionCorrelation:
         """
         assert (
             np.allclose(
-                (
-                    acf := correlation.correlation(
-                        self.r1[0], axis=0, vector=True
-                    )
-                ).shape,
+                (acf := correlation(self.r1[0], axis=0, vector=True)).shape,
                 self.shape[1:3],
             )
             and np.allclose(acf, self.acf_ted)
             and np.allclose(
-                correlation.correlation(
-                    self.r1[0], axis=0, average=True, vector=True
-                ),
+                correlation(self.r1[0], axis=0, average=True, vector=True),
                 acf.mean(axis=1),
             )
         )
@@ -419,11 +389,7 @@ class TestFunctionCorrelation:
         The expected result is a solution array with shape (N_b, N_t).
         """
         assert np.allclose(
-            (
-                acf := correlation.correlation(
-                    self.r1[:, :, 0], axis=1, vector=True
-                )
-            ).shape,
+            (acf := correlation(self.r1[:, :, 0], axis=1, vector=True)).shape,
             self.shape[:2],
         ) and np.allclose(acf, self.acf_btd)
 
@@ -437,7 +403,7 @@ class TestFunctionCorrelation:
         """
         assert (
             np.allclose(
-                (acf := correlation.correlation(self.r1, vector=True)).shape,
+                (acf := correlation(self.r1, vector=True)).shape,
                 self.shape[:3],
             )
             and np.allclose(acf[0], self.acf_ted)
@@ -452,7 +418,7 @@ class TestFunctionCorrelation:
         The expected result is a solution array with the same shape.
         """
         assert (
-            acf := correlation.correlation(self.r1[0, :, 0, 0], fft=False)
+            acf := correlation(self.r1[0, :, 0, 0], fft=False)
         ).shape == self.shape[1] and np.allclose(acf, self.acf_t)
 
     def test_acf_shift_random_te(self):
@@ -465,15 +431,13 @@ class TestFunctionCorrelation:
         assert (
             np.allclose(
                 (
-                    acf := correlation.correlation(
-                        self.r1[0, ..., 0], axis=0, fft=False
-                    )
+                    acf := correlation(self.r1[0, ..., 0], axis=0, fft=False)
                 ).shape,
                 self.shape[1:3],
             )
             and np.allclose(acf, self.acf_te)
             and np.allclose(
-                correlation.correlation(
+                correlation(
                     self.r1[0, ..., 0], average=True, axis=0, fft=False
                 ),
                 acf.mean(axis=1),
@@ -488,11 +452,7 @@ class TestFunctionCorrelation:
         The expected result is a solution array of the same shape.
         """
         assert np.allclose(
-            (
-                acf := correlation.correlation(
-                    self.r1[..., 0, 0], axis=1, fft=False
-                )
-            ).shape,
+            (acf := correlation(self.r1[..., 0, 0], axis=1, fft=False)).shape,
             self.shape[:2],
         ) and np.allclose(acf, self.acf_bt)
 
@@ -506,15 +466,13 @@ class TestFunctionCorrelation:
         """
         assert (
             np.allclose(
-                (acf := correlation.correlation(self.r1[..., 0], axis=1)).shape,
+                (acf := correlation(self.r1[..., 0], axis=1)).shape,
                 self.shape[:3],
             )
             and np.allclose(acf[0], self.acf_te)
             and np.allclose(acf[..., 0], self.acf_bt)
             and np.allclose(
-                correlation.correlation(
-                    self.r1[..., 0], axis=1, average=True, fft=False
-                ),
+                correlation(self.r1[..., 0], axis=1, average=True, fft=False),
                 acf.mean(axis=2),
             )
         )
@@ -527,9 +485,7 @@ class TestFunctionCorrelation:
         The expected result is a solution array with shape (N_t,).
         """
         assert (
-            acf := correlation.correlation(
-                self.r1[0, :, 0], axis=0, fft=False, vector=True
-            )
+            acf := correlation(self.r1[0, :, 0], axis=0, fft=False, vector=True)
         ).shape == self.shape[1] and np.allclose(acf, self.acf_td)
 
     def test_acf_shift_random_ted(self):
@@ -542,7 +498,7 @@ class TestFunctionCorrelation:
         assert (
             np.allclose(
                 (
-                    acf := correlation.correlation(
+                    acf := correlation(
                         self.r1[0], axis=0, fft=False, vector=True
                     )
                 ).shape,
@@ -550,7 +506,7 @@ class TestFunctionCorrelation:
             )
             and np.allclose(acf, self.acf_ted)
             and np.allclose(
-                correlation.correlation(
+                correlation(
                     self.r1[0], axis=0, average=True, fft=False, vector=True
                 ),
                 acf.mean(axis=1),
@@ -566,7 +522,7 @@ class TestFunctionCorrelation:
         """
         assert np.allclose(
             (
-                acf := correlation.correlation(
+                acf := correlation(
                     self.r1[:, :, 0], axis=1, fft=False, vector=True
                 )
             ).shape,
@@ -584,11 +540,7 @@ class TestFunctionCorrelation:
         """
         assert (
             np.allclose(
-                (
-                    acf := correlation.correlation(
-                        self.r1, fft=False, vector=True
-                    )
-                ).shape,
+                (acf := correlation(self.r1, fft=False, vector=True)).shape,
                 self.shape[:3],
             )
             and np.allclose(acf[0], self.acf_ted)
@@ -607,7 +559,7 @@ class TestFunctionCorrelation:
         assert (
             np.allclose(
                 (
-                    acf := correlation.correlation(
+                    acf := correlation(
                         self.r1,
                         symmetrize=True,
                         vector=True,
@@ -632,7 +584,7 @@ class TestFunctionCorrelation:
         assert (
             np.allclose(
                 (
-                    acf := correlation.correlation(
+                    acf := correlation(
                         self.r1,
                         symmetrize=True,
                         fft=False,
@@ -654,9 +606,7 @@ class TestFunctionCorrelation:
         The expected result is a solution array with the same shape.
         """
         assert (
-            ccf := correlation.correlation(
-                self.r1[0, :, 0, 0], self.r2[0, :, 0, 0]
-            )
+            ccf := correlation(self.r1[0, :, 0, 0], self.r2[0, :, 0, 0])
         ).shape == self.shape_ccf[1] and np.allclose(ccf, self.ccf_t)
 
     def test_ccf_fft_random_te(self):
@@ -669,7 +619,7 @@ class TestFunctionCorrelation:
         assert (
             np.allclose(
                 (
-                    ccf := correlation.correlation(
+                    ccf := correlation(
                         self.r1[0, ..., 0], self.r2[0, ..., 0], axis=0
                     )
                 ).shape,
@@ -677,7 +627,7 @@ class TestFunctionCorrelation:
             )
             and np.allclose(ccf, self.ccf_te)
             and np.allclose(
-                correlation.correlation(
+                correlation(
                     self.r1[0, ..., 0],
                     self.r2[0, ..., 0],
                     average=True,
@@ -696,7 +646,7 @@ class TestFunctionCorrelation:
         """
         assert np.allclose(
             (
-                ccf := correlation.correlation(
+                ccf := correlation(
                     self.r1[..., 0, 0], self.r2[..., 0, 0], axis=1
                 )
             ).shape,
@@ -713,16 +663,14 @@ class TestFunctionCorrelation:
         assert (
             np.allclose(
                 (
-                    ccf := correlation.correlation(
-                        self.r1[..., 0], self.r2[..., 0], axis=1
-                    )
+                    ccf := correlation(self.r1[..., 0], self.r2[..., 0], axis=1)
                 ).shape,
                 self.shape_ccf[:3],
             )
             and np.allclose(ccf[0], self.ccf_te)
             and np.allclose(ccf[..., 0], self.ccf_bt)
             and np.allclose(
-                correlation.correlation(
+                correlation(
                     self.r1[..., 0], self.r2[..., 0], axis=1, average=True
                 ),
                 ccf.mean(axis=2),
@@ -737,7 +685,7 @@ class TestFunctionCorrelation:
         The expected result is a solution array with shape (N_t,).
         """
         assert (
-            ccf := correlation.correlation(
+            ccf := correlation(
                 self.r1[0, :, 0], self.r2[0, :, 0], axis=0, vector=True
             )
         ).shape == self.shape_ccf[1] and np.allclose(ccf, self.ccf_td)
@@ -752,7 +700,7 @@ class TestFunctionCorrelation:
         assert (
             np.allclose(
                 (
-                    ccf := correlation.correlation(
+                    ccf := correlation(
                         self.r1[0], self.r2[0], axis=0, vector=True
                     )
                 ).shape,
@@ -760,7 +708,7 @@ class TestFunctionCorrelation:
             )
             and np.allclose(ccf, self.ccf_ted)
             and np.allclose(
-                correlation.correlation(
+                correlation(
                     self.r1[0], self.r2[0], axis=0, average=True, vector=True
                 ),
                 ccf.mean(axis=1),
@@ -776,7 +724,7 @@ class TestFunctionCorrelation:
         """
         assert np.allclose(
             (
-                ccf := correlation.correlation(
+                ccf := correlation(
                     self.r1[:, :, 0], self.r2[:, :, 0], axis=1, vector=True
                 )
             ).shape,
@@ -793,11 +741,7 @@ class TestFunctionCorrelation:
         """
         assert (
             np.allclose(
-                (
-                    ccf := correlation.correlation(
-                        self.r1, self.r2, vector=True
-                    )
-                ).shape,
+                (ccf := correlation(self.r1, self.r2, vector=True)).shape,
                 self.shape_ccf[:3],
             )
             and np.allclose(ccf[0], self.ccf_ted)
@@ -812,7 +756,7 @@ class TestFunctionCorrelation:
         The expected result is a solution array with the same shape.
         """
         assert (
-            ccf := correlation.correlation(
+            ccf := correlation(
                 self.r1[0, :, 0, 0], self.r2[0, :, 0, 0], fft=False
             )
         ).shape == self.shape_ccf[1] and np.allclose(ccf, self.ccf_t)
@@ -827,7 +771,7 @@ class TestFunctionCorrelation:
         assert (
             np.allclose(
                 (
-                    ccf := correlation.correlation(
+                    ccf := correlation(
                         self.r1[0, ..., 0], self.r2[0, ..., 0], axis=0
                     )
                 ).shape,
@@ -835,7 +779,7 @@ class TestFunctionCorrelation:
             )
             and np.allclose(ccf, self.ccf_te)
             and np.allclose(
-                correlation.correlation(
+                correlation(
                     self.r1[0, ..., 0],
                     self.r2[0, ..., 0],
                     average=True,
@@ -855,7 +799,7 @@ class TestFunctionCorrelation:
         """
         assert np.allclose(
             (
-                ccf := correlation.correlation(
+                ccf := correlation(
                     self.r1[..., 0, 0], self.r2[..., 0, 0], axis=1, fft=False
                 )
             ).shape,
@@ -873,7 +817,7 @@ class TestFunctionCorrelation:
         assert (
             np.allclose(
                 (
-                    ccf := correlation.correlation(
+                    ccf := correlation(
                         self.r1[..., 0], self.r2[..., 0], axis=1, fft=False
                     )
                 ).shape,
@@ -882,7 +826,7 @@ class TestFunctionCorrelation:
             and np.allclose(ccf[0], self.ccf_te)
             and np.allclose(ccf[..., 0], self.ccf_bt)
             and np.allclose(
-                correlation.correlation(
+                correlation(
                     self.r1[..., 0], self.r2[..., 0], axis=1, average=True
                 ),
                 ccf.mean(axis=2),
@@ -897,7 +841,7 @@ class TestFunctionCorrelation:
         The expected result is a solution array with shape (N_t,).
         """
         assert (
-            ccf := correlation.correlation(
+            ccf := correlation(
                 self.r1[0, :, 0],
                 self.r2[0, :, 0],
                 axis=0,
@@ -917,7 +861,7 @@ class TestFunctionCorrelation:
         assert (
             np.allclose(
                 (
-                    ccf := correlation.correlation(
+                    ccf := correlation(
                         self.r1[0], self.r2[0], axis=0, fft=False, vector=True
                     )
                 ).shape,
@@ -925,7 +869,7 @@ class TestFunctionCorrelation:
             )
             and np.allclose(ccf, self.ccf_ted)
             and np.allclose(
-                correlation.correlation(
+                correlation(
                     self.r1[0],
                     self.r2[0],
                     axis=0,
@@ -946,7 +890,7 @@ class TestFunctionCorrelation:
         """
         assert np.allclose(
             (
-                ccf := correlation.correlation(
+                ccf := correlation(
                     self.r1[:, :, 0],
                     self.r2[:, :, 0],
                     axis=1,
@@ -969,9 +913,7 @@ class TestFunctionCorrelation:
         assert (
             np.allclose(
                 (
-                    ccf := correlation.correlation(
-                        self.r1, self.r2, fft=False, vector=True
-                    )
+                    ccf := correlation(self.r1, self.r2, fft=False, vector=True)
                 ).shape,
                 self.shape_ccf[:3],
             )
@@ -991,7 +933,7 @@ class TestFunctionCorrelation:
         assert (
             np.allclose(
                 (
-                    ccf := correlation.correlation(
+                    ccf := correlation(
                         self.r1,
                         self.r2,
                         symmetrize=True,
@@ -1016,7 +958,7 @@ class TestFunctionCorrelation:
         assert (
             np.allclose(
                 (
-                    ccf := correlation.correlation(
+                    ccf := correlation(
                         self.r1,
                         self.r2,
                         symmetrize=True,
@@ -1077,7 +1019,7 @@ class TestFunctionMSD:
         A ValueError should be raised.
         """
         with pytest.raises(ValueError):
-            correlation.msd(np.empty(0))
+            msd(np.empty(0))
 
     def test_msd_invalid_ndim(self):
         """
@@ -1087,7 +1029,7 @@ class TestFunctionMSD:
         A ValueError should be raised.
         """
         with pytest.raises(ValueError):
-            correlation.msd(np.empty((1, 1, 1, 1, 1)))
+            msd(np.empty((1, 1, 1, 1, 1)))
 
     def test_msd_invalid_axis(self):
         """
@@ -1097,7 +1039,7 @@ class TestFunctionMSD:
         A ValueError should be raised.
         """
         with pytest.raises(ValueError):
-            correlation.msd(np.empty((1, 1, 1)), axis=2)
+            msd(np.empty((1, 1, 1)), axis=2)
 
     def test_msd_fft_td(self):
         """
@@ -1105,9 +1047,7 @@ class TestFunctionMSD:
 
         The expected result is a solution array with shape (N_t,).
         """
-        assert np.allclose(
-            correlation.msd(self.trajectory1[0, :, 0]), self.msd1[0]
-        )
+        assert np.allclose(msd(self.trajectory1[0, :, 0]), self.msd1[0])
 
     def test_msd_fft_ted(self):
         """
@@ -1118,7 +1058,7 @@ class TestFunctionMSD:
         """
         with pytest.warns(UserWarning):
             assert np.allclose(
-                correlation.msd(self.trajectory1[0], average=False)[:, 0],
+                msd(self.trajectory1[0], average=False)[:, 0],
                 self.msd1[0],
             )
 
@@ -1130,7 +1070,7 @@ class TestFunctionMSD:
         The expected result is a solution array with shape
         (N_b, N_t, N_e).
         """
-        assert np.allclose(correlation.msd(self.trajectory1), self.msd1)
+        assert np.allclose(msd(self.trajectory1), self.msd1)
 
     def test_msd_einstein_td(self):
         """
@@ -1140,7 +1080,7 @@ class TestFunctionMSD:
         The expected result is a solution array with shape (N_t,).
         """
         assert np.allclose(
-            correlation.msd(self.trajectory2[0, :, 0], fft=False), self.msd2[0]
+            msd(self.trajectory2[0, :, 0], fft=False), self.msd2[0]
         )
 
     def test_msd_einstein_ted(self):
@@ -1151,7 +1091,7 @@ class TestFunctionMSD:
         The expected result is a solution array with shape (N_t,).
         """
         assert np.allclose(
-            correlation.msd(self.trajectory2[0], axis=0, fft=False),
+            msd(self.trajectory2[0], axis=0, fft=False),
             self.msd2[0],
         )
 
@@ -1162,9 +1102,7 @@ class TestFunctionMSD:
 
         The expected result is a solution array with shape (N_b, N_t).
         """
-        assert np.allclose(
-            correlation.msd(self.trajectory2, fft=False), self.msd2
-        )
+        assert np.allclose(msd(self.trajectory2, fft=False), self.msd2)
 
     def test_cmsd_asymmetric_arrays(self):
         """
@@ -1174,7 +1112,7 @@ class TestFunctionMSD:
         A ValueError should be raised.
         """
         with pytest.raises(ValueError):
-            correlation.msd(self.trajectory1, self.trajectory2[:1])
+            msd(self.trajectory1, self.trajectory2[:1])
 
     def test_cmsd_fft_bted(self):
         """
@@ -1183,9 +1121,7 @@ class TestFunctionMSD:
 
         The expected result is a solution array with shape (N_b, N_t).
         """
-        assert np.allclose(
-            correlation.msd(self.trajectory1, self.trajectory2), self.cmsd
-        )
+        assert np.allclose(msd(self.trajectory1, self.trajectory2), self.cmsd)
 
     def test_cmsd_einstein_ted(self):
         """
@@ -1196,9 +1132,7 @@ class TestFunctionMSD:
         """
         with pytest.warns(UserWarning):
             assert np.allclose(
-                correlation.msd(
-                    self.trajectory1[0], self.trajectory2[0], fft=False
-                ),
+                msd(self.trajectory1[0], self.trajectory2[0], fft=False),
                 self.cmsd[0],
             )
 
@@ -1211,6 +1145,6 @@ class TestFunctionMSD:
         (N_b, N_t).
         """
         assert np.allclose(
-            correlation.msd(self.trajectory1, self.trajectory2, fft=False),
+            msd(self.trajectory1, self.trajectory2, fft=False),
             self.cmsd,
         )

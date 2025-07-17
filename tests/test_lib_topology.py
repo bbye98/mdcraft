@@ -10,7 +10,7 @@ sys.path.insert(
     0, f"{pathlib.Path(__file__).parents[1].resolve().as_posix()}/src"
 )
 from mdcraft import ureg
-from mdcraft.utility.topology import (
+from mdcraft.lib.topology import (
     convert_cell_representation,
     reduce_box_vectors,
     scale_coordinates,

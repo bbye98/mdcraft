@@ -9,7 +9,7 @@ sys.path.insert(
     0, f"{pathlib.Path(__file__).parents[1].resolve().as_posix()}/src"
 )
 from mdcraft import ureg
-from mdcraft.algorithm import neighbor
+from mdcraft.lib.neighbor import build_neighbor_list
 
 RNG = np.random.default_rng()
 
@@ -41,26 +41,15 @@ class TestFunctionBuildNeighborList:
             (900, 3)
         )
 
-    @staticmethod
-    def get_row_differences(nl_i, nl_j):
-        return (
-            np.setdiff1d(
-                nl_i.view([("", nl_i.dtype)] * nl_i.shape[1]),
-                nl_j.view([("", nl_j.dtype)] * nl_j.shape[1]),
-            )
-            .view(nl_i.dtype)
-            .reshape(-1, nl_i.shape[1])
-        )
-
     def test_invalid_shape(self):
         with pytest.raises(ValueError):
-            neighbor.build_neighbor_list(
+            build_neighbor_list(
                 positions=np.empty((4,)),
                 cutoff=self.cutoff,
             )
 
     def test_units_orthogonal_nbc_2d(self):
-        neighbor_list = neighbor.build_neighbor_list(
+        neighbor_list = build_neighbor_list(
             positions=self.positions[:, :2], cutoff=self.cutoff
         )
         assert (
@@ -69,7 +58,7 @@ class TestFunctionBuildNeighborList:
         )
 
     def test_dimensionless_orthogonal_nbc_2d(self):
-        neighbor_list = neighbor.build_neighbor_list(
+        neighbor_list = build_neighbor_list(
             positions=self.positions_nm[:, :2],
             cutoff=self.cutoff_nm,
             box_size=self.dimensions_nm[:2],
@@ -81,7 +70,7 @@ class TestFunctionBuildNeighborList:
         )
 
     def test_units_orthogonal_pbc_2d(self):
-        neighbor_list = neighbor.build_neighbor_list(
+        neighbor_list = build_neighbor_list(
             positions=self.positions[:, :2],
             cutoff=self.cutoff,
             box_size=self.dimensions[:2],
@@ -92,7 +81,7 @@ class TestFunctionBuildNeighborList:
         )
 
     def test_dimensionless_orthogonal_pbc_2d(self):
-        neighbor_list = neighbor.build_neighbor_list(
+        neighbor_list = build_neighbor_list(
             positions=self.positions_nm[:, :2],
             cutoff=self.cutoff_nm,
             box_size=self.dimensions_nm[:2],
@@ -103,7 +92,7 @@ class TestFunctionBuildNeighborList:
         )
 
     def test_units_orthogonal_nbc_3d(self):
-        neighbor_list = neighbor.build_neighbor_list(
+        neighbor_list = build_neighbor_list(
             positions=self.positions, cutoff=self.cutoff
         )
         assert (
@@ -112,7 +101,7 @@ class TestFunctionBuildNeighborList:
         )
 
     def test_dimensionless_orthogonal_nbc_3d(self):
-        neighbor_list = neighbor.build_neighbor_list(
+        neighbor_list = build_neighbor_list(
             positions=self.positions_nm,
             cutoff=self.cutoff_nm,
             box_size=self.dimensions_nm,
@@ -124,7 +113,7 @@ class TestFunctionBuildNeighborList:
         )
 
     def test_units_orthogonal_pbc_3d(self):
-        neighbor_list = neighbor.build_neighbor_list(
+        neighbor_list = build_neighbor_list(
             positions=self.positions,
             cutoff=self.cutoff,
             box_size=self.dimensions,
@@ -135,7 +124,7 @@ class TestFunctionBuildNeighborList:
         )
 
     def test_dimensionless_orthogonal_pbc_3d(self):
-        neighbor_list = neighbor.build_neighbor_list(
+        neighbor_list = build_neighbor_list(
             positions=self.positions_nm,
             cutoff=self.cutoff_nm,
             box_size=self.dimensions_nm,
@@ -158,7 +147,7 @@ class TestFunctionBuildNeighborList:
             ),
             axis=0,
         )
-        neighbor_list_mdcraft = neighbor.build_neighbor_list(
+        neighbor_list_mdcraft = build_neighbor_list(
             self.random_positions, self.random_cutoff
         )
         neighbor_list_mdcraft = np.array(
@@ -189,7 +178,7 @@ class TestFunctionBuildNeighborList:
             ),
             axis=0,
         )
-        neighbor_list_mdcraft = neighbor.build_neighbor_list(
+        neighbor_list_mdcraft = build_neighbor_list(
             self.random_positions,
             self.random_cutoff,
             self.random_lattice_parameters[:3],
@@ -222,7 +211,7 @@ class TestFunctionBuildNeighborList:
             ),
             axis=0,
         )
-        neighbor_list_mdcraft = neighbor.build_neighbor_list(
+        neighbor_list_mdcraft = build_neighbor_list(
             self.random_positions,
             self.random_cutoff,
             self.random_lattice_parameters,

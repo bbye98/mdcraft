@@ -6,7 +6,7 @@ from numba import njit
 import numpy as np
 
 from .. import FOUND, Q_
-from ..utility.unit import strip_unit
+from ..lib.unit import strip_unit
 
 if FOUND["openmm"]:
     from openmm import unit
@@ -89,7 +89,7 @@ def convert_cell_representation(
            * :code:`"vectors"` for box vectors.
 
     n_dimensions : `int`, positional-only, default: :code:`3`
-        Dimensionality of the simulation box.
+        Dimensionality of the simulation box :math:`d`.
 
         **Valid values**: :code:`2` or :code:`3`.
 
@@ -144,7 +144,6 @@ def convert_cell_representation(
            [0., 4., 0.],
            [0., 0., 5.]]), unit=nanometer)
     """
-
     representation, length_unit = strip_unit(representation)
     representation = np.asarray(representation)
 
@@ -437,7 +436,6 @@ def reduce_box_vectors(
      [0., 4., 0.],
      [0., 0., 5.]], 'nanometer')>
     """
-
     reduced_box_vectors, length_unit = strip_unit(box_vectors)
     reduced_box_vectors = np.asarray(reduced_box_vectors)
     if reduced_box_vectors.shape not in {(2, 2), (3, 3)}:
@@ -515,7 +513,6 @@ def _invert_box_vectors(
 
         **Shape**: :math:`(2,2)` or :math:`(3,3)`.
     """
-
     n_dimensions = len(box_vectors)
     inv_box_vectors = np.empty(
         (n_dimensions, n_dimensions), dtype=box_vectors.dtype
@@ -597,7 +594,6 @@ def _scale_coordinates(
 
         **Shape**: :math:`(3,)`.
     """
-
     # All coordinates are already scaled; nothing to do
     if scaled_flags.all():
         return
@@ -810,8 +806,7 @@ def scale_coordinates(
     array([[0.5       , 0.5       , 0.5       ],
            [0.33333333, 0.5       , 0.6       ])
     """
-
-    # Check user input
+    # Validate input arguments
     if not isinstance(coordinates, np.ndarray):
         raise TypeError("`coordinates` must be a NumPy array.")
     if coordinates.ndim != 2 or coordinates.shape[1] not in {2, 3}:

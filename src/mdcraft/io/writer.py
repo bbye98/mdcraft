@@ -3,7 +3,7 @@ import warnings
 import numpy as np
 
 from .. import __version__, FOUND, Q_, ureg
-from ..utility.unit import strip_unit
+from ..lib.unit import strip_unit
 from .base import BaseTrajectoryWriter
 
 if FOUND["netCDF4"]:
@@ -57,7 +57,6 @@ class NetCDFWriter(BaseTrajectoryWriter):
     def __init__(
         self, filename: str, mode: str = "w", *, restart: bool = False, **kwargs
     ) -> None:
-
         if not FOUND["netCDF4"]:
             raise RuntimeError(
                 "mdcraft.io.writer.NetCDFWriter requires the 'netcdf4' "
@@ -87,7 +86,6 @@ class NetCDFWriter(BaseTrajectoryWriter):
         remd_dimensions: list[int | str] | None = None,
         reduced: bool = False,
     ) -> None:
-
         # Set global attributes
         self._file.Conventions = "AMBER"
         if self._restart:
@@ -113,9 +111,9 @@ class NetCDFWriter(BaseTrajectoryWriter):
 
         if reduced:
             if time:
-                self._file.createVariable("time", fp_t, shape[-3::-1]).units = (
-                    ""
-                )
+                self._file.createVariable(
+                    "time", fp_t, shape[-3::-1]
+                ).units = ""
             if positions:
                 self._file.createVariable("coordinates", fp_t, shape).units = ""
             if velocities:
@@ -124,21 +122,21 @@ class NetCDFWriter(BaseTrajectoryWriter):
                 self._file.createVariable("forces", fp_t, shape).units = ""
         else:
             if time:
-                self._file.createVariable("time", fp_t, shape[-3::-1]).units = (
-                    "picosecond"
-                )
+                self._file.createVariable(
+                    "time", fp_t, shape[-3::-1]
+                ).units = "picosecond"
             if positions:
-                self._file.createVariable("coordinates", fp_t, shape).units = (
-                    "angstrom"
-                )
+                self._file.createVariable(
+                    "coordinates", fp_t, shape
+                ).units = "angstrom"
             if velocities:
-                self._file.createVariable("velocities", fp_t, shape).units = (
-                    "angstrom/picosecond"
-                )
+                self._file.createVariable(
+                    "velocities", fp_t, shape
+                ).units = "angstrom/picosecond"
             if forces:
-                self._file.createVariable("forces", fp_t, shape).units = (
-                    "kilocalorie/mole/angstrom"
-                )
+                self._file.createVariable(
+                    "forces", fp_t, shape
+                ).units = "kilocalorie/mole/angstrom"
 
         # Set dimensions and create variables for unit cell information,
         # if available
