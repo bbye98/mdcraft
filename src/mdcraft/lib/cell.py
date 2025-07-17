@@ -6,7 +6,7 @@ from numba import njit
 import numpy as np
 
 from .. import FOUND, Q_
-from ..lib.unit import strip_unit
+from .unit import strip_unit
 
 if FOUND["openmm"]:
     from openmm import unit

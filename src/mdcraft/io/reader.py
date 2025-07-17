@@ -15,7 +15,7 @@ from scipy.io import netcdf_file
 from . import INTERNAL_UNITS
 from .base import BaseTopologyReader, BaseTrajectoryReader
 from .. import FOUND, Q_, U_, ureg
-from ..lib.topology import (
+from ..lib.cell import (
     convert_cell_representation,
     reduce_box_vectors,
     scale_coordinates,

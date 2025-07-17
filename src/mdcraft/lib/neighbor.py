@@ -8,7 +8,7 @@ from numba.typed import List
 import numpy as np
 
 from .. import Q_
-from ..lib.topology import (
+from .cell import (
     _invert_box_vectors,
     _scale_coordinates,
     convert_cell_representation,
