@@ -11,6 +11,7 @@ from .. import Q_
 from .cell import (
     _invert_box_vectors,
     _scale_coordinates,
+    check_orthogonality,
     convert_cell_representation,
     reduce_box_vectors,
 )
@@ -22,8 +23,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 @njit(fastmath=True, inline="always")  # pragma: no cover
 def _check_positions(
-    positions: np.ndarray[float_t],
-    dimensions: np.ndarray[float_t],
+    positions: np.ndarray[float_t], dimensions: np.ndarray[float_t]
 ) -> np.bool_:
     """
     Checks whether all particle positions are within the bounds of the
@@ -116,6 +116,213 @@ def _compute_squared_distance_orthogonal(
             dr -= dimensions[dim] * round(dr / dimensions[dim])
         dr_squared += dr * dr
     return dr_squared
+
+
+@njit(fastmath=True, inline="always")  # pragma: no cover
+def _compute_squared_distance(
+    position_i: np.ndarray[float_t],
+    position_j: np.ndarray[float_t],
+    box_vectors: np.ndarray[float_t],
+    pbc: np.bool_,
+) -> float_t:
+    """
+    Computes the squared separation distance :math:`r_{ij}^2` between
+    two particles in a triclinic simulation box.
+
+    Parameters
+    ----------
+    position_i : `numpy.ndarray`
+        Position of the first particle :math:`\\mathrm{r}_i`.
+
+        **Shape**: :math:`(2,)` or :math:`(3,)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    position_j : `numpy.ndarray`
+        Position of the second particle :math:`\\mathrm{r}_j`.
+
+        **Shape**: :math:`(2,)` or :math:`(3,)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    box_vectors : `numpy.ndarray`
+        Box vectors :math:`(\\mathbf{A};\\mathbf{B}[;\\mathbf{C}])`.
+
+        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    pbc : `bool`
+        Specifies whether to apply periodic boundary conditions (PBC)
+        and use the minimum image convention when calculating the
+        squared separation distance between the two particles.
+
+    Returns
+    -------
+    dr_squared : `float`
+        Squared separation distance :math:`r_{ij}^2` between the two
+        particles.
+    """
+    # Compute the separation distance vector
+    n_dimensions = position_i.shape[0]
+    dr = np.empty(n_dimensions, position_i.dtype)
+    for dim in range(n_dimensions):
+        dr[dim] = position_j[dim] - position_i[dim]
+
+    # Apply periodic boundary conditions (PBC) to get the minimum image
+    # convention
+    if pbc:
+        for axis in range(n_dimensions - 1, -1, -1):
+            # Compute how many box vectors to subtract by projecting the
+            # displacement onto the current box vector
+            factor = np.floor(dr[axis] / box_vectors[axis, axis] + 0.5)
+
+            # Wrap the displacement back into the central image along
+            # this axis
+            for dim in range(n_dimensions):
+                dr[dim] -= factor * box_vectors[axis, dim]
+
+    # Compute the squared separation distance
+    dr_squared = 0.0
+    for dim in range(n_dimensions):
+        dr_squared += dr[dim] * dr[dim]
+    return dr_squared
+
+
+@njit(fastmath=True)  # pragma: no cover
+def _build_neighbor_list_orthogonal_brute_force(
+    positions: np.ndarray[float_t],
+    cutoff: float_t,
+    dimensions: np.ndarray[float_t],
+    pbc: np.bool_,
+) -> List[set[np.uint32]]:
+    """
+    Builds a half neighbor list for particles in an orthogonal
+    simulation box using a brute-force approach.
+
+    Parameters
+    ----------
+    positions : `numpy.ndarray`
+        Particle positions :math:`\\mathrm{r}`.
+
+        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    cutoff : `float`
+        Cutoff distance :math:`r_\\mathrm{cutoff}` for neighbor search.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    dimensions : `numpy.ndarray`
+        Box dimensions :math:`(L_x,L_y[,L_z])`.
+
+        **Shape**: :math:`(2,)` or :math:`(3,)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    pbc : `bool`
+        Specifies whether to apply periodic boundary conditions (PBC)
+        and use the minimum image convention when calculating
+        separation distances between particles.
+
+    Returns
+    -------
+    neighbor_lists : `list`
+        A list of neighbor lists (sets) for all particles :math:`i`,
+        with each inner variable-length set containing the indices of
+        nearby particles :math:`j`, where :math:`i<j`, that are within
+        the cutoff distance of particle :math:`i`.
+
+        **Shape**: :math:`(N,)`.
+    """
+    n_particles = positions.shape[0]
+    cutoff_squared = cutoff * cutoff
+    neighbor_lists = List()
+    for pid in range(n_particles):
+        neighbor_list = set()
+        for nid in range(pid + 1, n_particles):
+            if (
+                _compute_squared_distance_orthogonal(
+                    positions[pid], positions[nid], dimensions, pbc
+                )
+                < cutoff_squared
+            ):
+                neighbor_list.add(np.uint32(nid))
+                neighbor_lists[nid].add(np.uint32(pid))
+        neighbor_lists.append(neighbor_list)
+    return neighbor_lists
+
+
+@njit(fastmath=True)  # pragma: no cover
+def _build_neighbor_list_brute_force(
+    positions: np.ndarray[float_t],
+    cutoff: float_t,
+    box_vectors: np.ndarray[float_t],
+    pbc: np.bool_,
+) -> List[set[np.uint32]]:
+    """
+    Builds a half neighbor list for particles in a triclinic simulation
+    box using a brute-force approach.
+
+    Parameters
+    ----------
+    positions : `numpy.ndarray`
+        Particle positions :math:`\\mathrm{r}` in Cartesian coordinates.
+
+        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    scaled_positions : `numpy.ndarray`
+        Particle positions :math:`\\mathrm{r}` in fractional
+        coordinates.
+
+        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+
+    cutoff : `float`
+        Cutoff distance :math:`r_\\mathrm{cutoff}` for neighbor search.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    box_vectors : `numpy.ndarray`
+        Box vectors :math:`(\\mathbf{A};\\mathbf{B}[;\\mathbf{C}])`.
+
+        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    pbc : `bool`
+        Specifies whether to apply periodic boundary conditions (PBC)
+        and use the minimum image convention when calculating
+        separation distances between particles.
+
+    Returns
+    -------
+    neighbor_lists : `list`
+        A list of neighbor lists (sets) for all particles :math:`i`,
+        with each inner variable-length set containing the indices of
+        nearby particles :math:`j`, where :math:`i<j`, that are within
+        the cutoff distance of particle :math:`i`.
+
+        **Shape**: :math:`(N,)`.
+    """
+    n_particles = positions.shape[0]
+    cutoff_squared = cutoff * cutoff
+    neighbor_lists = List()
+    for pid in range(n_particles):
+        neighbor_list = set()
+        for nid in range(pid + 1, n_particles):
+            if (
+                _compute_squared_distance(
+                    positions[pid], positions[nid], box_vectors, pbc
+                )
+                < cutoff_squared
+            ):
+                neighbor_list.add(np.uint32(nid))
+                neighbor_lists[nid].add(np.uint32(pid))
+        neighbor_lists.append(neighbor_list)
+    return neighbor_lists
 
 
 @njit(fastmath=True, inline="always")  # pragma: no cover
@@ -274,7 +481,7 @@ def _build_cell_lists_orthogonal(
 
 
 @njit(fastmath=True)  # pragma: no cover
-def _build_neighbor_list_orthogonal(
+def _build_neighbor_list_orthogonal_cell_list(
     positions: np.ndarray[float_t],
     cutoff: float_t,
     dimensions: np.ndarray[float_t],
@@ -313,10 +520,12 @@ def _build_neighbor_list_orthogonal(
     Returns
     -------
     neighbor_lists : `list`
-        A list of neighbor lists (sets) for all particles, with each
-        inner variable-length set containing the indices of particles
-        that are within the cutoff distance of the corresponding
-        particle.
+        A list of neighbor lists (sets) for all particles :math:`i`,
+        with each inner variable-length set containing the indices of
+        nearby particles :math:`j`, where :math:`i<j`, that are within
+        the cutoff distance of particle :math:`i`.
+
+        **Shape**: :math:`(N,)`.
     """
     # Build cell lists
     n_dimensions = positions.shape[1]
@@ -375,78 +584,7 @@ def _build_neighbor_list_orthogonal(
 
 
 @njit(fastmath=True, inline="always")  # pragma: no cover
-def _compute_squared_distance_triclinic(
-    position_i: np.ndarray[float_t],
-    position_j: np.ndarray[float_t],
-    box_vectors: np.ndarray[float_t],
-    pbc: np.bool_,
-) -> float_t:
-    """
-    Computes the squared separation distance :math:`r_{ij}^2` between
-    two particles in a triclinic simulation box.
-
-    Parameters
-    ----------
-    position_i : `numpy.ndarray`
-        Position of the first particle :math:`\\mathrm{r}_i`.
-
-        **Shape**: :math:`(2,)` or :math:`(3,)`.
-
-        **Reference unit**: :math:`\\mathrm{nm}`.
-
-    position_j : `numpy.ndarray`
-        Position of the second particle :math:`\\mathrm{r}_j`.
-
-        **Shape**: :math:`(2,)` or :math:`(3,)`.
-
-        **Reference unit**: :math:`\\mathrm{nm}`.
-
-    box_vectors : `numpy.ndarray`
-        Box vectors :math:`(\\mathbf{A};\\mathbf{B}[;\\mathbf{C}])`.
-
-        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
-
-        **Reference unit**: :math:`\\mathrm{nm}`.
-
-    pbc : `bool`
-        Specifies whether to apply periodic boundary conditions (PBC)
-        and use the minimum image convention when calculating the
-        squared separation distance between the two particles.
-
-    Returns
-    -------
-    dr_squared : `float`
-        Squared separation distance :math:`r_{ij}^2` between the two
-        particles.
-    """
-    # Compute the separation distance vector
-    n_dimensions = position_i.shape[0]
-    dr = np.empty(n_dimensions, position_i.dtype)
-    for dim in range(n_dimensions):
-        dr[dim] = position_j[dim] - position_i[dim]
-
-    # Apply periodic boundary conditions (PBC) to get the minimum image
-    # convention
-    if pbc:
-        for axis in range(n_dimensions - 1, -1, -1):
-            # Compute how many box vectors to subtract by projecting the
-            # displacement onto the current box vector
-            factor = np.floor(dr[axis] / box_vectors[axis, axis] + 0.5)
-
-            # Wrap the displacement back into the central image along
-            # this axis
-            for dim in range(n_dimensions):
-                dr[dim] -= factor * box_vectors[axis, dim]
-
-    # Compute the squared separation distance
-    dr_squared = 0.0
-    for dim in range(n_dimensions):
-        dr_squared += dr[dim] * dr[dim]
-    return dr_squared
-
-
-@njit(fastmath=True, inline="always")  # pragma: no cover
-def _get_cell_offsets_triclinic(
+def _get_cell_offsets(
     cutoff: float_t,
     box_vectors: np.ndarray[float_t],
     n_cells: np.ndarray[np.uint32],
@@ -664,7 +802,7 @@ def _build_cell_lists_triclinic(
 
 
 @njit(fastmath=True)  # pragma: no cover
-def _build_neighbor_list_triclinic(
+def _build_neighbor_list_cell_list(
     positions: np.ndarray[float_t],
     scaled_positions: np.ndarray[float_t],
     cutoff: float_t,
@@ -672,7 +810,7 @@ def _build_neighbor_list_triclinic(
     pbc: np.bool_,
 ) -> List[set[np.uint32]]:
     """
-    Builds a neighbor list for particles in a triclinic simulation
+    Builds a half neighbor list for particles in a triclinic simulation
     box using the cell list algorithm.
 
     Parameters
@@ -710,10 +848,12 @@ def _build_neighbor_list_triclinic(
     Returns
     -------
     neighbor_lists : `list`
-        A list of neighbor lists (sets) for all particles, with each
-        inner variable-length set containing the indices of particles
-        that are within the cutoff distance of the corresponding
-        particle.
+        A list of neighbor lists (sets) for all particles :math:`i`,
+        with each inner variable-length set containing the indices of
+        nearby particles :math:`j`, where :math:`i<j`, that are within
+        the cutoff distance of particle :math:`i`.
+
+        **Shape**: :math:`(N,)`.
     """
     # Build cell lists
     n_dimensions = scaled_positions.shape[1]
@@ -722,9 +862,7 @@ def _build_neighbor_list_triclinic(
     )
 
     # Define offsets for neighboring cells
-    n_offsets, cell_offsets = _get_cell_offsets_triclinic(
-        cutoff, box_vectors, n_cells
-    )
+    n_offsets, cell_offsets = _get_cell_offsets(cutoff, box_vectors, n_cells)
 
     # Build neighbor list for each particle
     neighbor_lists = List()
@@ -756,7 +894,7 @@ def _build_neighbor_list_triclinic(
             while nid != -1:
                 if pid != nid:
                     if (
-                        _compute_squared_distance_triclinic(
+                        _compute_squared_distance(
                             positions[pid],
                             positions[nid],
                             box_vectors,
@@ -782,10 +920,11 @@ def build_neighbor_list(
     box_size: np.ndarray[float_t] | Q_ | None = None,
     *,
     pbc: bool = True,
+    algorithm: str = "cell_list",
 ) -> List[set[np.uint32]]:
     """
-    Builds a neighbor list for interacting particles using a cell list
-    algorithm.
+    Builds a half neighbor list containing particle pairs within a
+    cutoff distance.
 
     Parameters
     ----------
@@ -817,17 +956,30 @@ def build_neighbor_list(
         and use the minimum image convention when calculating
         separation distances between particles.
 
+    algorithm : `str`, keyword-only, default: :code:`"cell_list"`
+        Algorithm to use for building the neighbor list.
+
+        **Valid values**: :code:`"brute_force"` and :code:`"cell_list"`.
+
     Returns
     -------
     neighbor_lists : `list`
-        A list of neighbor lists (sets) for all particles, with each
-        inner variable-length set containing the indices of particles
-        that are within the cutoff distance of the corresponding
-        particle.
+        A list of neighbor lists (sets) for all particles :math:`i`,
+        with each inner variable-length set containing the indices of
+        nearby particles :math:`j`, where :math:`i<j`, that are within
+        the cutoff distance of particle :math:`i`.
 
         **Shape**: :math:`(N,)`.
     """
     # Validate input arguments
+    if algorithm not in (
+        algorithms := {"brute_force", "bvh", "cell_list", "kd_tree"}
+    ):
+        raise ValueError(
+            f"Invalid `algorithm` value: {algorithm}. Valid values: '"
+            + "', '".join(algorithms)
+            + "'."
+        )
     positions = np.asarray(strip_unit(positions, "nm")[0])
     if positions.ndim != 2 or positions.shape[1] not in {2, 3}:
         raise ValueError(
@@ -839,7 +991,7 @@ def build_neighbor_list(
 
     # Assume non-periodic orthogonal box if no box size is provided
     if box_size is None:
-        return _build_neighbor_list_orthogonal(
+        return globals()[f"_build_neighbor_list_orthogonal_{algorithm}"](
             positions - positions.min(axis=0),  # Shift positions to origin
             cutoff,
             np.fromiter(  # Use maximum distance between particles as box size
@@ -857,12 +1009,12 @@ def build_neighbor_list(
         )
     else:
         box_size = convert_cell_representation(
-            strip_unit(box_size, "nm")[0], "vectors", n_dimensions
+            strip_unit(box_size, "nm")[0], "vectors", n_dimensions=n_dimensions
         )
 
         # Check if the box is orthogonal by testing whether the box
         # vectors form a diagonal matrix
-        if np.array_equal(box_size, np.diag(np.diag(box_size))):
+        if check_orthogonality(box_size):
             if pbc and cutoff > np.diag(box_size).min() / 2:
                 raise ValueError(
                     "`cutoff` must be less than or equal to half the "
@@ -876,7 +1028,7 @@ def build_neighbor_list(
                     "simulation box defined by `box_size`."
                 )
 
-            return _build_neighbor_list_orthogonal(
+            return globals()[f"_build_neighbor_list_orthogonal_{algorithm}"](
                 positions, cutoff, box_size, pbc
             )
 
@@ -904,6 +1056,6 @@ def build_neighbor_list(
                 "minimum box length when `pbc` is True."
             )
 
-        return _build_neighbor_list_triclinic(
+        return globals()[f"_build_neighbor_list_{algorithm}"](
             positions, scaled_positions, cutoff, box_size, pbc
         )

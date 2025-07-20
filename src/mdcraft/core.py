@@ -74,7 +74,9 @@ class Topology:  # TODO
         Additional keyword arguments to pass to the topology reader.
     """
 
-    def __init__(self, filename: str | Path, *, format: str = None, **kwargs) -> None:
+    def __init__(
+        self, filename: str | Path, *, format: str = None, **kwargs
+    ) -> None:
         self._filename = Path(filename).resolve(True)
         if format is None:
             try:
@@ -310,7 +312,9 @@ class Trajectory:
 
         # Order readers by starting time then by ending time
         time_ranges = [(r.times[0], r.times[-1]) for r in self._readers]
-        order = [x[0] for x in sorted(enumerate(time_ranges), key=lambda x: x[1])]
+        order = [
+            x[0] for x in sorted(enumerate(time_ranges), key=lambda x: x[1])
+        ]
         time_ranges = np.array(time_ranges)
         if not all(o > order[i] for i, o in enumerate(order[1:])):
             time_ranges = time_ranges[order]
@@ -398,7 +402,9 @@ class Trajectory:
             # overlap frames
             self._overlap_frames = dict(
                 zip(
-                    np.searchsorted(sorted(seen_times), list(self._overlap_frames)),
+                    np.searchsorted(
+                        sorted(seen_times), list(self._overlap_frames)
+                    ),
                     self._overlap_frames.values(),
                 )
             )
@@ -495,7 +501,9 @@ class Trajectory:
             if frame_indices < 0:
                 frame_indices %= self.n_frames
             if frame_indices in self._overlap_frames:
-                reader_index, reader_frame_index = self._overlap_frames[frame_indices]
+                reader_index, reader_frame_index = self._overlap_frames[
+                    frame_indices
+                ]
             else:
                 reader_index = bisect(self._start_frames, frame_indices) - 1
                 reader_frame_index = (
@@ -537,7 +545,9 @@ class Trajectory:
         **Reference unit**: :math:`\\mathrm{ps}`.
         """
 
-        time_steps = set(np.round(np.diff(self.times), np.finfo(float).precision))
+        time_steps = set(
+            np.round(np.diff(self.times), np.finfo(float).precision)
+        )
         return None if len(time_steps) != 1 else time_steps.pop()
 
     @cached_property
@@ -640,7 +650,9 @@ class Trajectory:
             frames.extend(self._readers[ri].read_frames(rfis))
         return [
             TrajectoryFrame(f % self.n_frames, **d)
-            for f, d in zip(frame_indices, sorted(frames, key=lambda f: f["time"]))
+            for f, d in zip(
+                frame_indices, sorted(frames, key=lambda f: f["time"])
+            )
         ]
 
 
@@ -673,7 +685,9 @@ class TrajectorySubset:
         )
         self._index = 0
 
-    def __getitem__(self, indices: int | slice | Iterable[int]) -> TrajectoryFrame:
+    def __getitem__(
+        self, indices: int | slice | Iterable[int]
+    ) -> TrajectoryFrame:
         if isinstance(indices, int):
             self._check_frame(indices)
             return self.get_frames(indices)
@@ -745,7 +759,9 @@ class TrajectorySubset:
                 self._trajectory._readers[ri].dt
                 for ri in {
                     ri[0]
-                    for ri in self._trajectory._get_reader_indices(self._frame_indices)
+                    for ri in self._trajectory._get_reader_indices(
+                        self._frame_indices
+                    )
                 }
             )
             if self.timesteps is None
@@ -765,7 +781,9 @@ class TrajectorySubset:
         **Reference unit**: :math:`\\mathrm{ps}`.
         """
 
-        time_steps = set(np.round(np.diff(self.times), np.finfo(float).precision))
+        time_steps = set(
+            np.round(np.diff(self.times), np.finfo(float).precision)
+        )
         return None if len(time_steps) != 1 else time_steps.pop()
 
     @cached_property
@@ -813,7 +831,9 @@ class TrajectorySubset:
             self._trajectory._readers[ri].n_atoms
             for ri in {
                 ri[0]
-                for ri in self._trajectory._get_reader_indices(self._frame_indices)
+                for ri in self._trajectory._get_reader_indices(
+                    self._frame_indices
+                )
             }
         }
         return None if len(n_atoms) != 1 else n_atoms.pop()
@@ -1034,9 +1054,7 @@ class TrajectoryFrame:
         )
 
     def __str__(self) -> str:
-        return (
-            f"{self.__class__.__qualname__}: frame {self._frame}, {self._n_atoms} atoms"
-        )
+        return f"{self.__class__.__qualname__}: frame {self._frame}, {self._n_atoms} atoms"
 
     @property
     def frame(self) -> int:

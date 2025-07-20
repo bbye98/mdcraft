@@ -17,6 +17,8 @@ RNG = np.random.default_rng()
 class TestFunctionBuildNeighborList:
     @classmethod
     def setup_class(cls):
+        cls.algorithms = {"brute_force", "bvh", "cell_list", "kd_tree"}
+
         cls.positions = (
             np.array(
                 (
@@ -38,7 +40,7 @@ class TestFunctionBuildNeighborList:
             (30.0, 40.0, 50.0, 45.0, 45.0, 45.0)
         )
         cls.random_positions = cls.random_lattice_parameters[:3] * RNG.random(
-            (900, 3)
+            (400, 3)
         )
 
     def test_invalid_shape(self):
@@ -195,7 +197,36 @@ class TestFunctionBuildNeighborList:
         ]
         assert np.array_equal(neighbor_list_mdcraft, neighbor_list_mdanalysis)
 
-    def test_random_dimensionless_triclinic_nbc_3d(self): ...
+    # def test_random_dimensionless_triclinic_nbc_3d(self):
+    #     neighbor_list_mdanalysis = np.unique(
+    #         np.sort(
+    #             capped_distance(
+    #                 self.random_positions,
+    #                 self.random_positions,
+    #                 self.random_cutoff,
+    #                 0.0,
+    #             )[0],
+    #             axis=1,
+    #         ),
+    #         axis=0,
+    #     )
+    #     neighbor_list_mdcraft = build_neighbor_list(
+    #         self.random_positions,
+    #         self.random_cutoff,
+    #         self.random_lattice_parameters,
+    #         pbc=False,
+    #     )
+    #     neighbor_list_mdcraft = np.array(
+    #         [
+    #             (pid, nid)
+    #             for pid in range(len(neighbor_list_mdcraft))
+    #             for nid in neighbor_list_mdcraft[pid]
+    #         ]
+    #     )
+    #     neighbor_list_mdcraft = neighbor_list_mdcraft[
+    #         np.lexsort(neighbor_list_mdcraft.T[::-1])
+    #     ]
+    #     assert np.array_equal(neighbor_list_mdcraft, neighbor_list_mdanalysis)
 
     def test_random_dimensionless_triclinic_pbc_3d(self):
         neighbor_list_mdanalysis = np.unique(

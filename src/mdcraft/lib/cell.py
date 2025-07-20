@@ -15,46 +15,20 @@ if TYPE_CHECKING:  # pragma: no cover
     from .. import float_t
 
 
-def convert_cell_representation(
-    representation: np.ndarray[float_t] | "unit.Quantity" | Q_,
-    output_format: str,
-    n_dimensions: int | None = None,
+def _determine_cell_representation(
+    box_size: np.ndarray[float_t] | "unit.Quantity" | Q_,
     /,
-) -> np.ndarray[float_t] | "unit.Quantity" | Q_:
+    *,
+    n_dimensions: int | None = None,
+) -> tuple[int, str]:
     """
-    Converts between cell representations for a simulation box.
-
-    .. dropdown:: Two-dimensional (2D) systems
-
-       For a square simulation box, the supported input and output
-       formats are
-
-       * its dimensions :math:`(L_x,L_y)`, where :math:`L_x` and
-         :math:`L_y` are the lengths along the :math:`x`- and
-         :math:`y`-axes, respectively,
-       * its lattice parameters :math:`(a,b,\\gamma)`, where :math:`a`
-         and :math:`b` are the cell lengths and :math:`\\gamma` is the
-         cell angle, and
-       * its box vectors :math:`(\\mathbf{a};\\mathbf{b})`.
-
-    .. dropdown:: Three-dimensional (3D) systems
-       :open:
-
-       For a cubic simulation box, the supported input and output
-       formats are
-
-       * its dimensions :math:`(L_x,L_y,L_z)`, where :math:`L_x`,
-         :math:`L_y`, and :math:`L_z` are the lengths along the
-         :math:`x`-, :math:`y`-, and :math:`z`-axes, respectively,
-       * its lattice parameters :math:`(a,b,c,\\alpha,\\beta,\\gamma)`,
-         where :math:`a`, :math:`b`, and :math:`c` are the cell lengths
-         and :math:`\\alpha`, :math:`\\beta`, and :math:`\\gamma` are
-         the cell angles, and
-       * its box vectors :math:`(\\mathbf{a};\\mathbf{b};\\mathbf{c})`.
+    Determines the number of dimensions and the cell representation
+    format based on the shape of the array containing the box size
+    information.
 
     Parameters
     ----------
-    representation : `numpy.ndarray`, `openmm.unit.Quantity`, or \
+    box_size : `numpy.ndarray`, `openmm.unit.Quantity`, or \
     `pint.Quantity`, positional-only
         Dimensions :math:`(L_x,L_y[,L_z])`, lattice parameters
         :math:`(a,b[,c,\\alpha,\\beta],\\gamma)`, or box
@@ -77,77 +51,29 @@ def convert_cell_representation(
         **Reference units**: :math:`\\mathrm{nm}` for lengths and
         degrees (:math:`^\\circ`) for angles.
 
-    output_format : `str`, positional-only
-        Desired cell representation.
-
-        .. container::
-
-           **Valid values**:
-
-           * :code:`"dimensions"` for dimensions,
-           * :code:`"parameters"` for lattice parameters, or
-           * :code:`"vectors"` for box vectors.
-
-    n_dimensions : `int`, positional-only, default: :code:`3`
-        Dimensionality of the simulation box :math:`d`.
+    n_dimensions : `int`, keyword-only, optional
+        Dimensionality of the simulation box :math:`d`. Only used when
+        `box_size` has shape :math:`(3,)`.
 
         **Valid values**: :code:`2` or :code:`3`.
 
     Returns
     -------
-    new_representation : `numpy.ndarray`, `openmm.unit.Quantity`, or \
-    `pint.Quantity`
-        Cell representation in the desired format.
+    n_dimensions : `int`
+        Dimensionality of the simulation box :math:`d`.
 
-        .. note::
-
-           Lattice parameters will always be returned in an array
-           without explicit units, even if the starting cell
-           representation is an OpenMM or Pint quantity.
-
-        .. container::
-
-           **Shapes**:
-
-           * 2D: :math:`(2,)` for dimensions, :math:`(3,)` for lattice
-             parameters, or :math:`(2,2)` for box vectors.
-           * 3D: :math:`(3,)` for dimensions, :math:`(6,)` for lattice
-             parameters, or :math:`(3,3)` for box vectors.
-
-        **Reference units**: :math:`\\mathrm{nm}` for lengths and
-        degrees (:math:`^\\circ`) for angles.
-
-    Examples
-    --------
-    Let us start with a cubic simulation box with dimensions
-    :math:`(3,4,5)~\\mathrm{nm}`:
-
-    >>> dimensions = np.array((3.0, 4.0, 5.0))
-
-    We can convert the dimensions to lattice parameters using
-
-    >>> convert_cell_representation(dimensions, "parameters")
-    array([3., 4., 5., 90., 90., 90.])
-
-    Alternatively, we can convert the dimensions to box vectors using
-
-    >>> convert_cell_representation(dimensions, "vectors")
-    array([[3., 0., 0.],
-           [0., 4., 0.],
-           [0., 0., 5.]])
-
-    If the dimensions are provided as an OpenMM or Pint quantity, the
-    output will have units attached:
-
-    >>> convert_cell_representation(dimensions * unit.nanometer, "vectors")
-    Quantity(value=array([[3., 0., 0.],
-           [0., 4., 0.],
-           [0., 0., 5.]]), unit=nanometer)
+    input_format : `str`
+        Cell representation format: :code:`"dimensions"` for dimensions,
+        :code:`"parameters"` for lattice parameters, or
+        :code:`"vectors"` for box vectors.
     """
-    representation, length_unit = strip_unit(representation)
-    representation = np.asarray(representation)
-
-    if (shape := representation.shape) == (2,):
+    if (
+        shape := (
+            box_size
+            if hasattr(box_size, "shape")
+            else np.asarray(strip_unit(box_size)[0])
+        ).shape
+    ) == (2,):
         n_dimensions = 2
         input_format = "dimensions"
     elif shape == (2, 2):
@@ -160,7 +86,7 @@ def convert_cell_representation(
             if n_dimensions is None:
                 n_dimensions = 3
                 warnings.warn(
-                    "When `representation` has shape (3,), it can be either "
+                    "When `box_size` has shape (3,), it can be either "
                     "2D lattice parameters or 3D dimensions. As "
                     "`n_dimensions` is not specified, it is assumed to be "
                     "the latter."
@@ -174,115 +100,70 @@ def convert_cell_representation(
         input_format = "parameters"
     else:
         raise ValueError(
-            f"Invalid shape {shape} for `representation`. "
+            f"Invalid shape {shape} for `box_size`. "
             "Valid shapes: (2,), (2, 2), (3,), (3, 3), (6,)."
         )
+    return n_dimensions, input_format
 
-    if n_dimensions == 2:
-        if input_format == "dimensions":
-            if output_format == "parameters":
-                return np.concatenate((representation, (90.0,)))
-            elif output_format == "vectors":
-                representation = np.diag(representation)
-        elif input_format == "parameters":
-            gamma = np.radians(representation[2])
-            if output_format == "dimensions":
-                gamma = np.radians(representation[2])
-                return np.array(
-                    (representation[0], representation[1] * np.sin(gamma))
-                )
-            elif output_format == "vectors":
-                vectors = np.zeros((2, 2))
-                vectors[0, 0] = representation[0]
-                vectors[1, 0] = representation[1] * np.cos(gamma)
-                vectors[1, 1] = representation[1] * np.sin(gamma)
-                vectors[np.isclose(vectors, 0, atol=5e-6)] = 0
-                return vectors
-            return representation  # output_format == "parameters"
-        else:  # input_format == "vectors"
-            representation = reduce_box_vectors(representation)
-            if output_format == "parameters":
-                parameters = np.empty(3, dtype=representation.dtype)
-                parameters[:2] = np.linalg.norm(representation, axis=1)
-                parameters[2] = np.degrees(
-                    np.arccos(
-                        np.dot(representation[0], representation[1])
-                        / (parameters[0] * parameters[1])
-                    )
-                )
-                return parameters
-            elif output_format == "dimensions":
-                representation = np.diag(representation)
-    else:  # n_dimensions == 3
-        if input_format == "dimensions":
-            if output_format == "parameters":
-                return np.concatenate((representation, (90.0, 90.0, 90.0)))
-            elif output_format == "vectors":
-                representation = np.diag(representation)
-        elif input_format == "parameters":
-            alpha, beta, gamma = np.radians(representation[3:])
-            if output_format == "dimensions":
-                return np.array(
-                    (
-                        representation[0],
-                        representation[1] * np.sin(gamma),
-                        np.sqrt(
-                            representation[2] ** 2
-                            - (representation[2] * np.cos(beta)) ** 2
-                            - (
-                                representation[2]
-                                * (np.cos(alpha) - np.cos(beta) * np.cos(gamma))
-                                / np.sin(gamma)
-                            )
-                            ** 2
-                        ),
-                    )
-                )
-            elif output_format == "vectors":
-                vectors = np.zeros((3, 3))
-                vectors[0, 0] = representation[0]
-                vectors[1, 0] = representation[1] * np.cos(gamma)
-                vectors[1, 1] = representation[1] * np.sin(gamma)
-                vectors[2, 0] = representation[2] * np.cos(beta)
-                vectors[2, 1] = (
-                    representation[2]
-                    * (np.cos(alpha) - np.cos(beta) * np.cos(gamma))
-                    / np.sin(gamma)
-                )
-                vectors[2, 2] = np.sqrt(
-                    representation[2] ** 2
-                    - vectors[2, 0] ** 2
-                    - vectors[2, 1] ** 2
-                )
-                vectors[np.isclose(vectors, 0.0)] = 0.0
-                return vectors
-            return representation  # output_format == "parameters"
-        else:  # input_format == "vectors"
-            representation = reduce_box_vectors(representation)
-            if output_format == "parameters":
-                return np.concatenate(
-                    (
-                        parameters := np.linalg.norm(representation, axis=1),
-                        np.degrees(
-                            np.arccos(
-                                (
-                                    np.dot(representation[1], representation[2])
-                                    / (parameters[1] * parameters[2]),
-                                    np.dot(representation[0], representation[2])
-                                    / (parameters[0] * parameters[2]),
-                                    np.dot(representation[0], representation[1])
-                                    / (parameters[0] * parameters[1]),
-                                )
-                            )
-                        ),
-                    )
-                )
-            elif output_format == "dimensions":
-                representation = np.diag(representation)
 
-    return (
-        representation if length_unit is None else representation * length_unit
+@njit(fastmath=True, inline="always")  # pragma: no cover
+def _invert_box_vectors(
+    box_vectors: np.ndarray[float_t],
+) -> np.ndarray[float_t]:
+    """
+    Numba-accelerated function for inverting the box vectors of a
+    general parallelogram or triclinic simulation box.
+
+    Parameters
+    ----------
+    box_vectors : `numpy.ndarray`
+        Box vectors :math:`(\\mathbf{A};\\mathbf{B}[;\\mathbf{C}])`.
+
+        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+
+    Returns
+    -------
+    inv_box_vectors : `numpy.ndarray`
+        Inverted box vectors
+        :math:`(\\mathbf{A}^*;\\mathbf{B}^*[;\\mathbf{C}^*])`.
+
+        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+    """
+    n_dimensions = len(box_vectors)
+    inv_box_vectors = np.empty(
+        (n_dimensions, n_dimensions), dtype=box_vectors.dtype
     )
+    if n_dimensions == 2:
+        determinant = (
+            box_vectors[0, 0] * box_vectors[1, 1]
+            - box_vectors[0, 1] * box_vectors[1, 0]
+        )
+        inv_box_vectors[0, 0] = box_vectors[1, 1] / determinant
+        inv_box_vectors[0, 1] = -box_vectors[0, 1] / determinant
+        inv_box_vectors[1, 0] = -box_vectors[1, 0] / determinant
+        inv_box_vectors[1, 1] = box_vectors[0, 0] / determinant
+    else:
+        bv00, bv01, bv02 = box_vectors[0]
+        bv10, bv11, bv12 = box_vectors[1]
+        bv20, bv21, bv22 = box_vectors[2]
+        inv_box_vectors[0, 0] = bv11 * bv22 - bv12 * bv21
+        inv_box_vectors[0, 1] = bv02 * bv21 - bv01 * bv22
+        inv_box_vectors[0, 2] = bv01 * bv12 - bv02 * bv11
+        inv_box_vectors[1, 0] = bv12 * bv20 - bv10 * bv22
+        inv_box_vectors[1, 1] = bv00 * bv22 - bv02 * bv20
+        inv_box_vectors[1, 2] = bv02 * bv10 - bv00 * bv12
+        inv_box_vectors[2, 0] = bv10 * bv21 - bv11 * bv20
+        inv_box_vectors[2, 1] = bv01 * bv20 - bv00 * bv21
+        inv_box_vectors[2, 2] = bv00 * bv11 - bv01 * bv10
+        determinant = (
+            bv00 * inv_box_vectors[0, 0]
+            + bv01 * inv_box_vectors[1, 0]
+            + bv02 * inv_box_vectors[2, 0]
+        )
+        for i in range(3):
+            for j in range(3):
+                inv_box_vectors[i, j] /= determinant
+    return inv_box_vectors
 
 
 def reduce_box_vectors(
@@ -460,7 +341,7 @@ def reduce_box_vectors(
                 np.degrees(np.arccos(np.dot(A, B) / (a * b))),
             ),
             "vectors",
-            2,
+            n_dimensions=2,
         )
     elif (
         np.allclose(reduced_box_vectors, np.tril(reduced_box_vectors))
@@ -490,64 +371,418 @@ def reduce_box_vectors(
     )
 
 
-@njit(fastmath=True, inline="always")  # pragma: no cover
-def _invert_box_vectors(
-    box_vectors: np.ndarray[float_t],
-) -> np.ndarray[float_t]:
+def check_orthogonality(
+    box_size: np.ndarray[float_t] | "unit.Quantity" | Q_,
+    /,
+    *,
+    n_dimensions: int | None = None,
+    _reduce: bool = True,
+) -> bool:
     """
-    Numba-accelerated function for inverting the box vectors of a
-    general parallelogram or triclinic simulation box.
+    Checks if a simulation box is orthogonal.
 
     Parameters
     ----------
-    box_vectors : `numpy.ndarray`
-        Box vectors :math:`(\\mathbf{A};\\mathbf{B}[;\\mathbf{C}])`.
+    box_size : `numpy.ndarray`, `openmm.unit.Quantity`, or \
+    `pint.Quantity`, positional-only
+        Dimensions :math:`(L_x,L_y[,L_z])`, lattice parameters
+        :math:`(a,b[,c,\\alpha,\\beta],\\gamma)`, or box
+        vectors :math:`(\\mathbf{a};\\mathbf{b}[;\\mathbf{c}])`.
 
-        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+        .. note::
+
+           Lattice parameters should always be provided in an array
+           without explicit units.
+
+        .. container::
+
+           **Shapes**:
+
+           * 2D: :math:`(2,)` for dimensions, :math:`(3,)` for lattice
+             parameters, or :math:`(2,2)` for box vectors.
+           * 3D: :math:`(3,)` for dimensions, :math:`(6,)` for lattice
+             parameters, or :math:`(3,3)` for box vectors.
+
+        **Reference units**: :math:`\\mathrm{nm}` for lengths and
+        degrees (:math:`^\\circ`) for angles.
+
+    n_dimensions : `int`, keyword-only, optional
+        Dimensionality of the simulation box :math:`d`. Only used when
+        `box_size` has shape :math:`(3,)`.
+
+        **Valid values**: :code:`2` or :code:`3`.
+    
+    Returns
+    -------
+    is_orthogonal : `bool`
+        Whether the simulation box is orthogonal.
+
+    Examples
+    --------
+    If dimensions are provided, the box is naturally orthogonal:
+
+    >>> check_orthogonality(np.array((3.0, 4.0)))
+    True
+    >>> check_orthogonality(np.array((3.0, 4.0, 5.0)))
+    True
+
+    If lattice parameters are provided, the box is orthogonal if
+    the angles are all :math:`90^\\circ`:
+
+    >>> check_orthogonality(np.array((3.0, 4.0, 90.0)))
+    True
+    >>> check_orthogonality(np.array((3.0, 4.0, 5.0, 90.0, 90.0, 90.0)))
+    True
+    >>> check_orthogonality(np.array((3.0, 4.0, 5.0, 45.0, 45.0, 45.0)))
+    False
+
+    If box vectors are provided, the box is orthogonal if all
+    off-diagonal components are zero:
+
+    >>> check_orthogonality(np.array(((3.0, 0.0), (0.0, 4.0))))
+    True
+    >>> check_orthogonality(
+    ...     np.array(
+    ...         ((3.0, 0.0, 0.0), (0.0, 4.0, 0.0), (0.0, 0.0, 5.0))
+    ...     )
+    ... )
+    True
+    >>> check_orthogonality(
+    ...     np.array(
+    ...         ((3.0, 0.0, 0.0), (0.0, 4.0, 0.1), (0.1, 0.1, 5.0))
+    ...     )
+    ... )
+    False
+
+    Box vectors are automatically reduced to their restricted forms
+    before checking for orthogonality:
+
+    >>> box_vectors = np.array(
+    ...     (
+    ...         (9 / np.sqrt(11), 3 / np.sqrt(11), 3 / np.sqrt(11)),
+    ...         (-4 / np.sqrt(6), 8 / np.sqrt(6), 4 / np.sqrt(6)),
+    ...         (5 / np.sqrt(66), 20 / np.sqrt(66), -35 / np.sqrt(66))
+    ...     )
+    ... )
+    >>> check_orthogonality(box_vectors)
+    True
+    """
+    n_dimensions, input_format = _determine_cell_representation(
+        box_size, n_dimensions=n_dimensions
+    )
+    return (
+        input_format == "dimensions"
+        or (
+            input_format == "vectors"
+            and np.allclose(
+                (reduce_box_vectors(box_size) if _reduce else box_size)[
+                    ~np.eye(n_dimensions, dtype=bool)
+                ],
+                0.0,
+            )
+        )
+        or (
+            input_format == "parameters"
+            and np.allclose(box_size[n_dimensions:], 90.0)
+        )
+    )
+
+
+def convert_cell_representation(
+    box_size: np.ndarray[float_t] | "unit.Quantity" | Q_,
+    output_format: str,
+    /,
+    *,
+    n_dimensions: int | None = None,
+) -> np.ndarray[float_t] | "unit.Quantity" | Q_:
+    """
+    Converts between cell representations for a simulation box.
+
+    .. dropdown:: Two-dimensional (2D) systems
+
+       For a square simulation box, the supported input and output
+       formats are
+
+       * its dimensions :math:`(L_x,L_y)`, where :math:`L_x` and
+         :math:`L_y` are the lengths along the :math:`x`- and
+         :math:`y`-axes, respectively,
+       * its lattice parameters :math:`(a,b,\\gamma)`, where :math:`a`
+         and :math:`b` are the cell lengths and :math:`\\gamma` is the
+         cell angle, and
+       * its box vectors :math:`(\\mathbf{a};\\mathbf{b})`.
+
+    .. dropdown:: Three-dimensional (3D) systems
+       :open:
+
+       For a cubic simulation box, the supported input and output
+       formats are
+
+       * its dimensions :math:`(L_x,L_y,L_z)`, where :math:`L_x`,
+         :math:`L_y`, and :math:`L_z` are the lengths along the
+         :math:`x`-, :math:`y`-, and :math:`z`-axes, respectively,
+       * its lattice parameters :math:`(a,b,c,\\alpha,\\beta,\\gamma)`,
+         where :math:`a`, :math:`b`, and :math:`c` are the cell lengths
+         and :math:`\\alpha`, :math:`\\beta`, and :math:`\\gamma` are
+         the cell angles, and
+       * its box vectors :math:`(\\mathbf{a};\\mathbf{b};\\mathbf{c})`.
+
+    Parameters
+    ----------
+    box_size : `numpy.ndarray`, `openmm.unit.Quantity`, or \
+    `pint.Quantity`, positional-only
+        Dimensions :math:`(L_x,L_y[,L_z])`, lattice parameters
+        :math:`(a,b[,c,\\alpha,\\beta],\\gamma)`, or box
+        vectors :math:`(\\mathbf{a};\\mathbf{b}[;\\mathbf{c}])`.
+
+        .. note::
+
+           Lattice parameters should always be provided in an array
+           without explicit units.
+
+        .. container::
+
+           **Shapes**:
+
+           * 2D: :math:`(2,)` for dimensions, :math:`(3,)` for lattice
+             parameters, or :math:`(2,2)` for box vectors.
+           * 3D: :math:`(3,)` for dimensions, :math:`(6,)` for lattice
+             parameters, or :math:`(3,3)` for box vectors.
+
+        **Reference units**: :math:`\\mathrm{nm}` for lengths and
+        degrees (:math:`^\\circ`) for angles.
+
+    output_format : `str`, positional-only
+        Desired cell representation.
+
+        .. container::
+
+           **Valid values**:
+
+           * :code:`"dimensions"` for dimensions,
+           * :code:`"parameters"` for lattice parameters, or
+           * :code:`"vectors"` for box vectors.
+
+    n_dimensions : `int`, keyword-only, optional
+        Dimensionality of the simulation box :math:`d`. Only used when
+        `box_size` has shape :math:`(3,)`.
+
+        **Valid values**: :code:`2` or :code:`3`.
 
     Returns
     -------
-    inv_box_vectors : `numpy.ndarray`
-        Inverted box vectors
-        :math:`(\\mathbf{A}^*;\\mathbf{B}^*[;\\mathbf{C}^*])`.
+    new_representation : `numpy.ndarray`, `openmm.unit.Quantity`, or \
+    `pint.Quantity`
+        Cell representation in the desired format.
 
-        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+        .. note::
+
+           Lattice parameters will always be returned in an array
+           without explicit units, even if the starting cell
+           representation is an OpenMM or Pint quantity.
+
+        .. container::
+
+           **Shapes**:
+
+           * 2D: :math:`(2,)` for dimensions, :math:`(3,)` for lattice
+             parameters, or :math:`(2,2)` for box vectors.
+           * 3D: :math:`(3,)` for dimensions, :math:`(6,)` for lattice
+             parameters, or :math:`(3,3)` for box vectors.
+
+        **Reference units**: :math:`\\mathrm{nm}` for lengths and
+        degrees (:math:`^\\circ`) for angles.
+
+    Examples
+    --------
+    Let us start with a cubic simulation box with dimensions
+    :math:`(3,4,5)~\\mathrm{nm}`:
+
+    >>> dimensions = np.array((3.0, 4.0, 5.0))
+
+    We can convert the dimensions to lattice parameters using
+
+    >>> convert_cell_representation(dimensions, "parameters")
+    array([3., 4., 5., 90., 90., 90.])
+
+    Alternatively, we can convert the dimensions to box vectors using
+
+    >>> convert_cell_representation(dimensions, "vectors")
+    array([[3., 0., 0.],
+           [0., 4., 0.],
+           [0., 0., 5.]])
+
+    If the dimensions are provided as an OpenMM or Pint quantity, the
+    output will have units attached:
+
+    >>> convert_cell_representation(dimensions * unit.nanometer, "vectors")
+    Quantity(value=array([[3., 0., 0.],
+           [0., 4., 0.],
+           [0., 0., 5.]]), unit=nanometer)
     """
-    n_dimensions = len(box_vectors)
-    inv_box_vectors = np.empty(
-        (n_dimensions, n_dimensions), dtype=box_vectors.dtype
+    box_size, length_unit = strip_unit(box_size)
+    box_size = np.asarray(box_size)
+    n_dimensions, input_format = _determine_cell_representation(
+        box_size, n_dimensions=n_dimensions
     )
+
+    if output_format == "dimensions" and not check_orthogonality(
+        box_size, n_dimensions=n_dimensions
+    ):
+        warnings.warn(
+            "The provided box is not orthogonal. The output dimensions "
+            "will be computed only along the main coordinate axes, "
+            "ignoring any tilt or skew components."
+        )
+
     if n_dimensions == 2:
-        determinant = (
-            box_vectors[0, 0] * box_vectors[1, 1]
-            - box_vectors[0, 1] * box_vectors[1, 0]
-        )
-        inv_box_vectors[0, 0] = box_vectors[1, 1] / determinant
-        inv_box_vectors[0, 1] = -box_vectors[0, 1] / determinant
-        inv_box_vectors[1, 0] = -box_vectors[1, 0] / determinant
-        inv_box_vectors[1, 1] = box_vectors[0, 0] / determinant
-    else:
-        bv00, bv01, bv02 = box_vectors[0]
-        bv10, bv11, bv12 = box_vectors[1]
-        bv20, bv21, bv22 = box_vectors[2]
-        inv_box_vectors[0, 0] = bv11 * bv22 - bv12 * bv21
-        inv_box_vectors[0, 1] = bv02 * bv21 - bv01 * bv22
-        inv_box_vectors[0, 2] = bv01 * bv12 - bv02 * bv11
-        inv_box_vectors[1, 0] = bv12 * bv20 - bv10 * bv22
-        inv_box_vectors[1, 1] = bv00 * bv22 - bv02 * bv20
-        inv_box_vectors[1, 2] = bv02 * bv10 - bv00 * bv12
-        inv_box_vectors[2, 0] = bv10 * bv21 - bv11 * bv20
-        inv_box_vectors[2, 1] = bv01 * bv20 - bv00 * bv21
-        inv_box_vectors[2, 2] = bv00 * bv11 - bv01 * bv10
-        determinant = (
-            bv00 * inv_box_vectors[0, 0]
-            + bv01 * inv_box_vectors[1, 0]
-            + bv02 * inv_box_vectors[2, 0]
-        )
-        for i in range(3):
-            for j in range(3):
-                inv_box_vectors[i, j] /= determinant
-    return inv_box_vectors
+        if input_format == "dimensions":
+            if output_format == "parameters":
+                return np.concatenate((box_size, (90.0,)))
+            elif output_format == "vectors":
+                box_size = np.diag(box_size)
+        elif input_format == "parameters":
+            gamma = np.radians(box_size[2])
+            if output_format == "dimensions":
+                gamma = np.radians(box_size[2])
+                return np.array((box_size[0], box_size[1] * np.sin(gamma)))
+            elif output_format == "vectors":
+                vectors = np.zeros((2, 2))
+                vectors[0, 0] = box_size[0]
+                vectors[1, 0] = box_size[1] * np.cos(gamma)
+                vectors[1, 1] = box_size[1] * np.sin(gamma)
+                vectors[np.isclose(vectors, 0, atol=5e-6)] = 0
+                return vectors
+            return box_size  # output_format == "parameters"
+        else:  # input_format == "vectors"
+            box_size = reduce_box_vectors(box_size)
+            if output_format == "parameters":
+                parameters = np.empty(3, dtype=box_size.dtype)
+                parameters[:2] = np.linalg.norm(box_size, axis=1)
+                parameters[2] = np.degrees(
+                    np.arccos(
+                        np.dot(box_size[0], box_size[1])
+                        / (parameters[0] * parameters[1])
+                    )
+                )
+                return parameters
+            elif output_format == "dimensions":
+                box_size = np.diag(box_size)
+    else:  # n_dimensions == 3
+        if input_format == "dimensions":
+            if output_format == "parameters":
+                return np.concatenate((box_size, (90.0, 90.0, 90.0)))
+            elif output_format == "vectors":
+                box_size = np.diag(box_size)
+        elif input_format == "parameters":
+            alpha, beta, gamma = np.radians(box_size[3:])
+            if output_format == "dimensions":
+                return np.array(
+                    (
+                        box_size[0],
+                        box_size[1] * np.sin(gamma),
+                        np.sqrt(
+                            box_size[2] ** 2
+                            - (box_size[2] * np.cos(beta)) ** 2
+                            - (
+                                box_size[2]
+                                * (np.cos(alpha) - np.cos(beta) * np.cos(gamma))
+                                / np.sin(gamma)
+                            )
+                            ** 2
+                        ),
+                    )
+                )
+            elif output_format == "vectors":
+                vectors = np.zeros((3, 3))
+                vectors[0, 0] = box_size[0]
+                vectors[1, 0] = box_size[1] * np.cos(gamma)
+                vectors[1, 1] = box_size[1] * np.sin(gamma)
+                vectors[2, 0] = box_size[2] * np.cos(beta)
+                vectors[2, 1] = (
+                    box_size[2]
+                    * (np.cos(alpha) - np.cos(beta) * np.cos(gamma))
+                    / np.sin(gamma)
+                )
+                vectors[2, 2] = np.sqrt(
+                    box_size[2] ** 2 - vectors[2, 0] ** 2 - vectors[2, 1] ** 2
+                )
+                vectors[np.isclose(vectors, 0.0)] = 0.0
+                return vectors
+            return box_size  # output_format == "parameters"
+        else:  # input_format == "vectors"
+            box_size = reduce_box_vectors(box_size)
+            if output_format == "parameters":
+                return np.concatenate(
+                    (
+                        parameters := np.linalg.norm(box_size, axis=1),
+                        np.degrees(
+                            np.arccos(
+                                (
+                                    np.dot(box_size[1], box_size[2])
+                                    / (parameters[1] * parameters[2]),
+                                    np.dot(box_size[0], box_size[2])
+                                    / (parameters[0] * parameters[2]),
+                                    np.dot(box_size[0], box_size[1])
+                                    / (parameters[0] * parameters[1]),
+                                )
+                            )
+                        ),
+                    )
+                )
+            elif output_format == "dimensions":
+                box_size = np.diag(box_size)
+
+    return box_size if length_unit is None else box_size * length_unit
+
+
+@njit(fastmath=True, inline="always")  # pragma: no cover
+def _scale_coordinates_orthogonal(
+    coordinates: np.ndarray[float_t],
+    dimensions: np.ndarray[float_t],
+    scaled_flags: np.ndarray[np.bool_],
+) -> None:
+    """
+    Numba-accelerated function for scaling the Cartesian coordinates of
+    entities in a rectangular or orthogonal simulation box to get the
+    fractional coordinates.
+
+    Parameters
+    ----------
+    coordinates : `numpy.ndarray`
+        Cartesian coordinates of :math:`N` entities.
+
+        .. note::
+
+           This function modifies this NumPy array in-place.
+
+        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    dimensions : `numpy.ndarray`
+        Dimensions of the simulation box :math:`(L_x,L_y[,L_z])`.
+
+        **Shape**: :math:`(2,)` or :math:`(3,)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    scaled_flags : `numpy.ndarray`
+        Flags indicating whether the coordinates are already scaled
+        along the respective axes.
+
+        **Shape**: :math:`(3,)`.
+    """
+    # All coordinates are already scaled; nothing to do
+    if scaled_flags.all():
+        return
+
+    # Get number of entities and dimensions
+    n_entities, n_dimensions = coordinates.shape
+
+    for dim in range(n_dimensions):
+        if not scaled_flags[dim]:
+            for eid in range(n_entities):
+                coordinates[eid, dim] /= dimensions[dim]
 
 
 @njit(fastmath=True, inline="always")  # pragma: no cover
@@ -558,14 +793,14 @@ def _scale_coordinates(
     scaled_flags: np.ndarray[np.bool_],
 ) -> None:
     """
-    Numba-accelerated function for scaling the coordinates of entities
-    in a general parallelogram or triclinic simulation box to get the
-    fractional coordinates.
+    Numba-accelerated function for scaling the Cartesian coordinates of
+    entities in a general parallelogram or triclinic simulation box to
+    get the fractional coordinates.
 
     Parameters
     ----------
     coordinates : `numpy.ndarray`
-        Coordinates of :math:`N` entities.
+        Cartesian coordinates of :math:`N` entities.
 
         .. note::
 
@@ -668,13 +903,16 @@ def _scale_coordinates(
 
 
 def scale_coordinates(
-    coordinates: np.ndarray[float_t],
+    coordinates: np.ndarray[float_t] | "unit.Quantity" | Q_,
     box_size: np.ndarray[float_t] | "unit.Quantity" | Q_,
-    scaled_flags: np.ndarray[bool] | None = None,
-) -> None:
+    scaled_flags: np.ndarray[np.bool_] | None = None,
+    *,
+    in_place: bool = True,
+) -> None | np.ndarray[float_t] | "unit.Quantity" | Q_:
     """
-    Scales the coordinates of entities in a general parallelogram or
-    triclinic simulation box to get the fractional coordinates.
+    Scales the Cartesian coordinates of entities in a general 
+    parallelogram or triclinic simulation box to get the fractional
+    coordinates.
 
     The relationship between Cartesian coordinates
     :math:`\\mathbf{r}` and the fractional coordinates
@@ -709,12 +947,9 @@ def scale_coordinates(
 
     Parameters
     ----------
-    coordinates : `numpy.ndarray`
-        Coordinates of :math:`N` entities.
-
-        .. note::
-
-           This function modifies this NumPy array in-place.
+    coordinates : `numpy.ndarray`, `openmm.unit.Quantity`, or \
+    `pint.Quantity`
+        Cartesian coordinates of :math:`N` entities.
 
         **Shape**: :math:`(N,2)` or :math:`(N,3)`.
 
@@ -740,7 +975,7 @@ def scale_coordinates(
            * 3D: :math:`(3,)` for dimensions, :math:`(6,)` for lattice
              parameters, or :math:`(3,3)` for box vectors.
 
-        **Reference units**: :math:`\\mathrm{nm}` for lengths and
+        **Reference units**: Same as `coordinates` for lengths and
         degrees (:math:`^\\circ`) for angles.
 
     scaled_flags : array-like, optional
@@ -748,7 +983,19 @@ def scale_coordinates(
         along the respective axes. If not provided, all flags are
         assumed to be :code:`False`.
 
-        **Shape**: :math:`(3,)`.
+        **Shape**: :math:`(2,)` or :math:`(3,)`.
+
+    in_place : `bool`, keyword-only, default: :code:`True`
+        Specifies whether to modify the `coordinates` array in-place. If
+        :code:`True`, `coordinates` must be a NumPy array.
+
+    Returns
+    -------
+    fractional_coordinates : `numpy.ndarray`, `openmm.unit.Quantity`, or \
+    `pint.Quantity`
+        Scaled coordinates. Only returned when :code:`in_place=False`.
+
+        **Shape**: Same as `coordinates`.
 
     Examples
     --------
@@ -786,8 +1033,8 @@ def scale_coordinates(
     ...         (1.899521470839911, 2.0684580050169066, 0.6)
     ...     )
     ... )
-    >>> scale_coordinates(coordinates, box_vectors, [False, False, True])
-    >>> coordinates
+    >>> scale_coordinates(coordinates, box_vectors, (False, False, True))
+    >>> coordinate
     array([[0.5       , 0.5       , 0.5       ],
            [0.33333333, 0.5       , 0.6       ])
 
@@ -801,32 +1048,30 @@ def scale_coordinates(
     ...         (1 / 3, 2.0684580050169066, 0.6)
     ...     )
     ... )
-    >>> scale_coordinates(coordinates, box_vectors, [True, False, True])
+    >>> scale_coordinates(coordinates, box_vectors, (True, False, True))
     >>> coordinates
     array([[0.5       , 0.5       , 0.5       ],
            [0.33333333, 0.5       , 0.6       ])
     """
     # Validate input arguments
-    if not isinstance(coordinates, np.ndarray):
-        raise TypeError("`coordinates` must be a NumPy array.")
+    if in_place:
+        if not isinstance(coordinates, np.ndarray):
+            raise TypeError(
+                "`coordinates` must be a NumPy array when `in_place=True`."
+            )
+        length_unit = None
+    else:
+        coordinates, length_unit = strip_unit(coordinates)
+        coordinates = np.asarray(coordinates)
     if coordinates.ndim != 2 or coordinates.shape[1] not in {2, 3}:
         raise ValueError(
             f"Invalid shape {coordinates.shape} for `coordinates`. "
             "Valid shapes: (N, 2) or (N, 3)."
         )
     n_dimensions = coordinates.shape[1]
-    box_size = np.asarray(strip_unit(box_size, "nm")[0])
-    if box_size.shape != (n_dimensions, n_dimensions):
-        try:
-            box_size = convert_cell_representation(
-                box_size, "vectors", n_dimensions
-            )
-        except ValueError:
-            raise ValueError(
-                "`box_size` must be compatible with `coordinates`."
-            )
+
     if scaled_flags is None:
-        scaled_flags = np.array((False, False, False), dtype=np.bool_)
+        scaled_flags = np.full(n_dimensions, False, dtype=np.bool_)
     elif len(scaled_flags) != n_dimensions:
         raise ValueError(
             f"`scaled_flags` must have length {n_dimensions} to be "
@@ -835,7 +1080,323 @@ def scale_coordinates(
     else:
         scaled_flags = np.asarray(scaled_flags, dtype=np.bool_)
 
-    # Call Numba function to scale coordinates
+    # Ensure that `box_size` is a NumPy array and call Numba function to
+    # scale coordinates
+    box_size = np.asarray(strip_unit(box_size, length_unit)[0])
+    try:
+        if check_orthogonality(
+            box_size, n_dimensions=n_dimensions, _reduce=False
+        ):
+            if box_size.shape != (n_dimensions,):
+                box_size = convert_cell_representation(
+                    box_size, "dimensions", n_dimensions=n_dimensions
+                )
+            _scale_coordinates_orthogonal(coordinates, box_size, scaled_flags)
+        else:
+            if box_size.shape != (n_dimensions, n_dimensions):  # triclinic
+                box_size = convert_cell_representation(
+                    box_size, "vectors", n_dimensions=n_dimensions
+                )
+            _scale_coordinates(
+                coordinates,
+                box_size,
+                _invert_box_vectors(box_size),
+                scaled_flags,
+            )
+    except ValueError:
+        raise ValueError("`box_size` must be compatible with `coordinates`.")
+
+    if not in_place:
+        return coordinates
+
+
+@njit(fastmath=True, inline="always")  # pragma: no cover
+def _unscale_coordinates(
+    fractional_coordinates: np.ndarray[float_t],
+    box_vectors: np.ndarray[float_t],
+) -> None:
+    """
+    Numba-accelerated function for unscaling the fractional coordinates
+    of entities in a general parallelogram or triclinic simulation box
+    to get the Cartesian coordinates.
+
+    Parameters
+    ----------
+    fractional_coordinates : `numpy.ndarray`
+        Fractional coordinates of :math:`N` entities.
+
+        .. note::
+
+           This function modifies this NumPy array in-place.
+
+        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    box_vectors : `numpy.ndarray`
+        Box vectors :math:`(\\mathbf{A};\\mathbf{B}[;\\mathbf{C}])`.
+
+        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+    """
+    # Get number of entities and dimensions
+    n_entities, n_dimensions = fractional_coordinates.shape
+
+    for eid in range(n_entities):
+        coordinates = np.zeros(n_dimensions, dtype=fractional_coordinates.dtype)
+        for dim in range(n_dimensions):
+            for axis in range(n_dimensions):
+                coordinates[dim] += (
+                    fractional_coordinates[eid, axis] * box_vectors[axis, dim]
+                )
+        fractional_coordinates[eid] = coordinates
+
+
+@njit(fastmath=True, inline="always")  # pragma: no cover
+def _wrap_coordinates_orthogonal(
+    coordinates: np.ndarray[float_t],
+    dimensions: np.ndarray[float_t],
+    wrap_flags: np.ndarray[np.bool_],
+) -> None:
+    """
+    Numba-accelerated function for wrapping the coordinates of entities
+    in a rectangular or orthogonal simulation box to the unit cell.
+
+    Parameters
+    ----------
+    coordinates : `numpy.ndarray`
+        Coordinates of :math:`N` entities.
+
+        .. note::
+
+           This function modifies this NumPy array in-place.
+
+        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    dimensions : `numpy.ndarray`
+        Dimensions of the simulation box :math:`(L_x,L_y[,L_z])`.
+
+        **Shape**: :math:`(2,)` or :math:`(3,)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    wrap_flags : `numpy.ndarray`
+        Flags indicating whether the coordinates should be wrapped
+        along the respective axes.
+
+        **Shape**: Same as `dimensions`.
+    """
+
+    # No coordinate axes should be unwrapped; nothing to do
+    if (~wrap_flags).all():
+        return
+
+    # Get number of entities and dimensions
+    n_entities, n_dimensions = coordinates.shape
+
+    for dim in range(n_dimensions):
+        if wrap_flags[dim]:
+            for eid in range(n_entities):
+                if (
+                    coordinates[eid, dim] < 0.0
+                    or coordinates[eid, dim] >= dimensions[dim]
+                ):
+                    coordinates[eid, dim] -= (
+                        np.floor(coordinates[eid, dim] / dimensions[dim])
+                        * dimensions[dim]
+                    )
+
+
+# @njit(fastmath=True, inline="always")  # pragma: no cover
+def _wrap_coordinates(
+    coordinates: np.ndarray[float_t],
+    box_vectors: np.ndarray[float_t],
+    wrap_flags: np.ndarray[np.bool_],
+) -> None:
+    """
+    Numba-accelerated function for wrapping the coordinates of entities
+    in a triclinic simulation box to the unit cell.
+
+    Parameters
+    ----------
+    coordinates : `numpy.ndarray`
+        Coordinates of :math:`N` entities.
+
+        .. note::
+
+           This function modifies this NumPy array in-place.
+
+        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+
+    box_vectors : `numpy.ndarray`
+        Box vectors :math:`(\\mathbf{A};\\mathbf{B}[;\\mathbf{C}])`.
+
+        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    wrap_flags : `numpy.ndarray`
+        Flags indicating whether the coordinates should be wrapped
+        along the respective axes.
+
+        **Shape**: :math:`(2,)` or :math:`(3,)`.
+    """
+
+    # No coordinate axes should be unwrapped; nothing to do
+    if (~wrap_flags).all():
+        return
+
+    # Get number of entities and dimensions
+    n_entities, n_dimensions = coordinates.shape
+
+    # Scale Cartesian coordinates to fractional coordinates
     _scale_coordinates(
-        coordinates, box_size, _invert_box_vectors(box_size), scaled_flags
+        coordinates,
+        box_vectors,
+        _invert_box_vectors(box_vectors),
+        np.full(n_dimensions, False, dtype=np.bool_),
     )
+
+    # Wrap fractional coordinates to the unit cell
+    for dim in range(n_dimensions):
+        if wrap_flags[dim]:
+            for eid in range(n_entities):
+                if coordinates[eid, dim] < 0.0 or coordinates[eid, dim] >= 1.0:
+                    coordinates[eid, dim] -= np.floor(coordinates[eid, dim])
+
+    # Unscale fractional coordinates to Cartesian coordinates
+    _unscale_coordinates(coordinates, box_vectors)
+
+
+def wrap_coordinates(
+    coordinates: np.ndarray[float_t],
+    box_size: np.ndarray[float_t] | "unit.Quantity" | Q_,
+    wrap_flags: np.ndarray[np.bool_] | None = None,
+    *,
+    in_place: bool = True,
+) -> None | np.ndarray[float_t] | "unit.Quantity" | Q_:
+    """
+    Wraps the coordinates of entities in a general parallelogram or
+    triclinic simulation box to the unit cell.
+
+    Given coordinates :math:`\\mathbf{r}` and cell tensor
+    :math:`\\mathbf{h}` consisting of the box vectors
+    :math:`(\\mathbf{a};\\mathbf{b}[;\\mathbf{c}])`, the wrapped
+    coordinates can be computed using
+
+    .. math::
+
+       \\mathbf{r}_{\\mathrm{wrapped}}=\\mathbf{h}
+       \\left([\\mathbf{h}^{-1}\\mathbf{r}]\\bmod1\\right).
+
+    Parameters
+    ----------
+    coordinates : `numpy.ndarray`, `openmm.unit.Quantity`, or \
+    `pint.Quantity`
+        Coordinates of :math:`N` entities.
+
+        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    box_size : `numpy.ndarray`, `openmm.unit.Quantity`, or \
+    `pint.Quantity`
+        Dimensions :math:`(L_x,L_y[,L_z])`, lattice parameters
+        :math:`(a,b[,c,\\alpha,\\beta],\\gamma)`, or box
+        vectors :math:`(\\mathbf{a};\\mathbf{b}[;\\mathbf{c}])`.
+
+        .. note::
+
+           Lattice parameters should always be provided in an array
+           without explicit units.
+
+        .. container::
+
+           **Shapes**:
+
+           * 2D: :math:`(2,)` for dimensions, :math:`(3,)` for lattice
+             parameters, or :math:`(2,2)` for box vectors.
+           * 3D: :math:`(3,)` for dimensions, :math:`(6,)` for lattice
+             parameters, or :math:`(3,3)` for box vectors.
+
+        **Reference units**: Same as `coordinates` for lengths and
+        degrees (:math:`^\\circ`) for angles.
+
+    wrap_flags : array-like, optional
+        Flags indicating whether the coordinates should be wrapped
+        along the respective axes. If not provided, all flags are
+        assumed to be :code:`True`.
+
+        **Shape**: :math:`(2,)` or :math:`(3,)`.
+
+    in_place : `bool`, keyword-only, default: :code:`True`
+        Specifies whether to modify the `coordinates` array in-place. If
+        :code:`True`, `coordinates` must be a NumPy array.
+
+    Returns
+    -------
+    wrapped_coordinates : `numpy.ndarray`, `openmm.unit.Quantity`, or \
+    `pint.Quantity`
+        Wrapped coordinates. Only returned when :code:`in_place=False`.
+
+        **Shape**: Same as `coordinates`.
+
+        **Unit**: Same as `coordinates`.
+
+    Examples
+    --------
+    """
+
+    # Validate input arguments
+    if in_place:
+        if not isinstance(coordinates, np.ndarray):
+            raise TypeError(
+                "`coordinates` must be a NumPy array when `in_place=True`."
+            )
+        length_unit = None
+    else:
+        coordinates, length_unit = strip_unit(coordinates)
+        coordinates = np.asarray(coordinates)
+    if coordinates.ndim != 2 or coordinates.shape[1] not in {2, 3}:
+        raise ValueError(
+            f"Invalid shape {coordinates.shape} for `coordinates`. "
+            "Valid shapes: (N, 2) or (N, 3)."
+        )
+    n_dimensions = coordinates.shape[1]
+
+    if wrap_flags is None:
+        wrap_flags = np.full(n_dimensions, True, dtype=np.bool_)
+    elif len(wrap_flags) != n_dimensions:
+        raise ValueError(
+            f"`wrap_flags` must have length {n_dimensions} to be "
+            "compatible with `coordinates`."
+        )
+    else:
+        wrap_flags = np.asarray(wrap_flags, dtype=np.bool_)
+
+    # Ensure that `box_size` is a NumPy array and call Numba function to
+    # wrap coordinates
+    box_size = np.asarray(strip_unit(box_size, length_unit)[0])
+    try:
+        if check_orthogonality(
+            box_size, n_dimensions=n_dimensions, _reduce=False
+        ):
+            if box_size.shape != (n_dimensions,):
+                box_size = convert_cell_representation(
+                    box_size, "dimensions", n_dimensions=n_dimensions
+                )
+            _wrap_coordinates_orthogonal(coordinates, box_size, wrap_flags)
+        else:
+            if box_size.shape != (n_dimensions, n_dimensions):  # triclinic
+                box_size = convert_cell_representation(
+                    box_size, "vectors", n_dimensions=n_dimensions
+                )
+            _wrap_coordinates(coordinates, box_size, wrap_flags)
+    except ValueError:
+        raise ValueError("`box_size` must be compatible with `coordinates`.")
+
+    if not in_place:
+        return coordinates if length_unit is None else coordinates * length_unit
