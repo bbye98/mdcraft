@@ -1062,7 +1062,7 @@ def scale_coordinates(
         length_unit = None
     else:
         coordinates, length_unit = strip_unit(coordinates)
-        coordinates = np.asarray(coordinates)
+        coordinates = np.asarray(coordinates).copy()
     if coordinates.ndim != 2 or coordinates.shape[1] not in {2, 3}:
         raise ValueError(
             f"Invalid shape {coordinates.shape} for `coordinates`. "
@@ -1210,7 +1210,7 @@ def _wrap_coordinates_orthogonal(
                     )
 
 
-# @njit(fastmath=True, inline="always")  # pragma: no cover
+@njit(fastmath=True, inline="always")  # pragma: no cover
 def _wrap_coordinates(
     coordinates: np.ndarray[float_t],
     box_vectors: np.ndarray[float_t],
@@ -1359,7 +1359,7 @@ def wrap_coordinates(
         length_unit = None
     else:
         coordinates, length_unit = strip_unit(coordinates)
-        coordinates = np.asarray(coordinates)
+        coordinates = np.asarray(coordinates).copy()
     if coordinates.ndim != 2 or coordinates.shape[1] not in {2, 3}:
         raise ValueError(
             f"Invalid shape {coordinates.shape} for `coordinates`. "

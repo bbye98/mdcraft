@@ -9,16 +9,17 @@ sys.path.insert(
     0, f"{pathlib.Path(__file__).parents[1].resolve().as_posix()}/src"
 )
 from mdcraft import ureg
+from mdcraft.lib.cell import wrap_coordinates
 from mdcraft.lib.neighbor import build_neighbor_list
 
 RNG = np.random.default_rng()
 
 
 class TestFunctionBuildNeighborList:
+    ALGORITHMS = {"brute_force", "cell_list"}
+
     @classmethod
     def setup_class(cls):
-        cls.algorithms = {"brute_force", "bvh", "cell_list", "kd_tree"}
-
         cls.positions = (
             np.array(
                 (
@@ -43,100 +44,106 @@ class TestFunctionBuildNeighborList:
             (400, 3)
         )
 
+    @pytest.fixture(params=ALGORITHMS)
+    def algorithm(self, request):
+        return request.param
+
     def test_invalid_shape(self):
         with pytest.raises(ValueError):
-            build_neighbor_list(
-                positions=np.empty((4,)),
-                cutoff=self.cutoff,
-            )
+            build_neighbor_list(np.empty((4,)), self.cutoff)
 
-    def test_units_orthogonal_nbc_2d(self):
+    def test_units_orthogonal_nbc_2d(self, algorithm):
         neighbor_list = build_neighbor_list(
-            positions=self.positions[:, :2], cutoff=self.cutoff
+            self.positions[:, :2],
+            self.cutoff,
+            algorithm=algorithm,
         )
         assert (
             neighbor_list[0] == {1}
             and len(neighbor_list[1]) == len(neighbor_list[2]) == 0
         )
 
-    def test_dimensionless_orthogonal_nbc_2d(self):
+    def test_dimensionless_orthogonal_nbc_2d(self, algorithm):
         neighbor_list = build_neighbor_list(
-            positions=self.positions_nm[:, :2],
-            cutoff=self.cutoff_nm,
-            box_size=self.dimensions_nm[:2],
+            self.positions_nm[:, :2],
+            self.cutoff_nm,
+            self.dimensions_nm[:2],
             pbc=False,
+            algorithm=algorithm,
         )
         assert (
             neighbor_list[0] == {1}
             and len(neighbor_list[1]) == len(neighbor_list[2]) == 0
         )
 
-    def test_units_orthogonal_pbc_2d(self):
+    def test_units_orthogonal_pbc_2d(self, algorithm):
         neighbor_list = build_neighbor_list(
-            positions=self.positions[:, :2],
-            cutoff=self.cutoff,
-            box_size=self.dimensions[:2],
+            self.positions[:, :2],
+            self.cutoff,
+            self.dimensions[:2],
+            algorithm=algorithm,
         )
         assert (
             neighbor_list[0] == {1, 2}
             and len(neighbor_list[1]) == len(neighbor_list[2]) == 0
         )
 
-    def test_dimensionless_orthogonal_pbc_2d(self):
+    def test_dimensionless_orthogonal_pbc_2d(self, algorithm):
         neighbor_list = build_neighbor_list(
-            positions=self.positions_nm[:, :2],
-            cutoff=self.cutoff_nm,
-            box_size=self.dimensions_nm[:2],
+            self.positions_nm[:, :2],
+            self.cutoff_nm,
+            self.dimensions_nm[:2],
+            algorithm=algorithm,
         )
         assert (
             neighbor_list[0] == {1, 2}
             and len(neighbor_list[1]) == len(neighbor_list[2]) == 0
         )
 
-    def test_units_orthogonal_nbc_3d(self):
+    def test_units_orthogonal_nbc_3d(self, algorithm):
         neighbor_list = build_neighbor_list(
-            positions=self.positions, cutoff=self.cutoff
+            self.positions, self.cutoff, algorithm=algorithm
         )
         assert (
             neighbor_list[0] == {1}
             and len(neighbor_list[1]) == len(neighbor_list[2]) == 0
         )
 
-    def test_dimensionless_orthogonal_nbc_3d(self):
+    def test_dimensionless_orthogonal_nbc_3d(self, algorithm):
         neighbor_list = build_neighbor_list(
-            positions=self.positions_nm,
-            cutoff=self.cutoff_nm,
-            box_size=self.dimensions_nm,
+            self.positions_nm,
+            self.cutoff_nm,
+            self.dimensions_nm,
             pbc=False,
+            algorithm=algorithm,
         )
         assert (
             neighbor_list[0] == {1}
             and len(neighbor_list[1]) == len(neighbor_list[2]) == 0
         )
 
-    def test_units_orthogonal_pbc_3d(self):
+    def test_units_orthogonal_pbc_3d(self, algorithm):
         neighbor_list = build_neighbor_list(
-            positions=self.positions,
-            cutoff=self.cutoff,
-            box_size=self.dimensions,
+            self.positions, self.cutoff, self.dimensions, algorithm=algorithm
         )
         assert (
             neighbor_list[0] == {1, 2}
             and len(neighbor_list[1]) == len(neighbor_list[2]) == 0
         )
 
-    def test_dimensionless_orthogonal_pbc_3d(self):
+    def test_dimensionless_orthogonal_pbc_3d(self, algorithm):
         neighbor_list = build_neighbor_list(
-            positions=self.positions_nm,
-            cutoff=self.cutoff_nm,
-            box_size=self.dimensions_nm,
+            self.positions_nm,
+            self.cutoff_nm,
+            self.dimensions_nm,
+            algorithm=algorithm,
         )
         assert (
             neighbor_list[0] == {1, 2}
             and len(neighbor_list[1]) == len(neighbor_list[2]) == 0
         )
 
-    def test_random_dimensionless_orthogonal_nbc_3d(self):
+    def test_random_dimensionless_orthogonal_nbc_3d(self, algorithm):
         neighbor_list_mdanalysis = np.unique(
             np.sort(
                 capped_distance(
@@ -150,7 +157,7 @@ class TestFunctionBuildNeighborList:
             axis=0,
         )
         neighbor_list_mdcraft = build_neighbor_list(
-            self.random_positions, self.random_cutoff
+            self.random_positions, self.random_cutoff, algorithm=algorithm
         )
         neighbor_list_mdcraft = np.array(
             [
@@ -164,7 +171,7 @@ class TestFunctionBuildNeighborList:
         ]
         assert np.array_equal(neighbor_list_mdcraft, neighbor_list_mdanalysis)
 
-    def test_random_dimensionless_orthogonal_pbc_3d(self):
+    def test_random_dimensionless_orthogonal_pbc_3d(self, algorithm):
         neighbor_list_mdanalysis = np.unique(
             np.sort(
                 capped_distance(
@@ -184,6 +191,7 @@ class TestFunctionBuildNeighborList:
             self.random_positions,
             self.random_cutoff,
             self.random_lattice_parameters[:3],
+            algorithm=algorithm,
         )
         neighbor_list_mdcraft = np.array(
             [
@@ -197,38 +205,44 @@ class TestFunctionBuildNeighborList:
         ]
         assert np.array_equal(neighbor_list_mdcraft, neighbor_list_mdanalysis)
 
-    # def test_random_dimensionless_triclinic_nbc_3d(self):
-    #     neighbor_list_mdanalysis = np.unique(
-    #         np.sort(
-    #             capped_distance(
-    #                 self.random_positions,
-    #                 self.random_positions,
-    #                 self.random_cutoff,
-    #                 0.0,
-    #             )[0],
-    #             axis=1,
-    #         ),
-    #         axis=0,
-    #     )
-    #     neighbor_list_mdcraft = build_neighbor_list(
-    #         self.random_positions,
-    #         self.random_cutoff,
-    #         self.random_lattice_parameters,
-    #         pbc=False,
-    #     )
-    #     neighbor_list_mdcraft = np.array(
-    #         [
-    #             (pid, nid)
-    #             for pid in range(len(neighbor_list_mdcraft))
-    #             for nid in neighbor_list_mdcraft[pid]
-    #         ]
-    #     )
-    #     neighbor_list_mdcraft = neighbor_list_mdcraft[
-    #         np.lexsort(neighbor_list_mdcraft.T[::-1])
-    #     ]
-    #     assert np.array_equal(neighbor_list_mdcraft, neighbor_list_mdanalysis)
+    def test_random_dimensionless_triclinic_nbc_3d(self, algorithm):
+        wrapped_positions = wrap_coordinates(
+            self.random_positions,
+            self.random_lattice_parameters,
+            in_place=False,
+        )
+        neighbor_list_mdanalysis = np.unique(
+            np.sort(
+                capped_distance(
+                    wrapped_positions,
+                    wrapped_positions,
+                    self.random_cutoff,
+                    0.0,
+                )[0],
+                axis=1,
+            ),
+            axis=0,
+        )
+        neighbor_list_mdcraft = build_neighbor_list(
+            wrapped_positions,
+            self.random_cutoff,
+            self.random_lattice_parameters,
+            pbc=False,
+            algorithm=algorithm,
+        )
+        neighbor_list_mdcraft = np.array(
+            [
+                (pid, nid)
+                for pid in range(len(neighbor_list_mdcraft))
+                for nid in neighbor_list_mdcraft[pid]
+            ]
+        )
+        neighbor_list_mdcraft = neighbor_list_mdcraft[
+            np.lexsort(neighbor_list_mdcraft.T[::-1])
+        ]
+        assert np.array_equal(neighbor_list_mdcraft, neighbor_list_mdanalysis)
 
-    def test_random_dimensionless_triclinic_pbc_3d(self):
+    def test_random_dimensionless_triclinic_pbc_3d(self, algorithm):
         neighbor_list_mdanalysis = np.unique(
             np.sort(
                 capped_distance(
@@ -246,6 +260,7 @@ class TestFunctionBuildNeighborList:
             self.random_positions,
             self.random_cutoff,
             self.random_lattice_parameters,
+            algorithm=algorithm,
         )
         neighbor_list_mdcraft = np.array(
             [

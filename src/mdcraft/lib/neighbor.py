@@ -249,7 +249,6 @@ def _build_neighbor_list_orthogonal_brute_force(
                 < cutoff_squared
             ):
                 neighbor_list.add(np.uint32(nid))
-                neighbor_lists[nid].add(np.uint32(pid))
         neighbor_lists.append(neighbor_list)
     return neighbor_lists
 
@@ -320,7 +319,6 @@ def _build_neighbor_list_brute_force(
                 < cutoff_squared
             ):
                 neighbor_list.add(np.uint32(nid))
-                neighbor_lists[nid].add(np.uint32(pid))
         neighbor_lists.append(neighbor_list)
     return neighbor_lists
 
@@ -623,6 +621,11 @@ def _get_cell_offsets(
         Index offsets of neighboring cells.
 
         **Shape**: :math:`(N_\\mathrm{offsets},d)`.
+
+    cutoff_extents : `numpy.ndarray`
+        Number of cell offsets to consider in each dimension.
+
+        **Shape**: :math:`(d,)`.
     """
     # Compute the cell vectors
     n_dimensions = box_vectors.shape[0]
@@ -693,7 +696,7 @@ def _get_cell_offsets(
                         cell_offsets[coi, 1] = iy
                         cell_offsets[coi, 2] = iz
                         coi += 1
-    return n_offsets, cell_offsets
+    return n_offsets, cell_offsets, cutoff_extents
 
 
 @njit(fastmath=True, inline="always")  # pragma: no cover
@@ -862,7 +865,9 @@ def _build_neighbor_list_cell_list(
     )
 
     # Define offsets for neighboring cells
-    n_offsets, cell_offsets = _get_cell_offsets(cutoff, box_vectors, n_cells)
+    n_offsets, cell_offsets, cutoff_extents = _get_cell_offsets(
+        cutoff, box_vectors, n_cells
+    )
 
     # Build neighbor list for each particle
     neighbor_lists = List()
@@ -876,15 +881,19 @@ def _build_neighbor_list_cell_list(
             jx = (ix + cell_offsets[idx, 0]) % n_cells[0]
             jy = (iy + cell_offsets[idx, 1]) % n_cells[1]
             if n_dimensions == 2:
-                if not pbc and max(abs(ix - jx), abs(iy - jy)) > 1:
+                if not pbc and (
+                    abs(ix - jx) > cutoff_extents[0]
+                    or abs(iy - jy) > cutoff_extents[1]
+                ):
                     continue
                 nid = cell_heads[jx, jy, 0]
             else:
                 iz = particle_cell_indices[pid, 2]
                 jz = (iz + cell_offsets[idx, 2]) % n_cells[2]
-                if (
-                    not pbc
-                    and max(abs(ix - jx), abs(iy - jy), abs(iz - jz)) > 1
+                if not pbc and (
+                    abs(ix - jx) > cutoff_extents[0]
+                    or abs(iy - jy) > cutoff_extents[1]
+                    or abs(iz - jz) > cutoff_extents[2]
                 ):
                     continue
                 nid = cell_heads[jx, jy, jz]
@@ -1056,6 +1065,11 @@ def build_neighbor_list(
                 "minimum box length when `pbc` is True."
             )
 
-        return globals()[f"_build_neighbor_list_{algorithm}"](
-            positions, scaled_positions, cutoff, box_size, pbc
-        )
+        if algorithm in {"cell_list"}:  # needs scaled positions
+            return globals()[f"_build_neighbor_list_{algorithm}"](
+                positions, scaled_positions, cutoff, box_size, pbc
+            )
+        else:
+            return globals()[f"_build_neighbor_list_{algorithm}"](
+                positions, cutoff, box_size, pbc
+            )
