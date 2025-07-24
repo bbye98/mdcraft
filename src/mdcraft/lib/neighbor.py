@@ -8,6 +8,7 @@ from numba.typed import List
 import numpy as np
 
 from .. import Q_
+from .bit import count_leading_zeros
 from .cell import (
     _invert_box_vectors,
     _scale_coordinates,
@@ -923,6 +924,201 @@ def _build_neighbor_list_cell_list(
     return neighbor_lists
 
 
+@njit(fastmath=True, inline="always")  # pragma: no cover
+def _expand_10_bit_int(v: np.uint32) -> np.uint32:
+    """
+    Expands a 10-bit integer into a 32-bit integer for bit interleaving.
+
+    Parameters
+    ----------
+    v : `numpy.uint32`
+        A 10-bit integer to be expanded.
+
+    Returns
+    -------
+    v : `numpy.uint32`
+        The expanded 32-bit integer.
+    """
+    v = (v | (v << 16)) & 0x030000FF
+    v = (v | (v << 8)) & 0x0300F00F
+    v = (v | (v << 4)) & 0x030C30C3
+    v = (v | (v << 2)) & 0x09249249
+    return v
+
+
+@njit(fastmath=True, inline="always")  # pragma: no cover
+def _compute_morton_codes(
+    positions: np.ndarray[float_t], dimensions: np.ndarray[float_t]
+) -> np.ndarray[np.uint32]:
+    """
+    Maps multidimensional particle positions to one-dimensional Morton
+    codes for efficient spatial indexing.
+
+    Parameters
+    ----------
+    positions : `numpy.ndarray`
+        Particle positions :math:`\\mathrm{r}`.
+
+        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    dimensions : `numpy.ndarray`
+        Box dimensions :math:`(L_x,L_y[,L_z])`.
+
+        **Shape**: :math:`(2,)` or :math:`(3,)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    Returns
+    -------
+    morton_codes : `numpy.ndarray`
+        Morton codes for each particle position.
+    """
+    n_particles, n_dimensions = positions.shape
+    inv_cell_size = np.empty(n_dimensions, dimensions.dtype)
+    for dim in range(n_dimensions):
+        inv_cell_size[dim] = 1_024.0 / dimensions[dim]
+    morton_codes = np.zeros(n_particles, np.uint32)
+    for pid in range(n_particles):
+        for dim in range(n_dimensions):
+            morton_codes[pid] |= (
+                _expand_10_bit_int(
+                    min(
+                        np.uint32(positions[pid, dim] * inv_cell_size[dim]),
+                        1_023,
+                    )
+                )
+                << dim
+            )
+    return morton_codes
+
+
+@njit(fastmath=True, inline="always")  # pragma: no cover
+def _build_leaf_nodes(positions, indices, nodes, traversal_indices):
+    """"""
+    n_particles, n_dimensions = positions.shape
+    for nid in range(n_particles):
+        pid = indices[nid]
+        r_fp32 = positions[pid].astype(np.float32)
+        nodes[nid, :n_dimensions] = np.nextafter(r_fp32, -np.inf)
+        nodes[nid, n_dimensions:] = np.nextafter(r_fp32, np.inf)
+        traversal_indices[nid, 0] = -indices[nid] - 1
+        traversal_indices[nid, 1] = -1
+
+
+@njit(fastmath=True, inline="always")  # pragma: no cover
+def _find_split_index(morton_codes, first, last):
+    """"""
+    # Split range in half if all codes are identical
+    first_code = morton_codes[first]
+    last_code = morton_codes[last]
+    if first_code == last_code:
+        return (first + last) >> 1
+
+    # Get common prefix for all codes
+    common_prefix = count_leading_zeros(first_code ^ last_code, 32)
+
+    # Search for furthest index where the prefix is still longer than
+    # the common prefix using binary search
+    split = first
+    step = last - first
+    while step > 1:
+        step >>= 1
+        mid = split + step
+        if mid < last:
+            mid_code = morton_codes[mid]
+            prefix = count_leading_zeros(first_code ^ mid_code, 32)
+            if prefix > common_prefix:
+                split = mid
+    return split
+
+
+@njit(fastmath=True)  # pragma: no cover
+def _build_internal_nodes(
+    morton_codes, first, last, next_free, nodes, traversal_indices
+):
+    """"""
+    if first == last:
+        return first
+
+    split = _find_split_index(morton_codes, first, last)
+    left = _build_internal_nodes(
+        morton_codes, first, split, next_free, nodes, traversal_indices
+    )
+    right = _build_internal_nodes(
+        morton_codes, split + 1, last, next_free, nodes, traversal_indices
+    )
+
+    idx = next_free[0]
+    next_free[0] += 1
+
+    n_dimensions = nodes.shape[1] // 2
+    for dim in range(n_dimensions):
+        nodes[idx, dim] = min(nodes[left, dim], nodes[right, dim])
+        ub_idx = dim + n_dimensions
+        nodes[idx, ub_idx] = max(nodes[left, ub_idx], nodes[right, ub_idx])
+    traversal_indices[idx, 0] = left
+    traversal_indices[idx, 1] = right
+
+    return idx
+
+
+@njit(fastmath=True)  # pragma: no cover
+def _assign_ropes(idx, rope, traversal_indices):
+    if traversal_indices[idx, 0] < 0:
+        traversal_indices[idx, 1] = rope
+        return
+
+    left = traversal_indices[idx, 0]
+    right = traversal_indices[idx, 1]
+
+    _assign_ropes(left, right, traversal_indices)
+    _assign_ropes(right, rope, traversal_indices)
+
+    traversal_indices[idx, 1] = rope
+
+
+# @njit(fastmath=True)  # pragma: no cover
+def _build_neighbor_list_orthogonal_bvh(
+    positions: np.ndarray[float_t],
+    cutoff: float_t,
+    dimensions: np.ndarray[float_t],
+    pbc: np.bool_,
+) -> List[set[np.uint32]]:
+    """"""
+    # Compute Morton codes for particle positions and sort them
+    morton_codes = _compute_morton_codes(positions, dimensions)
+    sorted_indices = np.argsort(morton_codes)
+
+    # Preallocate array to store information about leaf and internal nodes
+    n_particles, n_dimensions = positions.shape
+    n_nodes = 2 * n_particles - 1
+    nodes = np.empty((n_nodes, 2 * n_dimensions), np.float32)
+    traversal_indices = np.empty((n_nodes, 2), np.int64)
+
+    # Build leaf nodes
+    _build_leaf_nodes(positions, sorted_indices, nodes, traversal_indices)
+
+    # Build internal nodes
+    next_free = np.array((n_particles,), np.uint32)
+    root = _build_internal_nodes(
+        morton_codes[sorted_indices],
+        0,
+        n_particles - 1,
+        next_free,
+        nodes,
+        traversal_indices,
+    )
+
+    # Assign ropes to internal nodes
+    _assign_ropes(root, -1, traversal_indices)
+
+    # TODO
+
+    return
+
+
 def build_neighbor_list(
     positions: np.ndarray[float_t] | Q_,
     cutoff: float_t | Q_,
@@ -981,9 +1177,7 @@ def build_neighbor_list(
         **Shape**: :math:`(N,)`.
     """
     # Validate input arguments
-    if algorithm not in (
-        algorithms := {"brute_force", "bvh", "cell_list", "kd_tree"}
-    ):
+    if algorithm not in (algorithms := {"brute_force", "bvh", "cell_list"}):
         raise ValueError(
             f"Invalid `algorithm` value: {algorithm}. Valid values: '"
             + "', '".join(algorithms)
@@ -997,6 +1191,9 @@ def build_neighbor_list(
         )
     n_dimensions = positions.shape[1]
     cutoff = strip_unit(cutoff, "nm")[0]
+
+    # Keep track of additional keyword arguments for specific algorithms
+    kwargs = {}
 
     # Assume non-periodic orthogonal box if no box size is provided
     if box_size is None:
@@ -1015,6 +1212,7 @@ def build_neighbor_list(
                 n_dimensions,
             ),
             False,
+            **kwargs,
         )
     else:
         box_size = convert_cell_representation(
@@ -1038,24 +1236,7 @@ def build_neighbor_list(
                 )
 
             return globals()[f"_build_neighbor_list_orthogonal_{algorithm}"](
-                positions, cutoff, box_size, pbc
-            )
-
-        # Compute scaled positions for triclinic box
-        scaled_positions = positions.copy()
-        _scale_coordinates(
-            scaled_positions,
-            box_size,
-            _invert_box_vectors(box_size),
-            np.full(n_dimensions, False, np.bool_),
-        )
-
-        if not pbc and not _check_positions(
-            scaled_positions, np.ones(n_dimensions)
-        ):
-            raise ValueError(
-                "`positions` must be within the bounds of the "
-                "simulation box defined by `box_size`."
+                positions, cutoff, box_size, pbc, **kwargs
             )
 
         box_size = reduce_box_vectors(box_size)
@@ -1065,11 +1246,24 @@ def build_neighbor_list(
                 "minimum box length when `pbc` is True."
             )
 
-        if algorithm in {"cell_list"}:  # needs scaled positions
-            return globals()[f"_build_neighbor_list_{algorithm}"](
-                positions, scaled_positions, cutoff, box_size, pbc
+        if algorithm == "cell_list":
+            # Compute scaled positions for triclinic box
+            kwargs["scaled_positions"] = scaled_positions = positions.copy()
+            _scale_coordinates(
+                scaled_positions,
+                box_size,
+                _invert_box_vectors(box_size),
+                np.full(n_dimensions, False, np.bool_),
             )
-        else:
-            return globals()[f"_build_neighbor_list_{algorithm}"](
-                positions, cutoff, box_size, pbc
-            )
+
+            if not pbc and not _check_positions(
+                scaled_positions, np.ones(n_dimensions)
+            ):
+                raise ValueError(
+                    "`positions` must be within the bounds of the "
+                    "simulation box defined by `box_size`."
+                )
+
+        return globals()[f"_build_neighbor_list_{algorithm}"](
+            positions, cutoff=cutoff, box_vectors=box_size, pbc=pbc, **kwargs
+        )
