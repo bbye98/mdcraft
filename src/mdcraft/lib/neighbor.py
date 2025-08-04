@@ -1252,18 +1252,18 @@ def _particle_aabb_overlap(
         r = position[dim]
         lb = aabb[dim]
         ub = aabb[dim + n_dimensions]
-        if r < lb:
+        left = r < lb
+        if left:
             dr = r - lb
-        elif r > ub:
-            dr = r - ub
         else:
-            dr = 0.0
+            right = r > ub
+            if right:
+                dr = r - ub
+            else:
+                continue
         if pbc:
             dr -= dimensions[dim] * round(dr / dimensions[dim])
-            if r < lb:
-                rdr = r - ub
-            elif r > ub:
-                rdr = r - lb
+            rdr = r - (ub if left else lb)
             rdr -= dimensions[dim] * round(rdr / dimensions[dim])
             dr = min(abs(dr), abs(rdr))
         dr_squared += dr * dr
@@ -1382,6 +1382,11 @@ def _build_neighbor_list_orthogonal_bvh(
     return neighbor_lists
 
 
+# @njit(fastmath=True)  # pragma: no cover
+def _build_neighbor_list_bvh():
+    pass
+
+
 def build_neighbor_list(
     positions: np.ndarray[float_t] | "unit.Quantity" | Q_,
     cutoff: float_t | "unit.Quantity" | Q_,
@@ -1441,7 +1446,8 @@ def build_neighbor_list(
     algorithm : `str`, keyword-only, default: :code:`"cell_list"`
         Algorithm to use for building the neighbor list.
 
-        **Valid values**: :code:`"brute_force"` and :code:`"cell_list"`.
+        **Valid values**: :code:`"brute_force"`, :code:`"bvh"`, and
+        :code:`"cell_list"`.
 
     Returns
     -------
