@@ -52,15 +52,15 @@ def _determine_cell_representation(
         degrees (:math:`^\\circ`) for angles.
 
     n_dimensions : `int`, keyword-only, optional
-        Dimensionality of the simulation box :math:`d`. Only used when
-        `box_size` has shape :math:`(3,)`.
+        Dimensionality of the box :math:`d`. Only used when `box_size`
+        has shape :math:`(3,)`.
 
         **Valid values**: :code:`2` or :code:`3`.
 
     Returns
     -------
     n_dimensions : `int`
-        Dimensionality of the simulation box :math:`d`.
+        Dimensionality of the box :math:`d`.
 
     input_format : `str`
         Cell representation format: :code:`"dimensions"` for dimensions,
@@ -112,7 +112,7 @@ def _invert_box_vectors(
 ) -> np.ndarray[float_t]:
     """
     Numba-accelerated function for inverting the box vectors of a
-    general parallelogram or triclinic simulation box.
+    general parallelogram or triclinic box.
 
     Parameters
     ----------
@@ -170,8 +170,8 @@ def reduce_box_vectors(
     box_vectors: np.ndarray[float_t] | "unit.Quantity" | Q_, /
 ) -> np.ndarray[float_t] | "unit.Quantity" | Q_:
     """
-    Reduces the box vectors of a general triclinic simulation box to
-    those of a restricted one.
+    Reduces the box vectors of a general triclinic cell to those of a
+    restricted one.
 
     .. dropdown:: Two-dimensional box vectors
 
@@ -371,7 +371,7 @@ def reduce_box_vectors(
     )
 
 
-def check_orthogonality(
+def is_cell_orthogonal(
     box_size: np.ndarray[float_t] | "unit.Quantity" | Q_,
     /,
     *,
@@ -379,7 +379,7 @@ def check_orthogonality(
     _reduce: bool = True,
 ) -> bool:
     """
-    Checks if a simulation box is orthogonal.
+    Checks if a unit cell is orthogonal.
 
     Parameters
     ----------
@@ -407,47 +407,47 @@ def check_orthogonality(
         degrees (:math:`^\\circ`) for angles.
 
     n_dimensions : `int`, keyword-only, optional
-        Dimensionality of the simulation box :math:`d`. Only used when
-        `box_size` has shape :math:`(3,)`.
+        Dimensionality of the box :math:`d`. Only used when `box_size`
+        has shape :math:`(3,)`.
 
         **Valid values**: :code:`2` or :code:`3`.
     
     Returns
     -------
     is_orthogonal : `bool`
-        Whether the simulation box is orthogonal.
+        Whether the box is orthogonal.
 
     Examples
     --------
     If dimensions are provided, the box is naturally orthogonal:
 
-    >>> check_orthogonality(np.array((3.0, 4.0)))
+    >>> is_cell_orthogonal(np.array((3.0, 4.0)))
     True
-    >>> check_orthogonality(np.array((3.0, 4.0, 5.0)))
+    >>> is_cell_orthogonal(np.array((3.0, 4.0, 5.0)))
     True
 
     If lattice parameters are provided, the box is orthogonal if
     the angles are all :math:`90^\\circ`:
 
-    >>> check_orthogonality(np.array((3.0, 4.0, 90.0)))
+    >>> is_cell_orthogonal(np.array((3.0, 4.0, 90.0)))
     True
-    >>> check_orthogonality(np.array((3.0, 4.0, 5.0, 90.0, 90.0, 90.0)))
+    >>> is_cell_orthogonal(np.array((3.0, 4.0, 5.0, 90.0, 90.0, 90.0)))
     True
-    >>> check_orthogonality(np.array((3.0, 4.0, 5.0, 45.0, 45.0, 45.0)))
+    >>> is_cell_orthogonal(np.array((3.0, 4.0, 5.0, 45.0, 45.0, 45.0)))
     False
 
     If box vectors are provided, the box is orthogonal if all
     off-diagonal components are zero:
 
-    >>> check_orthogonality(np.array(((3.0, 0.0), (0.0, 4.0))))
+    >>> is_cell_orthogonal(np.array(((3.0, 0.0), (0.0, 4.0))))
     True
-    >>> check_orthogonality(
+    >>> is_cell_orthogonal(
     ...     np.array(
     ...         ((3.0, 0.0, 0.0), (0.0, 4.0, 0.0), (0.0, 0.0, 5.0))
     ...     )
     ... )
     True
-    >>> check_orthogonality(
+    >>> is_cell_orthogonal(
     ...     np.array(
     ...         ((3.0, 0.0, 0.0), (0.0, 4.0, 0.1), (0.1, 0.1, 5.0))
     ...     )
@@ -464,7 +464,7 @@ def check_orthogonality(
     ...         (5 / np.sqrt(66), 20 / np.sqrt(66), -35 / np.sqrt(66))
     ...     )
     ... )
-    >>> check_orthogonality(box_vectors)
+    >>> is_cell_orthogonal(box_vectors)
     True
     """
     n_dimensions, input_format = _determine_cell_representation(
@@ -496,12 +496,11 @@ def convert_cell_representation(
     n_dimensions: int | None = None,
 ) -> np.ndarray[float_t] | "unit.Quantity" | Q_:
     """
-    Converts between cell representations for a simulation box.
+    Converts between cell representations for a box.
 
     .. dropdown:: Two-dimensional (2D) systems
 
-       For a square simulation box, the supported input and output
-       formats are
+       For a square box, the supported input and output formats are
 
        * its dimensions :math:`(L_x,L_y)`, where :math:`L_x` and
          :math:`L_y` are the lengths along the :math:`x`- and
@@ -514,8 +513,7 @@ def convert_cell_representation(
     .. dropdown:: Three-dimensional (3D) systems
        :open:
 
-       For a cubic simulation box, the supported input and output
-       formats are
+       For a cubic box, the supported input and output formats are
 
        * its dimensions :math:`(L_x,L_y,L_z)`, where :math:`L_x`,
          :math:`L_y`, and :math:`L_z` are the lengths along the
@@ -563,8 +561,8 @@ def convert_cell_representation(
            * :code:`"vectors"` for box vectors.
 
     n_dimensions : `int`, keyword-only, optional
-        Dimensionality of the simulation box :math:`d`. Only used when
-        `box_size` has shape :math:`(3,)`.
+        Dimensionality of the box :math:`d`. Only used when `box_size`
+        has shape :math:`(3,)`.
 
         **Valid values**: :code:`2` or :code:`3`.
 
@@ -625,7 +623,7 @@ def convert_cell_representation(
         box_size, n_dimensions=n_dimensions
     )
 
-    if output_format == "dimensions" and not check_orthogonality(
+    if output_format == "dimensions" and not is_cell_orthogonal(
         box_size, n_dimensions=n_dimensions
     ):
         warnings.warn(
@@ -736,6 +734,127 @@ def convert_cell_representation(
 
 
 @njit(fastmath=True, inline="always")  # pragma: no cover
+def _are_entities_inside_box(
+    coordinates: np.ndarray[float_t], dimensions: np.ndarray[float_t]
+) -> np.bool_:
+    """
+    Checks whether all entities are within the bounds of a rectangular
+    or orthogonal box.
+
+    Parameters
+    ----------
+    coordinates : `numpy.ndarray`
+        Coordinates :math:`\\mathrm{r}` of :math:`N` entities.
+
+        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    dimensions : `numpy.ndarray`
+        Box dimensions :math:`(L_x,L_y[,L_z])` (Cartesian) or
+        :math:`(1,1[,1])` (fractional).
+
+        **Shape**: :math:`(2,)` or :math:`(3,)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}` (Cartesian) or unitless
+        (fractional).
+
+    Returns
+    -------
+    all_inside : `bool`
+        Whether all entities are inside the box.
+    """
+    for pid in range(coordinates.shape[0]):
+        for dim in range(coordinates.shape[1]):
+            if (
+                coordinates[pid, dim] < 0.0
+                or coordinates[pid, dim] > dimensions[dim]
+            ):
+                return False
+    return True
+
+
+def are_entities_inside_box(
+    coordinates: np.ndarray[float_t] | "unit.Quantity" | Q_,
+    box_size: np.ndarray[float_t] | "unit.Quantity" | Q_,
+    *,
+    n_dimensions: int | None = None,
+) -> bool:
+    """
+    Checks whether all entities are within the bounds of a
+    general parallelogram or triclinic box.
+
+    Parameters
+    ----------
+    coordinates : `numpy.ndarray`, `openmm.unit.Quantity`, or \
+    `pint.Quantity`
+        Coordinates :math:`\\mathrm{r}` of :math:`N` entities.
+
+        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
+
+    box_size : `numpy.ndarray`, `openmm.unit.Quantity`, or \
+    `pint.Quantity`
+        Dimensions :math:`(L_x,L_y[,L_z])`, lattice parameters
+        :math:`(a,b[,c,\\alpha,\\beta],\\gamma)`, or box
+        vectors :math:`(\\mathbf{a};\\mathbf{b}[;\\mathbf{c}])`.
+
+        .. note::
+
+           Lattice parameters should always be provided in an array
+           without explicit units.
+
+        .. container::
+
+           **Shapes**:
+
+           * 2D: :math:`(2,)` for dimensions, :math:`(3,)` for lattice
+             parameters, or :math:`(2,2)` for box vectors.
+           * 3D: :math:`(3,)` for dimensions, :math:`(6,)` for lattice
+             parameters, or :math:`(3,3)` for box vectors.
+
+        **Reference units**: :math:`\\mathrm{nm}` for lengths and
+        degrees (:math:`^\\circ`) for angles.
+
+    n_dimensions : `int`, keyword-only, optional
+        Dimensionality of the box :math:`d`. Only used when `box_size`
+        has shape :math:`(3,)`.
+
+        **Valid values**: :code:`2` or :code:`3`.
+
+    Returns
+    -------
+    all_inside : `bool`
+        Whether all entities are inside the box.
+    """
+    coordinates, length_unit = strip_unit(coordinates)
+    coordinates = np.asarray(coordinates)
+    box_size = np.asarray(strip_unit(box_size, length_unit)[0])
+
+    try:
+        if is_cell_orthogonal(
+            box_size, n_dimensions=n_dimensions, _reduce=False
+        ):
+            if box_size.shape != (n_dimensions,):
+                box_size = convert_cell_representation(
+                    box_size, "dimensions", n_dimensions=n_dimensions
+                )
+            return _are_entities_inside_box(coordinates, box_size)
+        else:
+            if box_size.shape != (n_dimensions, n_dimensions):
+                box_size = convert_cell_representation(
+                    box_size, "vectors", n_dimensions=n_dimensions
+                )
+            return _are_entities_inside_box(
+                scale_coordinates(coordinates, box_size, in_place=False),
+                np.ones(n_dimensions, dtype=box_size.dtype),
+            )
+    except ValueError:
+        raise ValueError("`box_size` must be compatible with `coordinates`.")
+
+
+@njit(fastmath=True, inline="always")  # pragma: no cover
 def _scale_coordinates_orthogonal(
     coordinates: np.ndarray[float_t],
     dimensions: np.ndarray[float_t],
@@ -743,13 +862,13 @@ def _scale_coordinates_orthogonal(
 ) -> None:
     """
     Numba-accelerated function for scaling the Cartesian coordinates of
-    entities in a rectangular or orthogonal simulation box to get the
-    fractional coordinates.
+    entities in a rectangular or orthogonal box to get the fractional
+    coordinates.
 
     Parameters
     ----------
     coordinates : `numpy.ndarray`
-        Cartesian coordinates of :math:`N` entities.
+        Cartesian coordinates :math:`\\mathrm{r}` of :math:`N` entities.
 
         .. note::
 
@@ -760,7 +879,7 @@ def _scale_coordinates_orthogonal(
         **Reference unit**: :math:`\\mathrm{nm}`.
 
     dimensions : `numpy.ndarray`
-        Dimensions of the simulation box :math:`(L_x,L_y[,L_z])`.
+        Box dimensions :math:`(L_x,L_y[,L_z])`.
 
         **Shape**: :math:`(2,)` or :math:`(3,)`.
 
@@ -794,13 +913,13 @@ def _scale_coordinates(
 ) -> None:
     """
     Numba-accelerated function for scaling the Cartesian coordinates of
-    entities in a general parallelogram or triclinic simulation box to
-    get the fractional coordinates.
+    entities in a general parallelogram or triclinic box to get the
+    fractional coordinates.
 
     Parameters
     ----------
     coordinates : `numpy.ndarray`
-        Cartesian coordinates of :math:`N` entities.
+        Cartesian coordinates :math:`\\mathrm{r}` of :math:`N` entities.
 
         .. note::
 
@@ -911,8 +1030,7 @@ def scale_coordinates(
 ) -> None | np.ndarray[float_t] | "unit.Quantity" | Q_:
     """
     Scales the Cartesian coordinates of entities in a general 
-    parallelogram or triclinic simulation box to get the fractional
-    coordinates.
+    parallelogram or triclinic box to get the fractional coordinates.
 
     The relationship between Cartesian coordinates
     :math:`\\mathbf{r}` and the fractional coordinates
@@ -949,7 +1067,7 @@ def scale_coordinates(
     ----------
     coordinates : `numpy.ndarray`, `openmm.unit.Quantity`, or \
     `pint.Quantity`
-        Cartesian coordinates of :math:`N` entities.
+        Cartesian coordinates :math:`\\mathrm{r}` of :math:`N` entities.
 
         **Shape**: :math:`(N,2)` or :math:`(N,3)`.
 
@@ -1084,7 +1202,7 @@ def scale_coordinates(
     # scale coordinates
     box_size = np.asarray(strip_unit(box_size, length_unit)[0])
     try:
-        if check_orthogonality(
+        if is_cell_orthogonal(
             box_size, n_dimensions=n_dimensions, _reduce=False
         ):
             if box_size.shape != (n_dimensions,):
@@ -1117,13 +1235,13 @@ def _unscale_coordinates(
 ) -> None:
     """
     Numba-accelerated function for unscaling the fractional coordinates
-    of entities in a general parallelogram or triclinic simulation box
-    to get the Cartesian coordinates.
+    of entities in a general parallelogram or triclinic box to get the
+    Cartesian coordinates.
 
     Parameters
     ----------
     fractional_coordinates : `numpy.ndarray`
-        Fractional coordinates of :math:`N` entities.
+        Fractional coordinates :math:`\\mathrm{s}` of :math:`N` entities.
 
         .. note::
 
@@ -1161,12 +1279,12 @@ def _wrap_coordinates_orthogonal(
 ) -> None:
     """
     Numba-accelerated function for wrapping the coordinates of entities
-    in a rectangular or orthogonal simulation box to the unit cell.
+    into a rectangular or orthogonal unit cell.
 
     Parameters
     ----------
     coordinates : `numpy.ndarray`
-        Coordinates of :math:`N` entities.
+        Coordinates :math:`\\mathrm{r}` of :math:`N` entities.
 
         .. note::
 
@@ -1177,7 +1295,7 @@ def _wrap_coordinates_orthogonal(
         **Reference unit**: :math:`\\mathrm{nm}`.
 
     dimensions : `numpy.ndarray`
-        Dimensions of the simulation box :math:`(L_x,L_y[,L_z])`.
+        Box dimensions :math:`(L_x,L_y[,L_z])`.
 
         **Shape**: :math:`(2,)` or :math:`(3,)`.
 
@@ -1218,12 +1336,12 @@ def _wrap_coordinates(
 ) -> None:
     """
     Numba-accelerated function for wrapping the coordinates of entities
-    in a triclinic simulation box to the unit cell.
+    into a general parallelogram or triclinic unit cell.
 
     Parameters
     ----------
     coordinates : `numpy.ndarray`
-        Coordinates of :math:`N` entities.
+        Coordinates :math:`\\mathrm{r}` of :math:`N` entities.
 
         .. note::
 
@@ -1279,8 +1397,8 @@ def wrap_coordinates(
     in_place: bool = True,
 ) -> None | np.ndarray[float_t] | "unit.Quantity" | Q_:
     """
-    Wraps the coordinates of entities in a general parallelogram or
-    triclinic simulation box to the unit cell.
+    Wraps the coordinates of entities into a general parallelogram or
+    triclinic unit cell.
 
     Given coordinates :math:`\\mathbf{r}` and cell tensor
     :math:`\\mathbf{h}` consisting of the box vectors
@@ -1296,7 +1414,7 @@ def wrap_coordinates(
     ----------
     coordinates : `numpy.ndarray`, `openmm.unit.Quantity`, or \
     `pint.Quantity`
-        Coordinates of :math:`N` entities.
+        Coordinates :math:`\\mathrm{r}` of :math:`N` entities.
 
         **Shape**: :math:`(N,2)` or :math:`(N,3)`.
 
@@ -1345,9 +1463,6 @@ def wrap_coordinates(
         **Shape**: Same as `coordinates`.
 
         **Unit**: Same as `coordinates`.
-
-    Examples
-    --------
     """
 
     # Validate input arguments
@@ -1381,7 +1496,7 @@ def wrap_coordinates(
     # wrap coordinates
     box_size = np.asarray(strip_unit(box_size, length_unit)[0])
     try:
-        if check_orthogonality(
+        if is_cell_orthogonal(
             box_size, n_dimensions=n_dimensions, _reduce=False
         ):
             if box_size.shape != (n_dimensions,):
