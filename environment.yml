@@ -7,7 +7,8 @@ dependencies:
   - mdanalysis >=2.2
   - netcdf4
   - numba
-  - numpypython
+  - numpy
+  - python
   - pandas
   - pint
   - psutil
