@@ -19,7 +19,7 @@ def count_leading_zeros(x: int | int_t, bits: int | int_t) -> int:
 
     Returns
     -------
-    clz : `int`
+    nlz : `int`
         The number of leading zeros in the binary representation of `x`.
         If `x` is zero, `bits` is returned.
 
