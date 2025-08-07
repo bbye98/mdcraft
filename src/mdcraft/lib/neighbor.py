@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from math import sqrt
+from math import floor, sqrt
 from typing import TYPE_CHECKING
 
 from numba import njit, uint32
@@ -168,7 +168,7 @@ def _build_neighbor_list_orthogonal_brute_force(
     positions : `numpy.ndarray`
         Particle positions :math:`\\mathbf{r}`.
 
-        **Shape**: :math:`(N,d)`, where :math:`d\\in{2,3}` is the
+        **Shape**: :math:`(N,d)`, where :math:`d\\in\\{2,3\\}` is the
         dimensionality.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
@@ -233,7 +233,7 @@ def _build_neighbor_list_brute_force(
     positions : `numpy.ndarray`
         Particle positions :math:`\\mathbf{r}` in Cartesian coordinates.
 
-        **Shape**: :math:`(N,d)`, where :math:`d\\in{2,3}` is the
+        **Shape**: :math:`(N,d)`, where :math:`d\\in\\{2,3\\}` is the
         dimensionality.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
@@ -355,7 +355,7 @@ def _build_cell_lists_orthogonal(
     positions : `numpy.ndarray`
         Particle positions :math:`\\mathbf{r}`.
 
-        **Shape**: :math:`(N,d)`, where :math:`d\\in{2,3}` is the
+        **Shape**: :math:`(N,d)`, where :math:`d\\in\\{2,3\\}` is the
         dimensionality.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
@@ -454,7 +454,7 @@ def _build_neighbor_list_orthogonal_cell_list(
     positions : `numpy.ndarray`
         Particle positions :math:`\\mathbf{r}`.
 
-        **Shape**: :math:`(N,d)`, where :math:`d\\in{2,3}` is the
+        **Shape**: :math:`(N,d)`, where :math:`d\\in\\{2,3\\}` is the
         dimensionality.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
@@ -661,7 +661,7 @@ def _get_cell_offsets(
 
 
 @njit(fastmath=True, inline="always")  # pragma: no cover
-def _build_cell_lists_triclinic(
+def _build_cell_lists(
     scaled_positions: np.ndarray[float_t],
     cutoff: float_t,
     box_vectors: np.ndarray[float_t],
@@ -681,7 +681,7 @@ def _build_cell_lists_triclinic(
         Particle positions :math:`\\mathbf{r}` in fractional
         coordinates.
 
-        **Shape**: :math:`(N,d)`, where :math:`d\\in{2,3}` is the
+        **Shape**: :math:`(N,d)`, where :math:`d\\in\\{2,3\\}` is the
         dimensionality.
 
     cutoff : `float`
@@ -783,7 +783,7 @@ def _build_neighbor_list_cell_list(
     positions : `numpy.ndarray`
         Particle positions :math:`\\mathbf{r}` in Cartesian coordinates.
 
-        **Shape**: :math:`(N,d)`, where :math:`d\\in{2,3}` is the
+        **Shape**: :math:`(N,d)`, where :math:`d\\in\\{2,3\\}` is the
         dimensionality.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
@@ -823,8 +823,8 @@ def _build_neighbor_list_cell_list(
     """
     # Build cell lists
     n_particles, n_dimensions = scaled_positions.shape
-    n_cells, particle_cell_indices, cell_heads, cell_lists = (
-        _build_cell_lists_triclinic(scaled_positions, cutoff, box_vectors, pbc)
+    n_cells, particle_cell_indices, cell_heads, cell_lists = _build_cell_lists(
+        scaled_positions, cutoff, box_vectors, pbc
     )
 
     # Define offsets for neighboring cells
@@ -920,7 +920,8 @@ def _compute_morton_codes(
     positions : `numpy.ndarray`
         Particle positions :math:`\\mathbf{r}`.
 
-        **Shape**: :math:`(N,d)`.
+        **Shape**: :math:`(N,d)`, where :math:`d\\in\\{2,3\\}` is the
+        dimensionality.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
@@ -934,7 +935,7 @@ def _compute_morton_codes(
     Returns
     -------
     morton_codes : `numpy.ndarray`
-        Morton codes for each particle position.
+        Morton codes representing the particle positions.
     """
     n_particles, n_dimensions = positions.shape
     inv_cell_size = np.empty(n_dimensions, dimensions.dtype)
@@ -971,7 +972,7 @@ def _build_leaf_nodes(
     positions : `numpy.ndarray`
         Particle positions :math:`\\mathbf{r}`.
 
-        **Shape**: :math:`(N,d)`, where :math:`d\\in{2,3}` is the
+        **Shape**: :math:`(N,d)`, where :math:`d\\in\\{2,3\\}` is the
         dimensionality.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
@@ -982,13 +983,17 @@ def _build_leaf_nodes(
         **Shape**: :math:`(N,)`.
 
     nodes : `numpy.ndarray`
-        Nodes in the BVH tree.
+        Nodes (or the lower and upper bounds
+        :math:`(x_l,y_l[,z_l],x_u,y_u[,z_u])` of axis-aligned bounding
+        boxes) in the BVH tree.
 
         .. note::
 
            This function modifies this NumPy array in-place.
 
-        **Shape**: :math:`(N,d)`.
+        **Unit**: :math:`\\mathrm{nm}`.
+
+        **Shape**: :math:`(N,2d)`.
 
     traversal_indices : `numpy.ndarray`
         Traversal indices for the BVH tree.
@@ -997,7 +1002,7 @@ def _build_leaf_nodes(
 
            This function modifies this NumPy array in-place.
 
-        **Shape**: :math:`(N,2)`.
+        **Shape**: :math:`(2N-1,2)`.
     """
     n_particles, n_dimensions = positions.shape
     for nid in range(n_particles):
@@ -1017,19 +1022,19 @@ def _find_split_index(
     last: int | int_t,
 ) -> int | int_t:
     """
-    Finds the index to split the sorted Morton codes into two
+    Finds the index that splits the sorted Morton codes into two
     subarrays such that the first subarray contains all Morton codes
-    with a common prefix of leading zeros.
+    with the same number of leading zeros.
 
     Parameters
     ----------
     morton_codes : `numpy.ndarray`
-        Morton codes for each particle position.
+        Morton codes representing the positions of :math:`N` particles.
 
         **Shape**: :math:`(N,)`.
 
     sorted_indices : `numpy.ndarray`
-        Indices of particles sorted by Morton codes.
+        Particle indices, sorted by Morton codes.
 
         **Shape**: :math:`(N,)`.
 
@@ -1080,12 +1085,12 @@ def _build_internal_nodes(
     Parameters
     ----------
     morton_codes : `numpy.ndarray`
-        Morton codes for each particle position.
+        Morton codes representing the positions of :math:`N` particles.
 
         **Shape**: :math:`(N,)`.
 
     sorted_indices : `numpy.ndarray`
-        Indices of particles sorted by Morton codes.
+        Particle indices, sorted by Morton codes.
 
         **Shape**: :math:`(N,)`.
 
@@ -1096,7 +1101,7 @@ def _build_internal_nodes(
         Index of the last Morton code in the sorted array.
 
     next_free : `numpy.ndarray`
-        Array containing only the next free index for internal nodes.
+        Array containing the next free index for internal nodes.
 
         .. note::
 
@@ -1105,13 +1110,17 @@ def _build_internal_nodes(
         **Shape**: :math:`(1,)`.
 
     nodes : `numpy.ndarray`
-        Nodes in the BVH tree.
+        Nodes (or the lower and upper bounds
+        :math:`(x_l,y_l[,z_l],x_u,y_u[,z_u])` of axis-aligned bounding
+        boxes) in the BVH tree.
 
         .. note::
 
            This function modifies this NumPy array in-place.
 
-        **Shape**: :math:`(N,2d)`, where :math:`d\\in{2,3}` is the
+        **Unit**: :math:`\\mathrm{nm}`.
+
+        **Shape**: :math:`(N,2d)`, where :math:`d\\in\\{2,3\\}` is the
         dimensionality.
 
     traversal_indices : `numpy.ndarray`
@@ -1121,7 +1130,7 @@ def _build_internal_nodes(
 
            This function modifies this NumPy array in-place.
 
-        **Shape**: :math:`(N,2)`.
+        **Shape**: :math:`(2N-1,2)`.
 
     Returns
     -------
@@ -1170,12 +1179,13 @@ def _assign_ropes(
     idx: np.uint32, rope: int | int_t, traversal_indices: np.ndarray[np.int64]
 ) -> None:
     """
-    Assigns rope indices to the BVH nodes.
+    Assigns rope indices to the nodes in the bounding volume hierarchy
+    (BVH) tree.
 
     Parameters
     ----------
     idx : `numpy.uint32`
-        Index of the current node in the traversal indices array.
+        Index of the current node in `traversal_indices`.
 
     rope : `int`
         Rope index to assign to the current node.
@@ -1187,7 +1197,8 @@ def _assign_ropes(
 
            This function modifies this NumPy array in-place.
 
-        **Shape**: :math:`(N,2)`.
+        **Shape**: :math:`(2N-1,2)`, where :math:`N` is the number of
+        particles.
     """
     left = traversal_indices[idx, 0]
     if left < 0:
@@ -1201,7 +1212,7 @@ def _assign_ropes(
 
 
 @njit(fastmath=True, inline="always")  # pragma: no cover
-def _particle_aabb_overlap(
+def _particle_aabb_overlap_orthogonal(
     position: np.ndarray[float_t],
     cutoff_squared: float_t,
     aabb: np.ndarray[float_t],
@@ -1217,7 +1228,7 @@ def _particle_aabb_overlap(
     position : `numpy.ndarray`
         Particle position :math:`\\mathbf{r}`.
 
-        **Shape**: :math:`(d,)`, where :math:`d\\in{2,3}` is the
+        **Shape**: :math:`(d,)`, where :math:`d\\in\\{2,3\\}` is the
         dimensionality.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
@@ -1229,8 +1240,8 @@ def _particle_aabb_overlap(
         **Reference unit**: :math:`\\mathrm{nm}^2`.
 
     aabb : `numpy.ndarray`
-        Axis-aligned bounding box (AABB) defined by its lower and upper
-        bounds in each dimension.
+        Axis-aligned bounding box (AABB), defined by its lower bounds
+        and upper bounds :math:`(x_l,y_l[,z_l],x_u,y_u[,z_u])`.
 
         **Shape**: :math:`(2d,)`.
 
@@ -1255,16 +1266,15 @@ def _particle_aabb_overlap(
         left = r < lb
         if left:
             dr = r - lb
+        elif r > ub:
+            dr = r - ub
         else:
-            right = r > ub
-            if right:
-                dr = r - ub
-            else:
-                continue
+            continue
         if pbc:
-            dr -= dimensions[dim] * round(dr / dimensions[dim])
+            L = dimensions[dim]
+            dr -= L * round(dr / L)
             rdr = r - (ub if left else lb)
-            rdr -= dimensions[dim] * round(rdr / dimensions[dim])
+            rdr -= L * round(rdr / L)
             dr = min(abs(dr), abs(rdr))
         dr_squared += dr * dr
     return dr_squared < cutoff_squared
@@ -1286,7 +1296,7 @@ def _build_neighbor_list_orthogonal_bvh(
     positions : `numpy.ndarray`
         Particle positions :math:`\\mathbf{r}`.
 
-        **Shape**: :math:`(N,d)`, where :math:`d\\in{2,3}` is the
+        **Shape**: :math:`(N,d)`, where :math:`d\\in\\{2,3\\}` is the
         dimensionality.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
@@ -1355,7 +1365,7 @@ def _build_neighbor_list_orthogonal_bvh(
         position = positions[pid]
         while node_id >= 0:
             # Check for overlap with the AABB of the current node
-            if _particle_aabb_overlap(
+            if _particle_aabb_overlap_orthogonal(
                 position, cutoff_squared, nodes[node_id], dimensions, pbc
             ):
                 left = traversal_indices[node_id, 0]
@@ -1383,7 +1393,13 @@ def _build_neighbor_list_orthogonal_bvh(
 
 
 # @njit(fastmath=True)  # pragma: no cover
-def _build_neighbor_list_bvh():
+def _build_neighbor_list_bvh(
+    positions: np.ndarray[float_t],
+    cutoff: float_t,
+    box_vectors: np.ndarray[float_t],
+    pbc: bool | np.bool_,
+) -> List[set[np.uint32]]:
+    """"""
     pass
 
 
@@ -1405,7 +1421,7 @@ def build_neighbor_list(
     `pint.Quantity`
         Particle positions :math:`\\mathbf{r}`.
 
-        **Shape**: :math:`(N,d)`, where :math:`d\\in{2,3}` is the
+        **Shape**: :math:`(N,d)`, where :math:`d\\in\\{2,3\\}` is the
         dimensionality.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
@@ -1426,14 +1442,9 @@ def build_neighbor_list(
            Lattice parameters should always be provided in an array
            without explicit units.
 
-        .. container::
-
-           **Shapes**:
-
-           * 2D: :math:`(2,)` for dimensions, :math:`(3,)` for lattice
-             parameters, or :math:`(2,2)` for box vectors.
-           * 3D: :math:`(3,)` for dimensions, :math:`(6,)` for lattice
-             parameters, or :math:`(3,3)` for box vectors.
+        **Shapes**: :math:`(d,)` for dimensions, :math:`(3,)` (2D) or
+        :math:`(6,)` (3D) for lattice parameters, and :math:`(d,d)` for
+        box vectors.
 
         **Reference units**: :math:`\\mathrm{nm}` for lengths and
         degrees (:math:`^\\circ`) for angles.
