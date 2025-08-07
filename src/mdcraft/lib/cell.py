@@ -39,14 +39,9 @@ def _determine_cell_representation(
            Lattice parameters should always be provided in an array
            without explicit units.
 
-        .. container::
-
-           **Shapes**:
-
-           * 2D: :math:`(2,)` for dimensions, :math:`(3,)` for lattice
-             parameters, or :math:`(2,2)` for box vectors.
-           * 3D: :math:`(3,)` for dimensions, :math:`(6,)` for lattice
-             parameters, or :math:`(3,3)` for box vectors.
+        **Shapes**: :math:`(d,)` for dimensions, :math:`(3,)` (2D) or
+        :math:`(6,)` (3D) for lattice parameters, or :math:`(d,d)` for
+        box vectors.
 
         **Reference units**: :math:`\\mathrm{nm}` for lengths and
         degrees (:math:`^\\circ`) for angles.
@@ -119,7 +114,10 @@ def _invert_box_vectors(
     box_vectors : `numpy.ndarray`
         Box vectors :math:`(\\mathbf{A};\\mathbf{B}[;\\mathbf{C}])`.
 
-        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+        **Shape**: :math:`(d,d)`, where :math:`d\\in\\{2,3\\}` is the
+        dimensionality.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
 
     Returns
     -------
@@ -127,7 +125,9 @@ def _invert_box_vectors(
         Inverted box vectors
         :math:`(\\mathbf{A}^*;\\mathbf{B}^*[;\\mathbf{C}^*])`.
 
-        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+        **Shape**: Same as `box_vectors`.
+
+        **Unit**: Inverse of that of `box_vectors`.
     """
     n_dimensions = len(box_vectors)
     inv_box_vectors = np.empty(
@@ -264,7 +264,8 @@ def reduce_box_vectors(
     `pint.Quantity`, positional-only
         Box vectors :math:`(\\mathbf{A};\\mathbf{B}[;\\mathbf{C}])`.
 
-        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+        **Shape**: :math:`(d,d)`, where :math:`d\\in\\{2,3\\}` is the
+        dimensionality.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
@@ -274,9 +275,9 @@ def reduce_box_vectors(
     `pint.Quantity`
         Reduced box vectors :math:`(\\mathbf{a};\\mathbf{b}[;\\mathbf{c}])`.
 
-        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+        **Shape**: Same as `box_vectors`.
 
-        **Reference unit**: :math:`\\mathrm{nm}`.
+        **Unit**: Same as `box_vectors`.
 
     Examples
     --------
@@ -394,14 +395,9 @@ def is_cell_orthogonal(
            Lattice parameters should always be provided in an array
            without explicit units.
 
-        .. container::
-
-           **Shapes**:
-
-           * 2D: :math:`(2,)` for dimensions, :math:`(3,)` for lattice
-             parameters, or :math:`(2,2)` for box vectors.
-           * 3D: :math:`(3,)` for dimensions, :math:`(6,)` for lattice
-             parameters, or :math:`(3,3)` for box vectors.
+        **Shapes**: :math:`(d,)` for dimensions, :math:`(3,)` (2D) or
+        :math:`(6,)` (3D) for lattice parameters, or :math:`(d,d)` for
+        box vectors.
 
         **Reference units**: :math:`\\mathrm{nm}` for lengths and
         degrees (:math:`^\\circ`) for angles.
@@ -537,14 +533,9 @@ def convert_cell_representation(
            Lattice parameters should always be provided in an array
            without explicit units.
 
-        .. container::
-
-           **Shapes**:
-
-           * 2D: :math:`(2,)` for dimensions, :math:`(3,)` for lattice
-             parameters, or :math:`(2,2)` for box vectors.
-           * 3D: :math:`(3,)` for dimensions, :math:`(6,)` for lattice
-             parameters, or :math:`(3,3)` for box vectors.
+        **Shapes**: :math:`(d,)` for dimensions, :math:`(3,)` (2D) or
+        :math:`(6,)` (3D) for lattice parameters, or :math:`(d,d)` for
+        box vectors.
 
         **Reference units**: :math:`\\mathrm{nm}` for lengths and
         degrees (:math:`^\\circ`) for angles.
@@ -578,17 +569,11 @@ def convert_cell_representation(
            without explicit units, even if the starting cell
            representation is an OpenMM or Pint quantity.
 
-        .. container::
+        **Shapes**: :math:`(d,)` for dimensions, :math:`(3,)` (2D) or
+        :math:`(6,)` (3D) for lattice parameters, or :math:`(d,d)` for
+        box vectors.
 
-           **Shapes**:
-
-           * 2D: :math:`(2,)` for dimensions, :math:`(3,)` for lattice
-             parameters, or :math:`(2,2)` for box vectors.
-           * 3D: :math:`(3,)` for dimensions, :math:`(6,)` for lattice
-             parameters, or :math:`(3,3)` for box vectors.
-
-        **Reference units**: :math:`\\mathrm{nm}` for lengths and
-        degrees (:math:`^\\circ`) for angles.
+        **Units**: Same as those of `box_size`.
 
     Examples
     --------
@@ -746,7 +731,8 @@ def _are_entities_inside_box(
     coordinates : `numpy.ndarray`
         Coordinates :math:`\\mathrm{r}` of :math:`N` entities.
 
-        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+        **Shape**: :math:`(N,d)`, where :math:`d\\in\\{2,3\\}` is the
+        dimensionality.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
@@ -754,7 +740,7 @@ def _are_entities_inside_box(
         Box dimensions :math:`(L_x,L_y[,L_z])` (Cartesian) or
         :math:`(1,1[,1])` (fractional).
 
-        **Shape**: :math:`(2,)` or :math:`(3,)`.
+        **Shape**: :math:`(d,)`.
 
         **Reference unit**: :math:`\\mathrm{nm}` (Cartesian) or unitless
         (fractional).
@@ -790,7 +776,8 @@ def are_entities_inside_box(
     `pint.Quantity`
         Coordinates :math:`\\mathrm{r}` of :math:`N` entities.
 
-        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+        **Shape**: :math:`(N,d)`, where :math:`d\\in\\{2,3\\}` is the
+        dimensionality.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
@@ -805,14 +792,9 @@ def are_entities_inside_box(
            Lattice parameters should always be provided in an array
            without explicit units.
 
-        .. container::
-
-           **Shapes**:
-
-           * 2D: :math:`(2,)` for dimensions, :math:`(3,)` for lattice
-             parameters, or :math:`(2,2)` for box vectors.
-           * 3D: :math:`(3,)` for dimensions, :math:`(6,)` for lattice
-             parameters, or :math:`(3,3)` for box vectors.
+        **Shapes**: :math:`(d,)` for dimensions, :math:`(3,)` (2D) or
+        :math:`(6,)` (3D) for lattice parameters, or :math:`(d,d)` for
+        box vectors.
 
         **Reference units**: :math:`\\mathrm{nm}` for lengths and
         degrees (:math:`^\\circ`) for angles.
@@ -874,14 +856,15 @@ def _scale_coordinates_orthogonal(
 
            This function modifies this NumPy array in-place.
 
-        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+        **Shape**: :math:`(N,d)`, where :math:`d\\in\\{2,3\\}` is the
+        dimensionality.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
     dimensions : `numpy.ndarray`
         Box dimensions :math:`(L_x,L_y[,L_z])`.
 
-        **Shape**: :math:`(2,)` or :math:`(3,)`.
+        **Shape**: :math:`(d,)`.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
@@ -889,7 +872,7 @@ def _scale_coordinates_orthogonal(
         Flags indicating whether the coordinates are already scaled
         along the respective axes.
 
-        **Shape**: :math:`(3,)`.
+        **Shape**: Same as `dimensions`.
     """
     # All coordinates are already scaled; nothing to do
     if scaled_flags.all():
@@ -925,14 +908,15 @@ def _scale_coordinates(
 
            This function modifies this NumPy array in-place.
 
-        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+        **Shape**: :math:`(N,d)`, where :math:`d\\in\\{2,3\\}` is the
+        dimensionality.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
     box_vectors : `numpy.ndarray`
         Box vectors :math:`(\\mathbf{A};\\mathbf{B}[;\\mathbf{C}])`.
 
-        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+        **Shape**: :math:`(d,d)`.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
@@ -940,13 +924,15 @@ def _scale_coordinates(
         Inverted box vectors
         :math:`(\\mathbf{A}^*;\\mathbf{B}^*[;\\mathbf{C}^*])`.
 
-        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+        **Shape**: Same as `box_vectors`.
+
+        **Reference unit**: :math:`\\mathrm{nm}^{-1}`.
 
     scaled_flags : `numpy.ndarray`
         Flags indicating whether the coordinates are already scaled
         along the respective axes.
 
-        **Shape**: :math:`(3,)`.
+        **Shape**: :math:`(d,)`.
     """
     # All coordinates are already scaled; nothing to do
     if scaled_flags.all():
@@ -1069,7 +1055,8 @@ def scale_coordinates(
     `pint.Quantity`
         Cartesian coordinates :math:`\\mathrm{r}` of :math:`N` entities.
 
-        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+        **Shape**: :math:`(N,d)`, where :math:`d\\in\\{2,3\\}` is the
+        dimensionality.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
@@ -1084,16 +1071,11 @@ def scale_coordinates(
            Lattice parameters should always be provided in an array
            without explicit units.
 
-        .. container::
+        **Shapes**: :math:`(d,)` for dimensions, :math:`(3,)` (2D) or
+        :math:`(6,)` (3D) for lattice parameters, or :math:`(d,d)` for
+        box vectors.
 
-           **Shapes**:
-
-           * 2D: :math:`(2,)` for dimensions, :math:`(3,)` for lattice
-             parameters, or :math:`(2,2)` for box vectors.
-           * 3D: :math:`(3,)` for dimensions, :math:`(6,)` for lattice
-             parameters, or :math:`(3,3)` for box vectors.
-
-        **Reference units**: Same as `coordinates` for lengths and
+        **Reference units**: :math:`\\mathrm{nm}` for lengths and
         degrees (:math:`^\\circ`) for angles.
 
     scaled_flags : array-like, optional
@@ -1101,7 +1083,7 @@ def scale_coordinates(
         along the respective axes. If not provided, all flags are
         assumed to be :code:`False`.
 
-        **Shape**: :math:`(2,)` or :math:`(3,)`.
+        **Shape**: :math:`(d,)`.
 
     in_place : `bool`, keyword-only, default: :code:`True`
         Specifies whether to modify the `coordinates` array in-place. If
@@ -1247,14 +1229,15 @@ def _unscale_coordinates(
 
            This function modifies this NumPy array in-place.
 
-        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+        **Shape**: :math:`(N,d)`, where :math:`d\\in\\{2,3\\}` is the
+        dimensionality.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
     box_vectors : `numpy.ndarray`
         Box vectors :math:`(\\mathbf{A};\\mathbf{B}[;\\mathbf{C}])`.
 
-        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+        **Shape**: :math:`(d,d)`.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
     """
@@ -1290,14 +1273,15 @@ def _wrap_coordinates_orthogonal(
 
            This function modifies this NumPy array in-place.
 
-        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+        **Shape**: :math:`(N,d)`, where :math:`d\\in\\{2,3\\}` is the
+        dimensionality.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
     dimensions : `numpy.ndarray`
         Box dimensions :math:`(L_x,L_y[,L_z])`.
 
-        **Shape**: :math:`(2,)` or :math:`(3,)`.
+        **Shape**: :math:`(d,)`.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
@@ -1347,12 +1331,15 @@ def _wrap_coordinates(
 
            This function modifies this NumPy array in-place.
 
-        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+        **Shape**: :math:`(N,d)`, where :math:`d\\in\\{2,3\\}` is the
+        dimensionality.
+
+        **Reference unit**: :math:`\\mathrm{nm}`.
 
     box_vectors : `numpy.ndarray`
         Box vectors :math:`(\\mathbf{A};\\mathbf{B}[;\\mathbf{C}])`.
 
-        **Shape**: :math:`(2,2)` or :math:`(3,3)`.
+        **Shape**: :math:`(d,d)`.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
@@ -1360,7 +1347,7 @@ def _wrap_coordinates(
         Flags indicating whether the coordinates should be wrapped
         along the respective axes.
 
-        **Shape**: :math:`(2,)` or :math:`(3,)`.
+        **Shapes**: :math:`(d,)`.
     """
 
     # No coordinate axes should be unwrapped; nothing to do
@@ -1416,7 +1403,8 @@ def wrap_coordinates(
     `pint.Quantity`
         Coordinates :math:`\\mathrm{r}` of :math:`N` entities.
 
-        **Shape**: :math:`(N,2)` or :math:`(N,3)`.
+        **Shape**: :math:`(N,d)`, where :math:`d\\in\\{2,3\\}` is the
+        dimensionality.
 
         **Reference unit**: :math:`\\mathrm{nm}`.
 
@@ -1431,16 +1419,11 @@ def wrap_coordinates(
            Lattice parameters should always be provided in an array
            without explicit units.
 
-        .. container::
+        **Shapes**: :math:`(d,)` for dimensions, :math:`(3,)` (2D) or
+        :math:`(6,)` (3D) for lattice parameters, or :math:`(d,d)` for
+        box vectors.
 
-           **Shapes**:
-
-           * 2D: :math:`(2,)` for dimensions, :math:`(3,)` for lattice
-             parameters, or :math:`(2,2)` for box vectors.
-           * 3D: :math:`(3,)` for dimensions, :math:`(6,)` for lattice
-             parameters, or :math:`(3,3)` for box vectors.
-
-        **Reference units**: Same as `coordinates` for lengths and
+        **Reference units**: :math:`\\mathrm{nm}` for lengths and
         degrees (:math:`^\\circ`) for angles.
 
     wrap_flags : array-like, optional
@@ -1448,7 +1431,7 @@ def wrap_coordinates(
         along the respective axes. If not provided, all flags are
         assumed to be :code:`True`.
 
-        **Shape**: :math:`(2,)` or :math:`(3,)`.
+        **Shape**: :math:`(d,)`.
 
     in_place : `bool`, keyword-only, default: :code:`True`
         Specifies whether to modify the `coordinates` array in-place. If

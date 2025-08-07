@@ -82,23 +82,16 @@ def correlation(
     Parameters
     ----------
     x : `numpy.ndarray`, positional-only
-        Time evolution of :math:`d`-dimensional data 
+        Time evolution of scalar or :math:`d`-dimensional data 
         :math:`\\mathbf{X}(t)` for :math:`N` entities over 
         :math:`N_\\mathrm{b}` blocks of :math:`N_t` times each.
 
-        .. container::
-
-           **Shape**:
-
-           * Scalar data: :math:`(N_t,)`, :math:`(N_t,N)`,
-             :math:`(N_\\mathrm{b},N_t)`, or
-             :math:`(N_\\mathrm{b},N_t,N)`.
-           * Vector data: :math:`(N_t,d)`, :math:`(N_t,N,d)`,
-             :math:`(N_\\mathrm{b},N_t,d)`, or
-             :math:`(N_\\mathrm{b},N_t,N,d)`.
+        **Shape**: :math:`(N_t[,d])`, :math:`(N_t,N[,d])`,
+        :math:`(N_\\mathrm{b},N_t[,d])`, or
+        :math:`(N_\\mathrm{b},N_t,N[,d])`.
 
     y : `numpy.ndarray`, positional-only, optional
-        Time evolution of :math:`d`-dimensional data 
+        Time evolution of scalar or :math:`d`-dimensional data 
         :math:`\\mathbf{Y}(t)` for another :math:`N` entities over
         :math:`N_\\mathrm{b}` blocks of :math:`N_t` times each. If 
         provided, the CCF for `x` and `y` is  evaluated. Otherwise, the
@@ -486,9 +479,9 @@ def msd(
         :math:`\\mathrm{MSD}_i(\\tau)` or 
         :math:`\\mathrm{CMSD}_{ij}(\\tau)`.
 
-        **Shape**: Same as the shape of `r_i`, except the last axis is
-        no longer present. If :code:`average=True`, the axis indexing
-        the :math:`N` entities is also no longer present.
+        **Shape**: Shape of `r_i`, except the last axis is no longer 
+        present. If :code:`average=True`, the axis indexing the 
+        :math:`N` entities is also no longer present.
 
         **Reference unit**: :math:`\\mathrm{nm}^2`.
 
