@@ -247,7 +247,7 @@ def calculate_transport_coefficients(
         # Iterate through all unique group pairings
         for i, msd in enumerate(msd_cross[:, b] / denom):
             y = msd[start:stop]
-            if len(x) > 1:
+            if len(y) > 1:
 
                 # Calculate L_ij
                 if scale == "linear":
