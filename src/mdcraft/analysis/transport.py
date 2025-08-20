@@ -251,7 +251,7 @@ def calculate_transport_coefficients(
 
                 # Calculate L_ij
                 if scale == "linear":
-                    valid = np.isfinite(y) & y!=0
+                    valid = np.isfinite(y) & (y!=0)
                     y = y[valid]
                     x = times[start:stop][valid]
 
