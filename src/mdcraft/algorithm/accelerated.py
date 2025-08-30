@@ -45,7 +45,7 @@ def numba_histogram_bin_edges(
 
 @numba.njit(fastmath=True)
 def numba_histogram(
-    array: np.ndarray[float], n_bins: int, bin_edges: np.ndarray[float]
+    array: np.ndarray[float], n_bins: int, bin_edges: np.ndarray[float], weights: np.ndarray[float] | None = None
 ) -> np.ndarray[int]:
     r"""
     Serial Numba-accelerated function to compute the histogram of a
@@ -63,6 +63,11 @@ def numba_histogram(
     bin_edges : `np.ndarray`
         Bin edges.
 
+    weights : `np.ndarray`, optional
+        Weights for each element in the array. If provided, the histogram
+        will be weighted by these values. If `None`, each element is counted
+        equally.
+
     Returns
     -------
     histogram_ : `np.ndarray`
@@ -70,14 +75,14 @@ def numba_histogram(
     """
 
     min_, max_ = bin_edges[0], bin_edges[-1]
-    histogram_ = np.zeros(n_bins, dtype=np.intp)
-    for x in array:
+    histogram_ = np.zeros(n_bins, dtype=np.float64)
+    for i, x in enumerate(array):
         if x == max_:
             bin_ = n_bins - 1
         else:
             bin_ = int(n_bins * (x - min_) / (max_ - min_))
         if 0 <= bin_ < n_bins:
-            histogram_[bin_] += 1
+            histogram_[bin_] += 1 if weights is None else weights[i]
     return histogram_
 
 
